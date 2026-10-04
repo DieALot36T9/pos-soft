@@ -4,6 +4,11 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-catalog)
+- `catalog` crate: products, units, categories, brands, barcodes, variants, kits, images, FTS5 search, archive, price history and sequences (CAT-01 to CAT-11, CHK-01 to CHK-03, CHK-14, CHK-15). Rust only; screens come in C-M4.
+- Search keeps one FTS5 row per sellable product, rewritten in the same transaction as every product, barcode, category or brand change. A new table `catalog_search_rows` links each product to its search row.
+- Pictures are resized with the `image` crate (PNG, JPEG, WebP) to a 512 px JPEG and a 96 px thumbnail.
+- 50k-product benchmark: `search` ≤ 150 ms and `find_by_code` ≤ 2 ms (`tests/benchmark.rs`, plus a criterion benchmark). Measured: about 10 ms and 4 µs.
 ### Changed (task A1: reuse before building, ADR-023)
 - Module crates are kept apart by **cargo-deny** (`deny.toml`, `wrappers = ["app"]`), which also checks licences, advisories and sources. CI runs `cargo deny check` and `scripts/check-module-bans.sh`, which proves a module depending on another module is refused. The hand-written xtask command for this is gone; `cargo xtask new-module` adds new modules to `deny.toml`.
 - Screen module folders are kept apart by **eslint-plugin-boundaries**, with a test that proves `pnpm lint` refuses a module importing another module.

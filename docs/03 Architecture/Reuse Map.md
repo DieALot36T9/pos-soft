@@ -61,11 +61,12 @@ tags: [architecture, reuse]
 | Command palette (`Ctrl+K`) | **cmdk** (shadcn/ui `Command`) | C tasks |
 | Tooltips, dialogs, menus | **Radix UI** via shadcn/ui | All screens |
 | Fake data for big test databases | **fake** crate | `xtask seed` |
-| Benchmarks | **criterion** | `xtask bench` |
+| Benchmarks | **criterion** | **In use** (B-catalog: `crates/catalog/benches/search.rs`, run with `cargo bench -p catalog`). `xtask bench` later |
 | Test coverage | **cargo-llvm-cov** | CI |
 | CI caching / tool install | `Swatinem/rust-cache`, `taiki-e/install-action`, `tauri-apps/tauri-action` | CI |
 | Database backup | SQLite's built-in `VACUUM INTO` | [[Module - db]] |
-| Product search | SQLite's built-in **FTS5** | [[Module - catalog]] |
+| Product search | SQLite's built-in **FTS5** | **In use** (B-catalog), [[Module - catalog]] |
+| Reading and resizing product pictures (PNG, JPEG, WebP) | **image** crate (MIT/Apache-2.0), only the `png`, `jpeg` and `webp` features | **In use** (B-catalog), [[Module - catalog]] |
 
 ## Things we write ourselves (and why)
 | Thing | Why no library fits |

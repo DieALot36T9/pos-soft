@@ -12,6 +12,8 @@ publish = false
 # Shared third-party versions. A crate lists only what its module page approves.
 [workspace.dependencies]
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde", "std"] }
+criterion = { version = "0.8.2", default-features = false, features = ["cargo_bench_support"] }
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
 num-format = "0.4.4"
 proptest = "1.11"
 rusqlite = { version = "0.40", features = ["bundled"] }
