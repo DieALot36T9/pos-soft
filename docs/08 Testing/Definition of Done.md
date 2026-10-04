@@ -9,6 +9,7 @@ A change (feature, fix or refactor) is **done** only when every box is ticked:
 - [ ] Tests name the requirement IDs they cover
 - [ ] All CI gates pass on Windows, Linux and macOS ([[Test Strategy#CI gates (merge is blocked if any fail)]])
 - [ ] No new warnings (clippy, tsc, eslint)
+- [ ] Nothing hand-written that a standard or library on the [[Reuse Map]] already does
 - [ ] [[Module Rules]] checklist passes (no cross-module imports or table access)
 - [ ] Generated TS types are up to date
 - [ ] New screen text is in the module's `text/en.ts`, in plain English, with a tooltip for every new button and field

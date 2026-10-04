@@ -4,6 +4,9 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Planned (task A1)
+- Reuse before building (ADR-023, Reuse Map): cargo-deny replaces `xtask check-deps`, eslint-plugin-boundaries replaces the custom ESLint rule, i18next replaces `useText`, num-format replaces hand-written digit grouping, single-instance plugin added, GitHub Actions moved off Node 20.
+
 ### Added
 - Cloud sessions set themselves up: a SessionStart hook runs `scripts/cloud-setup.sh`.
 - M0 Foundations (task A0): Cargo workspace with 19 crates, each module with its own `CLAUDE.md`.

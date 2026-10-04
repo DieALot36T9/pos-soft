@@ -14,5 +14,5 @@ tags: [guide, modules]
 5. Write contract tests for the API (failing).
 6. Implement: migrations → functions → tests green.
 7. Wire it into `app`: add `loyalty::migrations()` to `app/src/migrations.rs`, commands, workflows, permissions (new permissions default to Admin-only).
-8. Add it to [[Module Map]], [[Database Overview]] and the `check-deps` allow-list (as a module).
+8. Add it to [[Module Map]], [[Database Overview]] and `deny.toml` (ban the new crate with `wrappers = ["app"]`).
 9. Complete the [[Definition of Done]].

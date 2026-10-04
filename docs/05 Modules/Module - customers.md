@@ -45,7 +45,7 @@ CREATE VIEW customers_v_credit_ledger AS SELECT * FROM customers_credit_ledger;
 
 ## Public API
 ```rust
-pub fn normalize_phone(raw: &str) -> Result<String, AppError>;
+pub fn normalize_phone(raw: &str, default_country: &str) -> Result<String, AppError>; // E.164 via the `phonenumber` crate (libphonenumber rules)
 pub fn create(tx, NewCustomer, now) -> Result<Id>;
 pub fn update(tx, &Id, CustomerUpdate, now) -> Result<()>;
 pub fn lookup(conn, q: &str, limit: u32) -> Result<Vec<CustomerHit>>;   // phone prefix or name

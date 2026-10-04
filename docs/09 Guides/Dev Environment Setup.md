@@ -42,7 +42,7 @@ pnpm tauri dev
 | UI tests | `pnpm test` · `pnpm e2e` |
 | Lint everything | `cargo clippy --all-targets -- -D warnings && pnpm lint` |
 | Regenerate TS types | `cargo xtask gen-types` |
-| Check module boundaries | `cargo xtask check-deps` |
+| Check module boundaries | `cargo deny check` |
 | Demo data database | `cargo xtask seed --size demo --out dev.sqlite` |
 | Benchmarks | `cargo xtask bench` |
 | Release build (local) | `pnpm tauri build` |

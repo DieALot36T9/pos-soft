@@ -8,7 +8,7 @@ milestone: M1 (test), M7
 **Purpose:** turn data into printable bytes: a simple **document model** → layouts for receipts, X/Z reports, labels and shelf tags → a 1-bit **raster image** → **ESC/POS** or **TSPL** bytes. Pure. It never talks to devices.
 
 **Requirements:** [[Req - Hardware and Printing]], [[Req - Catalog]] CAT-12/13. **Design:** [[ADR-012 Receipts printed as raster images]].
-**Depends on:** `core`, `cosmic-text`, `tiny-skia`, `qrcode`, `image` (logo dithering). One font in `fonts/` (Noto Sans, open licence). Fonts for other languages can be added later ([[ADR-022 Ready for more languages later]]).
+**Depends on:** `core`, `escpos` (ESC/POS commands: picture printing, cut, drawer pulse), `cosmic-text`, `tiny-skia`, `qrcode`, `image` (logo dithering). One font in `fonts/` (Noto Sans, open licence). Fonts for other languages can be added later ([[ADR-022 Ready for more languages later]]).
 
 ## Document model
 ```rust

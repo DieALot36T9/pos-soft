@@ -25,10 +25,10 @@ supershop-pos/
 │       ├── tests/          # workflow integration tests
 │       ├── tauri.conf.json, capabilities/, icons/
 ├── ui/                           # see Frontend Architecture
-├── xtask/                        # cargo xtask: check-deps, gen-types, seed, bench, release-notes
+├── xtask/                        # cargo xtask: gen-types, seed, bench, release-notes
 ├── docs/                         # this Obsidian vault
 └── .github/workflows/
-    ├── ci.yml                    # fmt, clippy, tests, check-deps, types up to date, ui lint/test (3 OS)
+    ├── ci.yml                    # fmt, clippy, tests, types up to date, ui lint/test (3 OS)
     └── release.yml               # tauri-action builds + signing on tag
 ```
 

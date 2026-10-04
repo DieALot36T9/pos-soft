@@ -4,7 +4,7 @@ id: B-barcode
 model: claude-opus-5-5
 effort: medium
 phase: B
-depends_on: [A0]
+depends_on: [A0, A1]
 status: ready
 ---
 # Task B-barcode: Build the `barcode` module crate
@@ -14,6 +14,7 @@ status: ready
 **Start in a fresh session.** Work only on this module. You don't need to know the rest of the app.
 
 ## Read first (and nothing else unless needed)
+- [[Reuse Map]]: use the libraries listed for this module; don't hand-write what a listed library does
 - [[Module - barcode]]: the whole page, especially **"Working on this module"**
 - `crates/barcode/CLAUDE.md`
 - Requirements: [[Req - Checkout]] (CHK-08), [[Req - Catalog]]
@@ -29,7 +30,7 @@ Scale-label rule parsing (Odoo style), check digits, internal barcodes, SVG and 
 
 ## Done when
 - Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
-- `cargo nextest run -p barcode` is green. `cargo clippy -p barcode -- -D warnings` is clean. `cargo xtask check-deps` passes.
+- `cargo nextest run -p barcode` is green. `cargo clippy -p barcode -- -D warnings` is clean. `cargo deny check` passes.
 - Every test listed on the module page exists and names its requirement ID.
 - [[Module - barcode]] matches the code.
 - Pull request opened from branch `task/B-barcode`.

@@ -14,6 +14,7 @@ The design lives in the Obsidian vault at `docs/`. Start at `docs/00 Home.md`.
 - Business rules live in Rust. The UI displays data and calls commands; it never calculates totals, tax or stock.
 - Permissions are checked in `app` command handlers, in Rust.
 - Ledger tables are append-only. Never UPDATE or DELETE ledger rows.
+- **Reuse before building:** check `docs/03 Architecture/Reuse Map.md` first. Use established standards and maintained, permissively licensed libraries. Never copy code from GPL/LGPL/AGPL projects.
 - Tests first (red → green → refactor). A bug fix starts with a failing test.
 - Keep it simple: plain functions and structs. Don't add macros, trait hierarchies, async or generics unless a page in the vault records the need.
 - **Plain language everywhere** (docs, comments, names, screen text): see `docs/09 Guides/Writing Style.md`.

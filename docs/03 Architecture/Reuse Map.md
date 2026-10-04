@@ -1,0 +1,91 @@
+---
+tags: [architecture, reuse]
+---
+# Reuse Map
+
+**Rule: don't reinvent.** Before writing something, check this page. Use an established standard, library or open-source pattern if one fits. We only write our own code where nothing fits, and the reason is recorded here. Decision: [[ADR-023 Reuse before building]].
+
+## Standards we follow
+| Area | Standard | Where it's used |
+|---|---|---|
+| Barcodes | **GS1 General Specifications**: GTIN check digit (mod 10); restricted-circulation prefixes **20–29** for in-store and variable-measure (weighed) items | [[Module - barcode]]. Our internal prefix `200` and the scale prefixes `21`/`23` are inside the GS1 in-store range |
+| Scale stickers | **Odoo barcode nomenclature** pattern syntax (`21.....{NNDDD}`) | [[Module - barcode]] |
+| Receipt printers | **Epson ESC/POS** command set | [[Module - printing]] via the `escpos` crate |
+| Label printers | **TSC TSPL** | [[Module - printing]] |
+| Scales | Vendor protocols, e.g. **Mettler-Toledo MT-SICS**, CAS, Toledo 8217 | [[Module - hardware]] scale profiles |
+| Currencies | **ISO 4217** (codes and number of decimals) | `iso_currency` crate in [[Module - core]] and the setup wizard |
+| Phone numbers | **E.164**, via Google's libphonenumber rules | `phonenumber` crate in [[Module - customers]] |
+| Units | **UN/ECE Recommendation 20** unit codes (e.g. `H87` piece, `KGM` kilogram, `GRM` gram, `LTR` litre, `MLT` millilitre), stored as an optional code on each unit | [[Module - catalog]], ready for future e-invoicing |
+| Dates and times | **ISO 8601**; timestamps in UTC | [[Data Conventions]] |
+| IDs | **ULID** specification | `ulid` crate |
+| CSV | **RFC 4180** | `csv` crate |
+| Number formats | **Unicode CLDR** (the data behind `Intl.NumberFormat`) | Screens: `Intl.NumberFormat`. Receipts: `num-format` |
+| Passwords | **OWASP Password Storage Cheat Sheet**: argon2id, 19 MiB memory, 2 iterations, 1 lane | [[Module - auth]] |
+| Accessibility | **WCAG 2.2**, AAA contrast for text | [[Design System]] |
+| Permissions | Role-based access control (**RBAC**) | [[Module - auth]], [[Roles and Permissions]] |
+| Versions and changelog | **Semantic Versioning**, **Keep a Changelog**, **Conventional Commits** for commit messages | [[Release Process]] |
+| Decision records | **Michael Nygard's ADR format** | `04 Decisions/` |
+| Acceptance criteria | **Given / When / Then** (from BDD / Gherkin) | `02 Requirements/` |
+
+## Established patterns we use
+| Pattern | Source | Where |
+|---|---|---|
+| Money as integer minor units + **allocate** with largest remainder | Martin Fowler's *Money* pattern (*Patterns of Enterprise Application Architecture*); same approach as Stripe's API | [[Money Tax and Rounding]] |
+| Append-only ledgers with cached balances | Accounting ledgers; Odoo's stock moves | [[ADR-010 Append-only ledgers]] |
+| Price snapshots on order lines | Every major POS/ERP (Odoo, ERPNext) | [[ADR-011 Snapshots on sale lines]] |
+| Tax included/excluded in price | Odoo `price_include`, ERPNext "included in print rate" | [[ADR-008 Tax model]] |
+| Pricing rules and promotions | Odoo pricelists and loyalty programs, ERPNext pricing rules | [[Module - pricing]] |
+| X and Z reports, cash float, blind close | Standard retail/fiscal POS practice | [[Req - Shifts and Cash]] |
+| FEFO for expiring stock | Standard warehouse practice (Odoo removal strategies) | [[Module - inventory]] |
+| `cargo xtask` for project scripts | The common Rust convention (matklad's cargo-xtask) | `xtask/` |
+| Workspace of small crates | Common Rust practice for large apps | [[ADR-004 One crate per module]] |
+
+## Libraries instead of our own code
+| Need | Library | Status |
+|---|---|---|
+| Module crates must not depend on each other | **cargo-deny** `bans` with `wrappers = ["app"]` (also checks dependency **licenses**) | Replaces the hand-written `xtask check-deps` → task [[Task - A1 Reuse Alignment]] |
+| UI module folders must not import each other | **eslint-plugin-boundaries** | Replaces A0's custom ESLint rule → A1 |
+| Screen text and future languages | **i18next + react-i18next** with typed resources (`text/en.ts` files stay as namespaces) | Replaces A0's `useText` → A1 |
+| Digit grouping (Western / Indian) on receipts | **num-format** (`Grouping::Indian`) | Replaces A0's `group_digits` → A1 |
+| Money and number display on screens | Browser built-in **`Intl.NumberFormat`** | C tasks |
+| Only one copy of the app may run | **tauri-plugin-single-instance** | Added in A1 |
+| File open/save dialogs, files | **tauri-plugin-dialog**, **tauri-plugin-fs** | C tasks |
+| Remember window size/position | **tauri-plugin-window-state** | C-M2 |
+| ESC/POS encoding + network/USB/serial/file connections, cut, QR | **escpos** crate (MIT) | B-printing, B-hardware |
+| Barcode images / test decoding | **barcoders**, **rxing** | B-barcode |
+| Currency list (codes, decimals, symbols) | **iso_currency** | B-settings, C-M2 |
+| Phone number cleaning | **phonenumber** (libphonenumber port) | B-customers |
+| Log files with daily rotation and "keep 14" | **tracing-appender** (`Rotation::DAILY`, `max_log_files`) | C-M2 |
+| Keyboard shortcuts | **react-hotkeys-hook** (scopes, works in inputs), listed in one file | C-M6 |
+| Toast messages | **sonner** (shadcn/ui default) | C tasks |
+| Command palette (`Ctrl+K`) | **cmdk** (shadcn/ui `Command`) | C tasks |
+| Tooltips, dialogs, menus | **Radix UI** via shadcn/ui | All screens |
+| Fake data for big test databases | **fake** crate | `xtask seed` |
+| Benchmarks | **criterion** | `xtask bench` |
+| Test coverage | **cargo-llvm-cov** | CI |
+| CI caching / tool install | `Swatinem/rust-cache`, `taiki-e/install-action`, `tauri-apps/tauri-action` | CI |
+| Database backup | SQLite's built-in `VACUUM INTO` | [[Module - db]] |
+| Product search | SQLite's built-in **FTS5** | [[Module - catalog]] |
+
+## Things we write ourselves (and why)
+| Thing | Why no library fits |
+|---|---|
+| Per-module migration runner (`db`) | `rusqlite_migration` and `refinery` keep **one** version counter for the whole database. Our modules must add migrations independently, so versions are tracked per module. Small (~180 lines) and tested |
+| Pricing engine | Pricing rules are business-specific. We follow Odoo/ERPNext rule patterns, but there's no reusable Rust library |
+| Receipt layout (document → picture) | There's no receipt-layout library; text drawing itself uses **cosmic-text** and **tiny-skia** |
+| Scale protocol profiles | No Rust crate covers scale protocols; profiles follow each vendor's published protocol |
+| Windows print spooler "raw" connection | Added only if the `escpos` crate's Windows driver can't reach spooler-installed printers (checked in M13) |
+
+## Open-source projects to learn from
+| Project | Licence | Use it for |
+|---|---|---|
+| Odoo Point of Sale | LGPL-3.0 | Ideas: barcode nomenclature, pricelists, loyalty, sessions (shifts), receipts |
+| ERPNext / POS Awesome | GPL-3.0 | Ideas: pricing rules, tax templates, POS closing |
+| Open Source Point of Sale (OSPOS) | MIT | Ideas: barcode labels, stock, reports. Code can be reused with attribution |
+
+**Licence rule:** learn ideas from any project. **Copy code only from permissively licensed sources** (MIT, Apache-2.0, BSD, ISC, Zlib), with a comment saying where it came from. Never copy code from GPL, LGPL or AGPL projects. `cargo-deny` checks that our dependencies' licences are on the allowed list. *The product owner still has to choose this project's own licence. Until then, it's treated as closed source.*
+
+## How to use this page
+- Before writing a new helper, search here and on crates.io / npm for an established option.
+- If you add a library: it must be maintained (a release in the last year), widely used, and permissively licensed. Add it to this page in the same change.
+- If you write something yourself, add a row to "Things we write ourselves" with the reason.

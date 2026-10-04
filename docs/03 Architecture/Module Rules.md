@@ -7,9 +7,9 @@ These rules let someone work on one module without breaking the others. They're 
 
 ## R1. Dependencies
 - A module crate's `Cargo.toml` may list: `core`, `rusqlite`, `serde`, `thiserror`, `ulid`, and third-party crates **approved on its module page**.
-- **A module never depends on another module crate.** CI runs `cargo xtask check-deps`, which fails if any crate other than `app` lists a module crate.
+- **A module never depends on another module crate.** CI runs `cargo deny check`: `deny.toml` bans every module crate except as a direct dependency of `app` (`wrappers = ["app"]`). It also checks dependency licences.
 - `app` is the only crate that depends on every module.
-- One exception, for tests only: `reports` may list modules as **dev-dependencies**, so its tests can build those modules' views with their own migrations. `check-deps` allows this and nothing else.
+- One exception, for tests only: `reports` may list modules as **dev-dependencies**, so its tests can build those modules' views with their own migrations. Dev-dependencies are excluded from the `cargo-deny` graph, which allows this and nothing else.
 
 ## R2. Data ownership
 - Every table and view is prefixed with its module name: `catalog_products`, `sales_v_lines`.
@@ -28,7 +28,7 @@ These rules let someone work on one module without breaking the others. They're 
 
 ## R4. Migrations
 - Each module ships `migrations/NNN_description.sql`, embedded with `include_str!` and exposed as `pub fn migrations() -> ModuleMigrations`.
-- **Migrations are never edited after release.** Changes go in a new file. The runner stores checksums and refuses to start on a mismatch.
+- **Migrations are never edited after release.** Changes go in a new file. The runner stores checksums and refuses to start on a mismatch. (Our own small runner, because `rusqlite_migration`/`refinery` only keep one version for the whole database: see [[Reuse Map]].)
 - Migrations must work on an empty database **and** on any earlier released version (tested).
 
 ## R5. Changing a public API or view
@@ -44,7 +44,7 @@ These rules let someone work on one module without breaking the others. They're 
 
 ## R7. UI side
 - Each module's UI lives in `ui/src/modules/<module>/` with its own `api.ts`, pages, components and `text/en.ts` (all screen text).
-- UI modules import only `ui/src/shared/*`, `ui/src/generated/*` and their own folder. **No imports from another module's UI folder** (eslint `no-restricted-imports` rule). Shared widgets go to `shared/`.
+- UI modules import only `ui/src/shared/*`, `ui/src/generated/*` and their own folder. **No imports from another module's UI folder** (enforced by `eslint-plugin-boundaries`). Shared widgets go to `shared/`.
 
 ## R8. Every module carries its own instructions
 - Each module page in `05 Modules/` has a **"Working on this module"** section: folders, requirements, what it gets from `app`, who uses it, how to test it alone, and its traps. Reading that page, these rules and [[Module - core]] is enough to work on the module.
@@ -52,8 +52,12 @@ These rules let someone work on one module without breaking the others. They're 
 - Each module can be built and tested on its own: `cargo nextest run -p <name>`.
 - When a module's public API changes, its page's **Used by** list says which `app` workflows to re-test.
 
+## R9. Reuse before building
+Before writing a helper, check the [[Reuse Map]]. Use the listed standard or library. Our own code only where the Reuse Map says nothing fits ([[ADR-023 Reuse before building]]).
+
 ## Review checklist
 - [ ] No new module-to-module dependency
+- [ ] Nothing hand-written that a library on the [[Reuse Map]] already does
 - [ ] No SQL touching another module's tables
 - [ ] New tables/views prefixed; migration added, not edited
 - [ ] Public API changes covered by contract tests

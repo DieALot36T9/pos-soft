@@ -3,7 +3,7 @@ tags: [ui]
 ---
 # Keyboard Shortcuts
 
-One registry (`ui/src/shared/keyboard/`) defines every shortcut, so there are no conflicts and the help overlay (`F1`) is generated from it. Every button's tooltip also shows its shortcut, so staff learn the keys just by hovering.
+One list (`ui/src/shared/keyboard/`) defines every shortcut, wired up with **react-hotkeys-hook** (scopes keep checkout keys from clashing with dialogs), so there are no conflicts and the help overlay (`F1`) is generated from it. Every button's tooltip also shows its shortcut, so staff learn the keys just by hovering.
 
 ## Checkout
 | Key | Action |

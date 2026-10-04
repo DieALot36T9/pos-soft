@@ -8,7 +8,7 @@ milestone: M1 (test), M7
 **Purpose:** talk to devices. Send bytes to printers, read weights from scales, list available printers and serial ports. **No business knowledge.**
 
 **Requirements:** [[Req - Hardware and Printing]]. **Runbooks:** [[Printer Setup]], [[Scale Setup]].
-**Depends on:** `core`, `serialport`, `windows` (winspool, Windows only). `unsafe` is allowed **only** in `printer/windows_spooler.rs`.
+**Depends on:** `core`, `escpos` (its network, USB, serial and file connections), `serialport` (scales), `windows` (winspool, only if the `escpos` drivers can't reach spooler-installed printers; see [[Reuse Map]]). `unsafe` is allowed **only** in `printer/windows_spooler.rs`.
 
 ## Public API
 ```rust

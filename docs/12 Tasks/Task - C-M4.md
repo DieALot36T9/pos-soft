@@ -15,6 +15,7 @@ status: waiting
 This task connects finished module crates into the app (`crates/app/`) and builds their screens.
 
 ## Read first
+- [[Reuse Map]]: use the listed libraries (i18next, react-hotkeys-hook, Intl.NumberFormat, tauri plugins, …)
 - This milestone's row in [[Roadmap]]
 - Requirements: [[Req - Catalog]]
 - [[Module - app]] and the "Working on this module" section of each module involved

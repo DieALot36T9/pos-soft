@@ -21,7 +21,7 @@ Development and demo testing happen on **macOS** for now. Shops run **Windows** 
 | Big tables | **TanStack Table + TanStack Virtual** | Smooth scrolling through 50k rows |
 | Forms | **react-hook-form** | Simple, fast forms. Validation happens in Rust |
 | Routing | **React Router** (in-memory router) | Familiar; no URLs needed in a desktop app |
-| Screen text | Plain TypeScript files (`text/en.ts` per module) + a small `useText()` hook | English now. Typed, so more languages can be added later without code changes ([[ADR-022 Ready for more languages later]]) |
+| Screen text | **i18next + react-i18next**, one typed namespace per module (`text/en.ts`) | The standard; English now, more languages later without code changes ([[ADR-022 Ready for more languages later]]) |
 | Icons | **lucide-react** | Consistent, tree-shaken |
 | Rust ↔ TS types | **ts-rs** | Generates TS types from Rust structs, so they can't drift. [[ADR-014 Shared types with ts-rs]] |
 | IDs | **ulid** | Sortable, unique across tills. [[ADR-009 ULID ids and till identity]] |
@@ -41,6 +41,8 @@ Development and demo testing happen on **macOS** for now. Shops run **Windows** 
 | Package manager | **pnpm** | Fast, strict |
 | CI / releases | GitHub Actions + **tauri-action** | Builds for 3 OSes from one workflow |
 | Rust tooling | `cargo-nextest`, `clippy`, `rustfmt`, an `xtask` crate for scripts | Plain Rust scripts instead of shell scripts |
+
+Full list of standards and libraries, and what we still write ourselves: **[[Reuse Map]]**.
 
 ## Why not StyleX?
 StyleX (Meta's compile-time CSS-in-JS) is a good library, but it's **a worse choice when an AI is writing the code**:

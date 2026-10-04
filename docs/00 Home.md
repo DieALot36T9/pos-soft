@@ -17,6 +17,7 @@ An **offline, universal point-of-sale system for supermarkets and grocery shops*
 | Know the order of work | [[Roadmap]] |
 | Understand the system design | [[System Overview]] → [[Module Map]] → [[Module Rules]] |
 | See why a decision was made | [[ADR Index]] |
+| See which standards and libraries we use (and what we write ourselves) | [[Reuse Map]] |
 | Know exactly what a feature must do | [[Requirements Index]] |
 | Work on a module | `05 Modules/` → e.g. [[Module - sales]] |
 | See the screens | [[Screen Map]] |

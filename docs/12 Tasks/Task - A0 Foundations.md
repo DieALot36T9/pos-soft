@@ -4,7 +4,7 @@ id: A0
 model: claude-opus-5-5
 effort: medium
 phase: A
-status: in review
+status: done
 ---
 # Task A0: Foundations (milestone M0)
 

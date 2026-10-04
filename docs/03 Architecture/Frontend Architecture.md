@@ -15,8 +15,8 @@ ui/
 │   │   ├── ui/                  # flat components: ActionButton, IconButton, Tip, Field, DataTable, …
 │   │   ├── bridge/              # calls into Rust, error-to-message mapping, fake bridge for browser testing
 │   │   ├── format/              # formatMoney, formatQty, formatDate (using the shop's settings)
-│   │   ├── keyboard/            # the one list of shortcut keys
-│   │   ├── text/                # shared screen text: en/errors.ts, en/common.ts + useText() hook
+│   │   ├── keyboard/            # the one list of shortcut keys (used with react-hotkeys-hook)
+│   │   ├── text/                # i18next setup + shared namespaces (errors, common)
 │   │   └── theme.css            # colour tokens; shadows removed from the theme
 │   ├── generated/               # TypeScript types made from the Rust types. Don't edit by hand
 │   └── modules/
@@ -30,13 +30,14 @@ ui/
 1. **No business maths in TypeScript.** Totals, tax, discounts, stock and permissions all come from Rust. The UI only shows them.
 2. **All calls to Rust go through `modules/<x>/api.ts`.** Components never call `invoke` themselves.
 3. **Types come from `generated/`.** Never retype a Rust type by hand.
-4. **Modules stay separate:** a module folder imports only `shared/`, `generated/` and itself (an ESLint rule enforces it).
+4. **Modules stay separate:** a module folder imports only `shared/`, `generated/` and itself (`eslint-plugin-boundaries` enforces it).
 5. **Data from Rust** is loaded and refreshed with TanStack Query. The cart is the exception, see below.
 6. **Screen state** (which dialog is open, which line is selected) uses plain `useState`. No global store library.
-7. **All screen text lives in the module's `text/en.ts`** (labels, tooltips, messages), in plain English ([[Writing Style]]). Components get it with `const text = useText(checkoutText)` and use `text.holdButton.label` / `text.holdButton.tip`. No translation library is needed today. **Ready for more languages:** `en.ts` exports a TypeScript type, so a future `fr.ts` or `bn.ts` must have every key or the build fails. `useText` picks the file for the language in settings (only English exists in v1.0). See [[ADR-022 Ready for more languages later]].
+7. **All screen text lives in the module's `text/en.ts`** (labels, tooltips, messages), in plain English ([[Writing Style]]). Each `text/en.ts` is an **i18next namespace**. Components use `const { t } = useTranslation('checkout')` and `t('holdButton.tip')`. Keys are typed, so a wrong key is a build error. **Ready for more languages:** add a `text/<lang>.ts` per module and register it; i18next handles plurals and placeholders (only English exists in v1.0). See [[ADR-022 Ready for more languages later]].
 8. **Every button and field has a tooltip.** `ActionButton`, `IconButton` and `Field` require a `tip` prop, so TypeScript refuses code without one.
 9. **Flat styling only:** colour tokens from [[Design System]]. The theme has no shadow, blur or gradient utilities, and no animations except the new-line flash.
-10. **Money:** shown with `formatMoney(minor)`. Typed into `<MoneyInput>`, which returns whole minor units.
+10. **Money:** shown with `formatMoney(minor)`, built on the browser's `Intl.NumberFormat` (no hand-written grouping). Typed into `<MoneyInput>`, which returns whole minor units.
+11. **Libraries first:** check the [[Reuse Map]] before writing a helper (toasts: sonner, command palette: cmdk, shortcuts: react-hotkeys-hook).
 
 ## Checkout data flow (the fast path)
 ```mermaid
