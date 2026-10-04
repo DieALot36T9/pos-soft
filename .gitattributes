@@ -1,0 +1,6 @@
+# Same line endings on every OS. Migration checksums are taken over the SQL
+# text, so a Windows checkout must not turn LF into CRLF.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.icns binary
