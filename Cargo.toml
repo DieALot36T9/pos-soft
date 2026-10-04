@@ -13,6 +13,7 @@ publish = false
 [workspace.dependencies]
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde", "std"] }
 num-format = "0.4.4"
+phonenumber = "0.3.10"
 proptest = "1.11"
 rusqlite = { version = "0.40", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }

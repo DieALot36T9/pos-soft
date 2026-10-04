@@ -54,7 +54,7 @@ tags: [architecture, reuse]
 | ESC/POS encoding + network/USB/serial/file connections, cut, QR | **escpos** crate (MIT) | B-printing, B-hardware |
 | Barcode images / test decoding | **barcoders**, **rxing** | B-barcode |
 | Currency list (codes, decimals, symbols) | **iso_currency** | B-settings, C-M2 |
-| Phone number cleaning | **phonenumber** (libphonenumber port) | B-customers |
+| Phone number cleaning | **phonenumber** (libphonenumber port, Apache-2.0) | **In use** (B-customers), in `customers::normalize_phone` |
 | Log files with daily rotation and "keep 14" | **tracing-appender** (`Rotation::DAILY`, `max_log_files`) | C-M2 |
 | Keyboard shortcuts | **react-hotkeys-hook** (scopes, works in inputs), listed in one file | C-M6 |
 | Toast messages | **sonner** (shadcn/ui default) | C tasks |
@@ -83,7 +83,7 @@ tags: [architecture, reuse]
 | ERPNext / POS Awesome | GPL-3.0 | Ideas: pricing rules, tax templates, POS closing |
 | Open Source Point of Sale (OSPOS) | MIT | Ideas: barcode labels, stock, reports. Code can be reused with attribution |
 
-**Licences we accept for Tauri's own dependencies:** a few crates that Tauri needs are under **MPL-2.0** (`cssparser`, `cssparser-macros`, `selectors`, `dtoa-short` through `tauri-utils`; `option-ext` through `dirs`). MPL-2.0 only asks that changes to those files stay open; we use them unchanged. `deny.toml` allows MPL-2.0 for exactly these crates, not for any other dependency. One advisory is ignored in `deny.toml`: `proc-macro-error` is unmaintained (RUSTSEC-2024-0370), but it only runs at build time, inside Tauri's Linux window toolkit (gtk-rs).
+**Licences we accept for Tauri's own dependencies:** a few crates that Tauri needs are under **MPL-2.0** (`cssparser`, `cssparser-macros`, `selectors`, `dtoa-short` through `tauri-utils`; `option-ext` through `dirs`). MPL-2.0 only asks that changes to those files stay open; we use them unchanged. `deny.toml` allows MPL-2.0 for exactly these crates, not for any other dependency. Two advisories are ignored in `deny.toml`. `proc-macro-error` is unmaintained (RUSTSEC-2024-0370), but it only runs at build time, inside Tauri's Linux window toolkit (gtk-rs). `atomic-polyfill` is unmaintained (RUSTSEC-2023-0089); it comes from `phonenumber` → `postcard` → `heapless` 0.7, which reads the built-in phone rules. On our targets it only uses the standard atomics, and no safe upgrade exists yet. Both are "unmaintained" notices, not security holes.
 
 **Licence rule:** learn ideas from any project. **Copy code only from permissively licensed sources** (MIT, Apache-2.0, BSD, ISC, Zlib), with a comment saying where it came from. Never copy code from GPL, LGPL or AGPL projects. `cargo-deny` checks that our dependencies' licences are on the allowed list. *The product owner still has to choose this project's own licence. Until then, it's treated as closed source.*
 

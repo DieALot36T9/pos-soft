@@ -4,6 +4,9 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-customers)
+- `customers` crate: customer records with phone numbers cleaned to E.164 by the **phonenumber** crate (CUS-01), search by any part of the phone or the start of name words (CUS-02), the points ledger with earn/redeem/reverse/adjust rules (CUS-04), the credit ledger with debt, payments, store credit used before new debt, statements and oldest unpaid debt for aging (CUS-05, CUS-06), voids that write opposite rows once, and the points maths (E16, PAY-05). Both ledgers are append-only (triggers). Views: `customers_v_customers`, `customers_v_credit_ledger`, `customers_v_points_ledger`.
+- `deny.toml` ignores the "unmaintained" notice for `atomic-polyfill`, which `phonenumber` pulls in (see Reuse Map).
 ### Changed (task A1: reuse before building, ADR-023)
 - Module crates are kept apart by **cargo-deny** (`deny.toml`, `wrappers = ["app"]`), which also checks licences, advisories and sources. CI runs `cargo deny check` and `scripts/check-module-bans.sh`, which proves a module depending on another module is refused. The hand-written xtask command for this is gone; `cargo xtask new-module` adds new modules to `deny.toml`.
 - Screen module folders are kept apart by **eslint-plugin-boundaries**, with a test that proves `pnpm lint` refuses a module importing another module.
