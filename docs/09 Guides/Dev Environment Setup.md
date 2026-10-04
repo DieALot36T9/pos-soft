@@ -10,7 +10,7 @@ tags: [guide]
 | Build tools | Visual Studio Build Tools (C++ workload) | Xcode Command Line Tools | `build-essential`, `libwebkit2gtk-4.1-dev`, `libssl-dev`, `libayatana-appindicator3-dev`, `librsvg2-dev`, `libudev-dev` (serial) |
 | WebView2 | Preinstalled on Windows 11 / recent 10 | — | — |
 | Node.js LTS + pnpm (via corepack) | ✅ | ✅ | ✅ |
-| cargo tools | `cargo install cargo-nextest tauri-cli --locked` | same | same |
+| cargo tools | `cargo install cargo-nextest cargo-deny tauri-cli --locked` | same | same |
 | Fast linker (optional) | `lld` (rust-lld) | default | `mold` or `lld` |
 
 The [Tauri prerequisites guide](https://v2.tauri.app/start/prerequisites/) is the authority if this list goes stale.
@@ -42,7 +42,8 @@ pnpm tauri dev
 | UI tests | `pnpm test` · `pnpm e2e` |
 | Lint everything | `cargo clippy --all-targets -- -D warnings && pnpm lint` |
 | Regenerate TS types | `cargo xtask gen-types` |
-| Check module boundaries | `cargo deny check` |
+| Check module boundaries, licences and advisories | `cargo deny check` |
+| Prove the module bans work | `bash scripts/check-module-bans.sh` (macOS/Linux) |
 | Demo data database | `cargo xtask seed --size demo --out dev.sqlite` |
 | Benchmarks | `cargo xtask bench` |
 | Release build (local) | `pnpm tauri build` |

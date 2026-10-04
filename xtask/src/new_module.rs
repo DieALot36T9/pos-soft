@@ -49,13 +49,11 @@ pub fn run(root: &Path, name: &str) -> Result<(), String> {
         &fill(EN_TS, name, &type_name),
     )?;
     write(
-        &screen_folder.join("text/index.ts"),
-        &fill(TEXT_INDEX_TS, name, &type_name),
-    )?;
-    write(
         &screen_folder.join("CLAUDE.md"),
         &fill(&claude_template, name, &type_name),
     )?;
+
+    add_to_deny_list(root, name)?;
 
     let page = root.join(format!("docs/05 Modules/Module - {name}.md"));
     if !page.exists() {
@@ -64,9 +62,24 @@ pub fn run(root: &Path, name: &str) -> Result<(), String> {
     }
 
     println!(
-        "new-module: made `{name}`. Next steps: docs/09 Guides/Adding a Module.md (from step 4)."
+        "new-module: made `{name}` and banned it in deny.toml. Next steps: docs/09 Guides/Adding a Module.md (from step 4)."
     );
     Ok(())
+}
+
+/// Bans the new crate in `deny.toml`, so only `app` may depend on it (rule R1).
+fn add_to_deny_list(root: &Path, name: &str) -> Result<(), String> {
+    let path = root.join("deny.toml");
+    let settings = read(&path)?;
+    let list_start = "deny = [\n";
+    let position = settings
+        .find(list_start)
+        .ok_or("deny.toml has no `deny = [` list under [bans]")?
+        + list_start.len();
+    let entry = format!("    {{ crate = \"{name}\", wrappers = [\"app\"] }},\n");
+    let mut updated = settings;
+    updated.insert_str(position, &entry);
+    write(&path, &updated)
 }
 
 /// A module name is lower-case letters, digits and `_`, and not already used.
@@ -227,17 +240,11 @@ export {};
 "#;
 
 const EN_TS: &str = r#"// All screen text for the {{name}} module: labels, tooltips and messages, in plain English.
-// A future language copies this shape exactly, so keep every word here (ADR-022).
+// This is the i18next namespace "{{name}}", registered in ui/src/app/i18n.ts. Components
+// use: const { t } = useTranslation("{{name}}"). Keep every word here (ADR-022).
 export const en = {};
 
 export type {{Name}}Text = typeof en;
-"#;
-
-const TEXT_INDEX_TS: &str = r#"import type { TextBundle } from "../../../shared/text/useText";
-import { en, type {{Name}}Text } from "./en";
-
-// Every language for this module. Only English exists today.
-export const {{name}}Text: TextBundle<{{Name}}Text> = { en };
 "#;
 
 #[cfg(test)]
@@ -254,6 +261,7 @@ mod tests {
         let real_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
         fs::create_dir_all(root.join("docs/Templates")).unwrap();
         fs::create_dir_all(root.join("docs/05 Modules")).unwrap();
+        fs::copy(real_root.join("deny.toml"), root.join("deny.toml")).unwrap();
         for template in [
             "Template - Module Page.md",
             "Template - Module CLAUDE.md.md",
@@ -281,7 +289,6 @@ mod tests {
             "crates/stock_take/CLAUDE.md",
             "ui/src/modules/stock_take/api.ts",
             "ui/src/modules/stock_take/text/en.ts",
-            "ui/src/modules/stock_take/text/index.ts",
             "ui/src/modules/stock_take/CLAUDE.md",
             "docs/05 Modules/Module - stock_take.md",
         ] {
@@ -292,6 +299,8 @@ mod tests {
         let claude_md = read(&root.join("crates/stock_take/CLAUDE.md")).unwrap();
         assert!(claude_md.starts_with("# Module: stock_take"));
         assert!(!claude_md.contains("<name>"));
+        let deny = read(&root.join("deny.toml")).unwrap();
+        assert!(deny.contains("{ crate = \"stock_take\", wrappers = [\"app\"] },"));
 
         fs::remove_dir_all(&root).unwrap();
     }

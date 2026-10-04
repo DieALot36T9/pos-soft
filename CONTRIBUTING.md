@@ -21,7 +21,7 @@ This page is short on purpose. The rules live in the design vault in `docs/`.
 | Test one module | `cargo nextest run -p catalog` (core is `-p pos-core`) |
 | Test everything | `cargo nextest run --workspace` and `pnpm test` |
 | Lint | `cargo clippy --workspace --all-targets -- -D warnings` and `pnpm lint` |
-| Module boundaries | `cargo xtask check-deps` |
+| Module boundaries, licences, advisories | `cargo deny check` (screens: `pnpm lint`) |
 | TypeScript types from Rust | `cargo xtask gen-types` |
 | New module | `cargo xtask new-module <name>`, then `docs/09 Guides/Adding a Module.md` |
 

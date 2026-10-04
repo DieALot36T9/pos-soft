@@ -10,13 +10,14 @@ How the screens are built. Stack: React 19, TypeScript (strict), Vite, Tailwind 
 ui/
 ├── src/
 │   ├── main.tsx                 # start-up: providers and router
-│   ├── app/                     # the frame: layout, side menu, routes, lock screen, error screen
+│   ├── app/                     # the frame: layout, side menu, routes, lock screen, error screen;
+│   │                            #   i18n.ts registers every text namespace (i18next)
 │   ├── shared/
 │   │   ├── ui/                  # flat components: ActionButton, IconButton, Tip, Field, DataTable, …
 │   │   ├── bridge/              # calls into Rust, error-to-message mapping, fake bridge for browser testing
 │   │   ├── format/              # formatMoney, formatQty, formatDate (using the shop's settings)
 │   │   ├── keyboard/            # the one list of shortcut keys (used with react-hotkeys-hook)
-│   │   ├── text/                # i18next setup + shared namespaces (errors, common)
+│   │   ├── text/                # i18next settings + shared namespaces (en/common.ts, en/errors.ts)
 │   │   └── theme.css            # colour tokens; shadows removed from the theme
 │   ├── generated/               # TypeScript types made from the Rust types. Don't edit by hand
 │   └── modules/
@@ -33,7 +34,7 @@ ui/
 4. **Modules stay separate:** a module folder imports only `shared/`, `generated/` and itself (`eslint-plugin-boundaries` enforces it).
 5. **Data from Rust** is loaded and refreshed with TanStack Query. The cart is the exception, see below.
 6. **Screen state** (which dialog is open, which line is selected) uses plain `useState`. No global store library.
-7. **All screen text lives in the module's `text/en.ts`** (labels, tooltips, messages), in plain English ([[Writing Style]]). Each `text/en.ts` is an **i18next namespace**. Components use `const { t } = useTranslation('checkout')` and `t('holdButton.tip')`. Keys are typed, so a wrong key is a build error. **Ready for more languages:** add a `text/<lang>.ts` per module and register it; i18next handles plurals and placeholders (only English exists in v1.0). See [[ADR-022 Ready for more languages later]].
+7. **All screen text lives in the module's `text/en.ts`** (labels, tooltips, messages), in plain English ([[Writing Style]]). Each `text/en.ts` is an **i18next namespace**. Components use `const { t } = useTranslation('checkout')` and `t('holdButton.tip')`. Every namespace is registered in `app/i18n.ts`, and `app/i18next.d.ts` gives TypeScript all the keys, so a wrong key or namespace is a build error (`app/i18n.test.tsx` proves it). Placeholders use i18next's `{{name}}`. **Ready for more languages:** add a `text/<lang>.ts` per module and register it; i18next handles plurals and placeholders (only English exists in v1.0). See [[ADR-022 Ready for more languages later]].
 8. **Every button and field has a tooltip.** `ActionButton`, `IconButton` and `Field` require a `tip` prop, so TypeScript refuses code without one.
 9. **Flat styling only:** colour tokens from [[Design System]]. The theme has no shadow, blur or gradient utilities, and no animations except the new-line flash.
 10. **Money:** shown with `formatMoney(minor)`, built on the browser's `Intl.NumberFormat` (no hand-written grouping). Typed into `<MoneyInput>`, which returns whole minor units.
@@ -65,7 +66,7 @@ sequenceDiagram
 See [[Screen Map]].
 
 ## Errors
-- Rust sends `AppError` as `{ code, params, field? }`. The bridge looks up the plain-English message for `code` in `shared/text/errors.ts`.
+- Rust sends `AppError` as `{ code, params, field? }`. `errorMessage(error, t)` looks up the plain-English message for `code` in the `errors` namespace (`shared/text/en/errors.ts`), with `t` from `useTranslation('errors')`.
 - `OverrideRequired` makes the bridge open the **admin approval** dialog, then repeat the same action with the approval.
 - If `field` is set, the message is shown under that field in the form.
 - An unexpected error shows "Something went wrong (ref ABC123)" with a "Copy details" button. The details go to the log.

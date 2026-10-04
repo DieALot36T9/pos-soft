@@ -9,6 +9,7 @@ supershop-pos/
 ├── CONTRIBUTING.md               # short; links to docs/09 Guides/Coding Standards
 ├── Cargo.toml                    # workspace, shared lints and profiles
 ├── rust-toolchain.toml           # pinned stable toolchain
+├── deny.toml                     # cargo-deny: module bans (R1), allowed licences, advisories
 ├── package.json, pnpm-lock.yaml  # UI workspace
 ├── crates/
 │   ├── core/        src/{lib.rs, money.rs, qty.rs, bps.rs, id.rs, time.rs, error.rs, permission.rs, rounding.rs}
@@ -25,17 +26,19 @@ supershop-pos/
 │       ├── tests/          # workflow integration tests
 │       ├── tauri.conf.json, capabilities/, icons/
 ├── ui/                           # see Frontend Architecture
-├── xtask/                        # cargo xtask: gen-types, seed, bench, release-notes
+├── xtask/                        # cargo xtask: gen-types, new-module, seed, bench, release-notes
+├── scripts/                      # cloud-setup.sh, check-module-bans.sh
 ├── docs/                         # this Obsidian vault
 └── .github/workflows/
-    ├── ci.yml                    # fmt, clippy, tests, types up to date, ui lint/test (Linux every push, Windows on pull requests, Mac on label or tag)
+    ├── ci.yml                    # cargo deny, fmt, clippy, tests, types up to date, ui lint/test (Linux every push, Windows on pull requests, Mac on label or tag)
     └── release.yml               # tauri-action builds + signing on tag
 ```
 
 **Notes on the built layout (task A0):**
 - The `core` folder holds the package **`pos-core`** (code writes `pos_core::Money`), because Rust already has a crate called `core`. See [[Module - core]].
-- `scripts/cloud-setup.sh` gets a fresh Linux machine or cloud session ready (Rust, Node/pnpm, cargo-nextest, Tauri's Linux packages).
-- `xtask` has `check-deps`, `gen-types` and `new-module` so far. `seed`, `bench` and `release-notes` come later.
+- `scripts/cloud-setup.sh` gets a fresh Linux machine or cloud session ready (Rust, Node/pnpm, cargo-nextest, cargo-deny, Tauri's Linux packages).
+- `xtask` has `gen-types` and `new-module` so far. `seed`, `bench` and `release-notes` come later.
+- Since task A1, module boundaries are checked by standard tools: `cargo deny check` with `deny.toml` (Rust), and `eslint-plugin-boundaries` in `ui/eslint.config.js` (screens). `scripts/check-module-bans.sh` proves the Rust bans catch a bad dependency.
 - `.cargo/config.toml` adds the `cargo xtask` alias and the ts-rs settings. `clippy.toml` lets tests use `unwrap`.
 - Only `ci.yml` exists so far; `release.yml` comes with signing (M15).
 

@@ -7,9 +7,9 @@ These rules let someone work on one module without breaking the others. They're 
 
 ## R1. Dependencies
 - A module crate's `Cargo.toml` may list: `core`, `rusqlite`, `serde`, `thiserror`, `ulid`, and third-party crates **approved on its module page**.
-- **A module never depends on another module crate.** CI runs `cargo deny check`: `deny.toml` bans every module crate except as a direct dependency of `app` (`wrappers = ["app"]`). It also checks dependency licences.
+- **A module never depends on another module crate.** CI runs `cargo deny check`: `deny.toml` bans every module crate except as a direct dependency of `app` (`wrappers = ["app"]`). It also checks dependency licences, security advisories and crate sources. `scripts/check-module-bans.sh` (run in CI) proves the ban works by adding a bad dependency to a throw-away copy of the repo. `cargo xtask new-module` adds each new module to the ban list.
 - `app` is the only crate that depends on every module.
-- One exception, for tests only: `reports` may list modules as **dev-dependencies**, so its tests can build those modules' views with their own migrations. Dev-dependencies are excluded from the `cargo-deny` graph, which allows this and nothing else.
+- One exception, for tests only: `reports` may list modules as **dev-dependencies**, so its tests can build those modules' views with their own migrations. Dev-dependencies are excluded from the `cargo-deny` graph to allow this. cargo-deny can't exclude them for `reports` only, so **review checks that no other crate lists a module as a dev-dependency**.
 
 ## R2. Data ownership
 - Every table and view is prefixed with its module name: `catalog_products`, `sales_v_lines`.
@@ -44,7 +44,7 @@ These rules let someone work on one module without breaking the others. They're 
 
 ## R7. UI side
 - Each module's UI lives in `ui/src/modules/<module>/` with its own `api.ts`, pages, components and `text/en.ts` (all screen text).
-- UI modules import only `ui/src/shared/*`, `ui/src/generated/*` and their own folder. **No imports from another module's UI folder** (enforced by `eslint-plugin-boundaries`). Shared widgets go to `shared/`.
+- UI modules import only `ui/src/shared/*`, `ui/src/generated/*` and their own folder. **No imports from another module's UI folder** (enforced by `eslint-plugin-boundaries` in `ui/eslint.config.js`; `ui/src/app/moduleBoundaries.test.ts` proves it refuses such an import). `shared/` imports only `shared/` and `generated/`; `app/` may import everything. Shared widgets go to `shared/`.
 
 ## R8. Every module carries its own instructions
 - Each module page in `05 Modules/` has a **"Working on this module"** section: folders, requirements, what it gets from `app`, who uses it, how to test it alone, and its traps. Reading that page, these rules and [[Module - core]] is enough to work on the module.

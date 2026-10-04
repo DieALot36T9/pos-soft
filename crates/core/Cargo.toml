@@ -13,6 +13,7 @@ name = "pos_core"
 
 [dependencies]
 chrono.workspace = true
+num-format.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 ts-rs.workspace = true

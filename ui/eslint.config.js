@@ -1,51 +1,39 @@
 // Lint rules for the screens. See docs/09 Guides/Coding Standards.md.
-import path from "node:path";
-
 import js from "@eslint/js";
+import boundaries from "eslint-plugin-boundaries";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-const sourceFolder = path.resolve(import.meta.dirname, "src");
+// Rule R7 (Module Rules), checked by eslint-plugin-boundaries (Reuse Map):
+// a module folder imports only shared/, generated/ and itself; shared/ imports only
+// shared/ and generated/; app/ may import everything.
+const elements = [
+  { type: "app", pattern: "src/app" },
+  { type: "shared", pattern: "src/shared" },
+  { type: "generated", pattern: "src/generated" },
+  // Each module folder is its own element, named by its folder.
+  { type: "module", pattern: "src/modules/*", capture: ["name"] },
+];
 
-// Which top-level part of src/ a file is in: "modules/catalog", "shared", "app", …
-function areaOf(file) {
-  const relative = path.relative(sourceFolder, file).split(path.sep);
-  if (relative[0] === "modules") {
-    return `modules/${relative[1]}`;
-  }
-  return relative[0];
-}
-
-// Rule R7 (Module Rules): a module folder imports only shared/, generated/ and itself.
-// shared/ imports only shared/ and generated/.
-const moduleBoundaries = {
-  meta: { type: "problem", schema: [] },
-  create(context) {
-    const fromArea = areaOf(context.filename);
-    return {
-      ImportDeclaration(node) {
-        const target = node.source.value;
-        if (typeof target !== "string" || !target.startsWith(".")) {
-          return;
-        }
-        const toArea = areaOf(path.resolve(path.dirname(context.filename), target));
-        const isOwnArea = toArea === fromArea;
-        // Files outside src/ (such as the shared money examples) are not screen code.
-        const isAlwaysAllowed = toArea === "shared" || toArea === "generated" || toArea === "..";
-        const fromModule = fromArea.startsWith("modules/");
-        const fromShared = fromArea === "shared";
-        if ((fromModule || fromShared) && !isOwnArea && !isAlwaysAllowed) {
-          context.report({
-            node,
-            message: `${fromArea} may not import from ${toArea}. Move shared code to src/shared/.`,
-          });
-        }
-      },
-    };
+const boundaryPolicies = [
+  { from: { element: { type: "app" } }, allow: { to: { element: { type: "*" } } } },
+  {
+    from: { element: { type: "shared" } },
+    allow: { to: { element: { types: { anyOf: ["shared", "generated"] } } } },
   },
-};
+  {
+    from: { element: { type: "module" } },
+    allow: { to: { element: { types: { anyOf: ["shared", "generated"] } } } },
+  },
+  {
+    from: { element: { type: "module" } },
+    allow: {
+      to: { element: { type: "module", captured: { name: "{{ from.element.captured.name }}" } } },
+    },
+  },
+];
 
 export default tseslint.config(
   { ignores: ["dist", "src/generated", "node_modules"] },
@@ -59,11 +47,16 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
-    settings: { react: { version: "detect" } },
+    settings: {
+      react: { version: "detect" },
+      "boundaries/elements": elements,
+      // Lets the boundaries rule find .ts/.tsx files from imports written without the extension.
+      "import/resolver": { typescript: { project: "./tsconfig.json" } },
+    },
     plugins: {
       react,
       "react-hooks": reactHooks,
-      local: { rules: { "module-boundaries": moduleBoundaries } },
+      boundaries,
     },
     rules: {
       ...react.configs.recommended.rules,
@@ -73,7 +66,7 @@ export default tseslint.config(
       "@typescript-eslint/no-non-null-assertion": "error",
       // Screen text lives in text/en.ts, never inline (ADR-022).
       "react/jsx-no-literals": ["error", { noStrings: true, ignoreProps: true }],
-      "local/module-boundaries": "error",
+      "boundaries/dependencies": ["error", { default: "disallow", policies: boundaryPolicies }],
     },
   },
   {

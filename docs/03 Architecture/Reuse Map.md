@@ -43,12 +43,12 @@ tags: [architecture, reuse]
 ## Libraries instead of our own code
 | Need | Library | Status |
 |---|---|---|
-| Module crates must not depend on each other | **cargo-deny** `bans` with `wrappers = ["app"]` (also checks dependency **licenses**) | Replaces the hand-written `xtask check-deps` → task [[Task - A1 Reuse Alignment]] |
-| UI module folders must not import each other | **eslint-plugin-boundaries** | Replaces A0's custom ESLint rule → A1 |
-| Screen text and future languages | **i18next + react-i18next** with typed resources (`text/en.ts` files stay as namespaces) | Replaces A0's `useText` → A1 |
-| Digit grouping (Western / Indian) on receipts | **num-format** (`Grouping::Indian`) | Replaces A0's `group_digits` → A1 |
+| Module crates must not depend on each other | **cargo-deny** `bans` with `wrappers = ["app"]` (also checks dependency **licenses**, advisories and sources), set up in `deny.toml` | **In use** (A1). CI also runs `scripts/check-module-bans.sh` to prove a bad dependency is refused |
+| UI module folders must not import each other | **eslint-plugin-boundaries**, with **eslint-import-resolver-typescript** so it can follow imports written without `.ts`/`.tsx` | **In use** (A1) |
+| Screen text and future languages | **i18next + react-i18next** with typed resources (`text/en.ts` files stay as namespaces, registered in `ui/src/app/i18n.ts`) | **In use** (A1) |
+| Digit grouping (Western / Indian) on receipts | **num-format** (`Grouping::Standard` / `Grouping::Indian`) | **In use** (A1), in `core::format_money` |
 | Money and number display on screens | Browser built-in **`Intl.NumberFormat`** | C tasks |
-| Only one copy of the app may run | **tauri-plugin-single-instance** | Added in A1 |
+| Only one copy of the app may run | **tauri-plugin-single-instance** | **In use** (A1), in `app::run()` |
 | File open/save dialogs, files | **tauri-plugin-dialog**, **tauri-plugin-fs** | C tasks |
 | Remember window size/position | **tauri-plugin-window-state** | C-M2 |
 | ESC/POS encoding + network/USB/serial/file connections, cut, QR | **escpos** crate (MIT) | B-printing, B-hardware |
@@ -82,6 +82,8 @@ tags: [architecture, reuse]
 | Odoo Point of Sale | LGPL-3.0 | Ideas: barcode nomenclature, pricelists, loyalty, sessions (shifts), receipts |
 | ERPNext / POS Awesome | GPL-3.0 | Ideas: pricing rules, tax templates, POS closing |
 | Open Source Point of Sale (OSPOS) | MIT | Ideas: barcode labels, stock, reports. Code can be reused with attribution |
+
+**Licences we accept for Tauri's own dependencies:** a few crates that Tauri needs are under **MPL-2.0** (`cssparser`, `cssparser-macros`, `selectors`, `dtoa-short` through `tauri-utils`; `option-ext` through `dirs`). MPL-2.0 only asks that changes to those files stay open; we use them unchanged. `deny.toml` allows MPL-2.0 for exactly these crates, not for any other dependency. One advisory is ignored in `deny.toml`: `proc-macro-error` is unmaintained (RUSTSEC-2024-0370), but it only runs at build time, inside Tauri's Linux window toolkit (gtk-rs).
 
 **Licence rule:** learn ideas from any project. **Copy code only from permissively licensed sources** (MIT, Apache-2.0, BSD, ISC, Zlib), with a comment saying where it came from. Never copy code from GPL, LGPL or AGPL projects. `cargo-deny` checks that our dependencies' licences are on the allowed list. *The product owner still has to choose this project's own licence. Until then, it's treated as closed source.*
 

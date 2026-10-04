@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Get a fresh Linux machine (a Claude cloud session or a new dev box) ready to
-# build and test the whole project: Rust, Node and pnpm, cargo-nextest, and the
-# Linux packages that Tauri needs. Safe to run more than once.
+# build and test the whole project: Rust, Node and pnpm, cargo-nextest, cargo-deny,
+# and the Linux packages that Tauri needs. Safe to run more than once.
 #
 # Use it as the cloud environment's setup script:  bash scripts/cloud-setup.sh
 set -euo pipefail
 
 NEXTEST_VERSION="0.9.146"
+DENY_VERSION="0.20.2"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 say() { printf '\n== %s\n' "$*"; }
@@ -60,6 +61,20 @@ install_nextest() {
   fi
 }
 
+install_cargo_deny() {
+  say "cargo-deny $DENY_VERSION"
+  if command -v cargo-deny >/dev/null 2>&1 && cargo deny --version | grep -q "$DENY_VERSION"; then
+    echo "Already installed."
+    return
+  fi
+  local name="cargo-deny-${DENY_VERSION}-x86_64-unknown-linux-musl"
+  local url="https://github.com/EmbarkStudios/cargo-deny/releases/download/${DENY_VERSION}/${name}.tar.gz"
+  # The prebuilt download is fast. Building from source is the fallback.
+  if ! curl -fsSL "$url" | tar -xz -C "${CARGO_HOME:-$HOME/.cargo}/bin" --strip-components=1 "${name}/cargo-deny"; then
+    cargo install cargo-deny --version "$DENY_VERSION" --locked
+  fi
+}
+
 install_node_tools() {
   say "Node.js and pnpm"
   if ! command -v node >/dev/null 2>&1; then
@@ -80,6 +95,7 @@ warm_up_build() {
 install_linux_packages
 install_rust
 install_nextest
+install_cargo_deny
 install_node_tools
 warm_up_build
-say "Ready. Try: cargo nextest run --workspace  and  pnpm test"
+say "Ready. Try: cargo nextest run --workspace,  cargo deny check  and  pnpm test"

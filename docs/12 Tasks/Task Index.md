@@ -11,7 +11,7 @@ A0 → A1, each alone → all B tasks in parallel → C tasks one after another,
 | Brief | What | Needs merged first | When |
 |---|---|---|---|
 | [[Task - A0 Foundations]] | Workspace, all crates, core, app shell, CI, cloud setup | — | ✅ done |
-| [[Task - A1 Reuse Alignment]] | Swap hand-written parts for standard tools (cargo-deny, eslint-plugin-boundaries, i18next, num-format, single-instance), clear CI warning | A0 | next, alone |
+| [[Task - A1 Reuse Alignment]] | Swap hand-written parts for standard tools (cargo-deny, eslint-plugin-boundaries, i18next, num-format, single-instance), clear CI warning | A0 | ✅ done |
 | [[Task - B-db]] | `db` crate | A0 | parallel |
 | [[Task - B-settings]] | `settings` crate | A0 | parallel |
 | [[Task - B-auth]] | `auth` crate | A0 | parallel |

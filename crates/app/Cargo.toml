@@ -38,6 +38,7 @@ printing.workspace = true
 hardware.workspace = true
 serde.workspace = true
 tauri.workspace = true
+tauri-plugin-single-instance.workspace = true
 ts-rs.workspace = true
 
 [lints]
