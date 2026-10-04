@@ -19,13 +19,35 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  dependencies:
+    name: Dependency rules (cargo-deny)
+    if: github.event.action != 'labeled'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      # Module crates only through `app` (rule R1), allowed licences, security advisories
+      # and crate sources. Settings: deny.toml.
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+      - name: Install Rust (version from rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+
+      # Proves the bans really catch a module depending on another module.
+      - name: Module bans catch a bad dependency
+        run: bash scripts/check-module-bans.sh
+
   linux:
     name: Linux checks
     # Adding a label doesn't change the code, so don't test it again.
     if: github.event.action != 'labeled'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Tauri's Linux packages
         run: |
@@ -43,9 +65,9 @@ jobs:
         with:
           tool: cargo-nextest
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -54,9 +76,6 @@ jobs:
 
       - name: Rust formatting
         run: cargo fmt --all --check
-
-      - name: Module boundaries
-        run: cargo xtask check-deps
 
       - name: Generated TypeScript types are up to date
         run: cargo xtask gen-types --check
@@ -81,7 +100,7 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.action != 'labeled'
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust (version from rust-toolchain.toml)
         run: rustup show active-toolchain || rustup toolchain install
@@ -92,9 +111,9 @@ jobs:
         with:
           tool: cargo-nextest
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -124,7 +143,7 @@ jobs:
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'build-mac'))
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust (version from rust-toolchain.toml)
         run: |
@@ -133,9 +152,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -147,7 +166,7 @@ jobs:
       - name: Build the .dmg
         run: pnpm tauri build --target universal-apple-darwin --bundles dmg
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: supershop-pos-mac
           path: target/universal-apple-darwin/release/bundle/dmg/*.dmg

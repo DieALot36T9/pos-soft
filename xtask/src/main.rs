@@ -1,7 +1,6 @@
 //! Project scripts, written in plain Rust so they work the same on every OS.
 //! Run them with `cargo xtask <command>`.
 
-mod check_deps;
 mod gen_types;
 mod new_module;
 
@@ -12,7 +11,6 @@ const HELP: &str = "\
 cargo xtask <command>
 
 Commands:
-  check-deps          Fail if a crate other than `app` depends on a module crate
   gen-types           Write TypeScript types for the UI into ui/src/generated
   gen-types --check   Fail if ui/src/generated is out of date (used by CI)
   new-module <name>   Make a new module: crate, screen folder and module page
@@ -24,7 +22,6 @@ fn main() -> ExitCode {
     let root = repo_root();
 
     let result = match words.as_slice() {
-        ["check-deps"] => check_deps::run(),
         ["gen-types"] => gen_types::run(&root, false),
         ["gen-types", "--check"] => gen_types::run(&root, true),
         ["new-module", name] => new_module::run(&root, name),

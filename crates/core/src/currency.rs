@@ -4,6 +4,7 @@
 
 use std::collections::BTreeMap;
 
+use num_format::ToFormattedString;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -49,7 +50,7 @@ pub fn format_money(amount: Money, format: &CurrencyFormat) -> String {
     let whole = size / divisor;
     let fraction = size % divisor;
 
-    let mut number = group_digits(&whole.to_string(), &format.group_sep, format.grouping);
+    let mut number = group_digits(whole, &format.group_sep, format.grouping);
     if digits > 0 {
         number.push_str(&format.decimal_sep);
         number.push_str(&format!("{fraction:0width$}", width = digits as usize));
@@ -70,26 +71,26 @@ pub fn format_money(amount: Money, format: &CurrencyFormat) -> String {
     }
 }
 
-/// Puts group separators into a string of digits, working from the right.
-fn group_digits(digits: &str, separator: &str, grouping: Grouping) -> String {
-    if separator.is_empty() {
-        return digits.to_string();
-    }
-    let characters: Vec<char> = digits.chars().collect();
-    let mut groups: Vec<String> = Vec::new();
-    let mut end = characters.len();
-    let mut group_size = 3;
-    while end > 0 {
-        let start = end.saturating_sub(group_size);
-        groups.push(characters[start..end].iter().collect());
-        end = start;
-        // After the first group of three, Indian grouping uses groups of two.
-        if grouping == Grouping::Indian {
-            group_size = 2;
+/// Puts group separators into a whole number, using `num-format` (Reuse Map).
+/// An empty separator means no grouping. `num-format` allows separators of at most
+/// 8 bytes; a longer one (no real currency uses one) also leaves the digits ungrouped.
+fn group_digits(whole: u64, separator: &str, grouping: Grouping) -> String {
+    let library_grouping = if separator.is_empty() {
+        num_format::Grouping::Posix
+    } else {
+        match grouping {
+            Grouping::Western => num_format::Grouping::Standard,
+            Grouping::Indian => num_format::Grouping::Indian,
         }
+    };
+    match num_format::CustomFormat::builder()
+        .grouping(library_grouping)
+        .separator(separator)
+        .build()
+    {
+        Ok(number_format) => whole.to_formatted_string(&number_format),
+        Err(_) => whole.to_string(),
     }
-    groups.reverse();
-    groups.join(separator)
 }
 
 /// Why a typed amount could not be read.
@@ -185,4 +186,26 @@ pub fn parse_money(text: &str, minor_digits: u8) -> Result<Money, ParseMoneyErro
 /// True when the text is one or more ASCII digits.
 fn is_all_digits(text: &str) -> bool {
     !text.is_empty() && text.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn group_digits_handles_short_numbers_and_both_groupings() {
+        assert_eq!(group_digits(0, ",", Grouping::Indian), "0");
+        assert_eq!(group_digits(999, ",", Grouping::Western), "999");
+        assert_eq!(group_digits(1_234_567, ",", Grouping::Western), "1,234,567");
+        assert_eq!(group_digits(1_234_567, ",", Grouping::Indian), "12,34,567");
+        assert_eq!(group_digits(1_234_567, "", Grouping::Western), "1234567");
+    }
+
+    #[test]
+    fn a_separator_longer_than_eight_bytes_leaves_digits_ungrouped() {
+        assert_eq!(
+            group_digits(1_234_567, "123456789", Grouping::Western),
+            "1234567"
+        );
+    }
 }

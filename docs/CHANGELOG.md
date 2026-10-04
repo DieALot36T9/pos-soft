@@ -4,8 +4,13 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
-### Planned (task A1)
-- Reuse before building (ADR-023, Reuse Map): cargo-deny replaces `xtask check-deps`, eslint-plugin-boundaries replaces the custom ESLint rule, i18next replaces `useText`, num-format replaces hand-written digit grouping, single-instance plugin added, GitHub Actions moved off Node 20.
+### Changed (task A1: reuse before building, ADR-023)
+- Module crates are kept apart by **cargo-deny** (`deny.toml`, `wrappers = ["app"]`), which also checks licences, advisories and sources. CI runs `cargo deny check` and `scripts/check-module-bans.sh`, which proves a module depending on another module is refused. The hand-written xtask command for this is gone; `cargo xtask new-module` adds new modules to `deny.toml`.
+- Screen module folders are kept apart by **eslint-plugin-boundaries**, with a test that proves `pnpm lint` refuses a module importing another module.
+- Screen text uses **i18next + react-i18next**. Each `text/en.ts` is a namespace registered in `ui/src/app/i18n.ts`; keys are typed, so a wrong key is a build error. Error messages use `{{name}}` placeholders.
+- `core::format_money` groups digits with **num-format**. All money tests and `money_vectors.json` pass unchanged.
+- Only one copy of the app can run (**tauri-plugin-single-instance**); a second start brings the open window to the front.
+- GitHub Actions moved to `actions/checkout@v7`, `actions/setup-node@v7`, `pnpm/action-setup@v6`, `actions/upload-artifact@v7` (no more Node 20 warning). `scripts/cloud-setup.sh` installs cargo-deny.
 
 ### Added
 - Cloud sessions set themselves up: a SessionStart hook runs `scripts/cloud-setup.sh`.

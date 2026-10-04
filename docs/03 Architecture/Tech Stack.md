@@ -11,6 +11,7 @@ Development and demo testing happen on **macOS** for now. Shops run **Windows** 
 | Layer | Choice | Why |
 |---|---|---|
 | Desktop shell | **Tauri 2** | Native webview instead of a bundled Chromium: about 10 MB installers, about 100 MB RAM, cold start under 1 s. [[ADR-001 Tauri 2 as desktop shell]] |
+| One copy at a time | **tauri-plugin-single-instance** | Starting the app again brings the open window to the front instead of opening a second till |
 | Business logic | **Rust (stable, 2024 edition)** | The compiler catches most mistakes before tests run, which matters when an AI writes most of the code. It's also fast with no GC pauses |
 | Database | **SQLite (bundled) via rusqlite**, WAL mode | In-process, so queries take microseconds with no network hop. One file, fully offline. [[ADR-003 SQLite with rusqlite]] |
 | UI framework | **React 19 + TypeScript (strict)** | The UI stack I write most reliably, with the largest set of examples. React Compiler memoizes automatically. [[ADR-002 React TypeScript Tailwind for UI]] |
@@ -40,7 +41,9 @@ Development and demo testing happen on **macOS** for now. Shops run **Windows** 
 | App smoke tests | **tauri-driver** (WebDriver) on Windows and Linux in CI | Proves the packaged app starts and sells |
 | Package manager | **pnpm** | Fast, strict |
 | CI / releases | GitHub Actions + **tauri-action** | Builds for 3 OSes from one workflow |
-| Rust tooling | `cargo-nextest`, `clippy`, `rustfmt`, an `xtask` crate for scripts | Plain Rust scripts instead of shell scripts |
+| Number grouping on receipts | **num-format** | Western (1,234,567) and Indian (12,34,567) grouping without our own code |
+| Rust tooling | `cargo-nextest`, `clippy`, `rustfmt`, **cargo-deny** (module bans, licences, advisories), an `xtask` crate for scripts | Plain Rust scripts instead of shell scripts |
+| UI lint | **ESLint** with **eslint-plugin-boundaries** (module folders stay apart), **Prettier** | Standard tools; no lint rules of our own |
 
 Full list of standards and libraries, and what we still write ourselves: **[[Reuse Map]]**.
 

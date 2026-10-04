@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: medium
 phase: A
 depends_on: [A0]
-status: ready
+status: done
 ---
 # Task A1: Swap hand-written parts for standard tools
 

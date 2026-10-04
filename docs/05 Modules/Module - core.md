@@ -7,7 +7,7 @@ milestone: M0
 
 **Purpose:** shared value types and helpers used by every crate. **No business logic, no database, no I/O.**
 
-**Depends on:** `serde`, `thiserror`, `ulid`, `chrono`, `ts-rs`. **Used by:** every crate.
+**Depends on:** `serde`, `thiserror`, `ulid`, `chrono`, `ts-rs`, `num-format` (digit grouping). **Used by:** every crate.
 
 **Crate name:** the folder is `crates/core/`, but the package is **`pos-core`** and code writes **`pos_core::Money`**. Rust's standard library already has a crate called `core`, so ours can't use that name. Other pages that say `core::Money` mean `pos_core::Money`.
 
@@ -46,7 +46,7 @@ pub struct Bps(pub u32);                   // 1500 = 15%
 // currency.rs (rule SET-05)
 pub struct CurrencyFormat { code, symbol, symbol_before: bool, minor_digits: u8, decimal_sep, group_sep, grouping: Grouping }
 pub enum Grouping { Western, Indian }
-pub fn format_money(m: Money, f: &CurrencyFormat) -> String;      // "৳12,34,567.50"; symbol after → "12.50 ৳"
+pub fn format_money(m: Money, f: &CurrencyFormat) -> String;      // "৳12,34,567.50"; symbol after → "12.50 ৳"; grouping by num-format
 pub fn parse_money(s: &str, minor_digits: u8) -> Result<Money, ParseMoneyError>; // "123.45" only; rejects extra decimals
 pub enum ParseMoneyError { Empty, NotANumber, TooManyDecimals { max_decimals }, TooLarge } // → AppError::Validation (money_* codes)
 
@@ -88,6 +88,7 @@ pub struct ModuleMigrations { pub module: &'static str, pub migrations: &'static
 - `tests/examples.rs`: every example E1–E16 in [[Money Tax and Rounding]]. E7 (tax), E12–E13 (sales) and E16 (customers) belong to other modules, so here they test the core building blocks with the same numbers.
 - `tests/money_vectors.rs` + `tests/money_vectors.json`: `format_money` and `parse_money` against the shared examples. The UI's `formatMoney`/`parseMoney` pass the same file.
 - `tests/properties.rs` (proptest): `allocate` sums exactly; `round_half_away` matches a second reference rounding; cash rounding is never more than half the step; parse/format round trip for 0–3 digits.
+- Unit tests in `currency.rs`: digit grouping (Western, Indian, none) through `num-format`.
 - Unit tests: `business_date` across the cutoff, negative offsets and a DST change; ids; permissions; error JSON shape; `Secret` hides its value.
 
 ## Working on this module
@@ -107,10 +108,13 @@ pub struct ModuleMigrations { pub module: &'static str, pub migrations: &'static
 **Watch out for**
 - Add a type here only when two modules must exchange the same data. Never put business rules here.
 - No floating-point maths. `float_arithmetic` is denied.
+- Digit grouping uses the `num-format` crate (`Grouping::Standard` / `Grouping::Indian`), not our own code ([[Reuse Map]]). `num-format` allows a group separator of at most 8 bytes; a longer one leaves the digits ungrouped.
 - Money formatting exists twice: `core::format_money` (receipts) and `formatMoney` in the UI. Both are tested against the same file of examples, `crates/core/tests/money_vectors.json`, so they can't disagree.
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- None. Built in task A0. Add a type here only when two modules need to exchange it.
+- Built in task A0. Task A1 replaced the hand-written digit grouping with `num-format`; every money test and `money_vectors.json` passed unchanged.
+- For B-settings: `group_sep` should be limited to 8 bytes when the shop saves it, because `num-format` can't use a longer separator (it then prints the number ungrouped).
+- `cargo-deny` excludes dev-dependencies for every crate, not only `reports` (cargo-deny can't do it per crate). So a dev-dependency from another module on a module crate is caught by review, not CI ([[Module Rules]] R1). Revisit if cargo-deny gains per-crate graph options.

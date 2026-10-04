@@ -1,0 +1,75 @@
+# cargo-deny settings. CI runs `cargo deny check`. See docs/03 Architecture/Module Rules.md (R1)
+# and the Reuse Map. Docs for every option: https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+# Dev-dependencies are left out, so `reports` may use other modules in its tests (rule R1).
+exclude-dev = true
+
+[bans]
+# Rule R1: a module crate is never a dependency of another crate, except `app`.
+# `wrappers = ["app"]` means "only `app` may list this crate". Keep this list in step
+# with the module crates in crates/ (`cargo xtask new-module` adds a new module here).
+deny = [
+    { crate = "settings", wrappers = ["app"] },
+    { crate = "auth", wrappers = ["app"] },
+    { crate = "audit", wrappers = ["app"] },
+    { crate = "tax", wrappers = ["app"] },
+    { crate = "catalog", wrappers = ["app"] },
+    { crate = "pricing", wrappers = ["app"] },
+    { crate = "barcode", wrappers = ["app"] },
+    { crate = "inventory", wrappers = ["app"] },
+    { crate = "sales", wrappers = ["app"] },
+    { crate = "shifts", wrappers = ["app"] },
+    { crate = "customers", wrappers = ["app"] },
+    { crate = "purchasing", wrappers = ["app"] },
+    { crate = "reports", wrappers = ["app"] },
+    { crate = "io", wrappers = ["app"] },
+    { crate = "printing", wrappers = ["app"] },
+    { crate = "hardware", wrappers = ["app"] },
+    { crate = "db", wrappers = ["app"] },
+]
+# Tauri pulls in several versions of some crates. That is normal and not our choice.
+multiple-versions = "allow"
+
+[licenses]
+# Only permissive licences (Reuse Map, "Licence rule"). Add one only if a dependency
+# truly needs it, and write down why in the Reuse Map.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "OFL-1.1",
+]
+confidence-threshold = 0.9
+# The allowed list is the project's policy, so a licence no dependency uses yet is fine.
+unused-allowed-license = "allow"
+# MPL-2.0 is allowed only for these crates, which Tauri itself needs (Reuse Map, "Licences
+# we accept for Tauri's own dependencies"). We use them unchanged and never copy their code.
+exceptions = [
+    { crate = "cssparser", allow = ["MPL-2.0"] },        # tauri-utils → dom_query
+    { crate = "cssparser-macros", allow = ["MPL-2.0"] }, # tauri-utils → dom_query
+    { crate = "selectors", allow = ["MPL-2.0"] },        # tauri-utils → dom_query
+    { crate = "dtoa-short", allow = ["MPL-2.0"] },       # tauri-utils → dom_query → cssparser
+    { crate = "option-ext", allow = ["MPL-2.0"] },       # tauri → dirs
+]
+
+[licenses.private]
+# Our own crates are not published and have no licence yet (Reuse Map).
+ignore = true
+
+[advisories]
+ignore = [
+    # proc-macro-error is unmaintained. It comes only from Tauri's Linux window toolkit
+    # (gtk-rs 0.18), which Tauri chooses, and it runs only while compiling.
+    { id = "RUSTSEC-2024-0370", reason = "Build-time only, pulled in by Tauri's gtk-rs on Linux" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
