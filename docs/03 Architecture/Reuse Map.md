@@ -60,8 +60,10 @@ tags: [architecture, reuse]
 | Toast messages | **sonner** (shadcn/ui default) | C tasks |
 | Command palette (`Ctrl+K`) | **cmdk** (shadcn/ui `Command`) | C tasks |
 | Tooltips, dialogs, menus | **Radix UI** via shadcn/ui | All screens |
+| Password, PIN and recovery-code hashing (argon2id) | **argon2** (RustCrypto) | **In use** (B-auth) |
+| Random recovery codes | **rand** (`rand::rng()`, a secure generator) | **In use** (B-auth) |
 | Fake data for big test databases | **fake** crate | `xtask seed` |
-| Benchmarks | **criterion** | `xtask bench` |
+| Benchmarks | **criterion** | **In use** (B-auth: `cargo bench -p auth`). `xtask bench` later |
 | Test coverage | **cargo-llvm-cov** | CI |
 | CI caching / tool install | `Swatinem/rust-cache`, `taiki-e/install-action`, `tauri-apps/tauri-action` | CI |
 | Database backup | SQLite's built-in `VACUUM INTO` | [[Module - db]] |

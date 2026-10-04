@@ -4,6 +4,10 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-auth)
+- `auth` crate: roles (Admin, Cashier, custom), permissions, users, argon2id hashing of PINs and passwords (OWASP settings), login with lockout (5 wrong tries → 60 s), admin approval check (password only), and the recovery code. USR-01, USR-02, USR-04 to USR-07, USR-09.
+- Benchmark `cargo bench -p auth`: one PIN check takes about 19 ms on the cloud build machine (target ≤ 300 ms).
+
 ### Changed (task A1: reuse before building, ADR-023)
 - Module crates are kept apart by **cargo-deny** (`deny.toml`, `wrappers = ["app"]`), which also checks licences, advisories and sources. CI runs `cargo deny check` and `scripts/check-module-bans.sh`, which proves a module depending on another module is refused. The hand-written xtask command for this is gone; `cargo xtask new-module` adds new modules to `deny.toml`.
 - Screen module folders are kept apart by **eslint-plugin-boundaries**, with a test that proves `pnpm lint` refuses a module importing another module.
