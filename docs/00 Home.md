@@ -5,7 +5,7 @@ tags: [home]
 
 An **offline, universal point-of-sale system for supermarkets and grocery shops**. Any shop in any country can set its own tax rates, currency, rounding, payment methods and staff roles. It runs on Windows (the shop target), macOS (where it's tested for now) and Linux. The screens are flat, colour-coded and explained by tooltips. Everything (screens, docs and code) is written in plain English.
 
-> **Status:** Phase 2 (Design) is complete in this vault. Milestone M0 (Foundations, task A0) is built and in review. Next up are the B tasks. See [[Roadmap]] and [[Task Index]].
+> **Status:** Design is complete. **A0 (Foundations) is done and merged.** Next is **A1** (swap hand-written parts for standard tools), then the B tasks. See [[Roadmap]] and [[Task Index]].
 
 ---
 

@@ -13,7 +13,7 @@ The developer is an AI, so time isn't the constraint. The order of work is: **bu
 | 0. Planning | [[Project Charter]], [[Scope]], [[Risks]], this roadmap | ✅ Done (this vault) |
 | 1. Requirements | `02 Requirements/`: user stories with Given/When/Then acceptance criteria | ✅ Done (to be refined in each milestone) |
 | 2. Design | `03 Architecture/`, `04 Decisions/`, `05 Modules/`, `06 Database/`, `07 UI Design/` | ✅ Done (updated as built) |
-| 3. Implementation | Milestones M0–M12 below, built test-first | ⏳ Next |
+| 3. Implementation | Milestones M0–M12 below, built test-first (tasks in [[Task Index]]) | ⏳ In progress: M0 done (A0), A1 next |
 | 4. Verification | M13 hardening and M14 UAT | — |
 | 5. Deployment | M15 release and pilot | — |
 | 6. Maintenance | Semantic versions, changelog, every bug fixed with a failing test first | — |

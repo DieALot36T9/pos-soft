@@ -43,4 +43,4 @@ See [[Test Data]]. Every Rust test builds its database from migrations. There ar
 - Every Tauri command has at least one workflow or permission test.
 
 ## CI gates (merge is blocked if any fail)
-`cargo fmt --check` · `cargo clippy --all-targets -- -D warnings` · `cargo nextest run` (3 OS) · `cargo deny check` · `cargo xtask gen-types --check` · `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm e2e`
+`cargo fmt --check` · `cargo clippy --all-targets -- -D warnings` · `cargo nextest run` (Linux on every push, Windows on every pull request, and a Mac build when a pull request has the `build-mac` label or a version tag is pushed) · `cargo deny check` · `cargo xtask gen-types --check` · `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm e2e`

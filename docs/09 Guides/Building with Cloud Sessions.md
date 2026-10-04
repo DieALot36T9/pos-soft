@@ -14,7 +14,7 @@ How the app gets built on GitHub with Claude cloud sessions (claude.ai/code). Th
    - [[Module Rules]], [[Module - core]], [[Coding Standards]], [[Writing Style]]
    It should **not** read other modules' code or pages unless the brief says so.
 3. **No hand-over is needed.** Modules are independent, and each module page is the contract: its tables, functions and "Working on this module" instructions. The only duty is to **keep the module page true to the code**. Anything unfinished goes under **"Open items"** on that page.
-   The only ordering rules: A0 is merged before anything else, and a C task starts after the module crates it connects are merged (listed in its brief as `depends_on`).
+   The only ordering rules: A0 and then A1 are merged before anything else, and a C task starts after the module crates it connects are merged (listed in its brief as `depends_on`).
 4. **One branch and one pull request per task.** Branch name: `task/<brief-id>` (e.g. `task/B-catalog`).
 5. **The product owner merges.** CI must be green. The session's pull-request description says what was done, which requirement IDs are covered, and anything left open.
 
@@ -27,7 +27,7 @@ flowchart LR
 ```
 | Phase | What | Sessions | Order |
 |---|---|---|---|
-| **A** | M0: workspace, 19 empty crates each with `CLAUDE.md`, app shell, `core`, CI, cloud setup script | 1 | First, alone |
+| **A** | A0 (M0): workspace, 19 empty crates each with `CLAUDE.md`, app shell, `core`, CI, cloud setup script. A1: swap hand-written parts for standard tools ([[Reuse Map]]) | 1 each | First, one after the other |
 | **B** | Each module crate's Rust code and tests, exactly as its page describes. No `app` wiring, no screens | 1 per module | **In parallel**, because module crates depend only on `core` |
 | **C** | For each milestone M2–M12: workflows and commands in `app`, plus that module's screens | 1 per milestone | One after another, in [[Roadmap]] order |
 | **D** | M13–M15: hardening, Windows PC and real-hardware tests, UAT, release | as needed | Last |

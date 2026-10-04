@@ -79,7 +79,7 @@ Developer pages use a few technical words. This is what they mean.
 | **Property test** | An automatic check that tries thousands of random inputs to make sure a rule always holds |
 | **Golden image** | An approved picture of a receipt. Tests compare new printouts against it |
 | **Invariant** | Something that must always be true, e.g. "stock level = sum of all stock changes" |
-| **CI** | The automatic build-and-test run on GitHub after every change, on Windows, Mac and Linux |
+| **CI** | The automatic build-and-test run on GitHub: Linux on every push, Windows on every pull request, and a Mac build when a pull request has the `build-mac` label or a version tag is pushed |
 | **UAT** | User acceptance testing: real users trying the app on real hardware before release |
 | **ADR** | Architecture decision record: a short note explaining an important decision |
 | **Mock / fake** | A pretend version of something (printer, scale, Rust side) used for testing |

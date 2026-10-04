@@ -29,7 +29,7 @@ CREATE TABLE settings_setup_steps (
 |---|---|---|
 | `language` | `LanguageSettings` | language (only `en` in v1.0; kept so more languages can be added later) |
 | `shop_profile` | `ShopProfile` | name, address_lines, phone, email, tax_reg_label, tax_reg_no, logo_path, receipt_footer |
-| `currency` | `CurrencyFormat` (core) | code, symbol, position, minor_digits, separators, grouping |
+| `currency` | `CurrencyFormat` (core) | code, symbol, position, minor_digits, separators, grouping. The wizard's currency list, decimals and default symbol come from the `iso_currency` crate (ISO 4217) |
 | `rounding` | `RoundingRule` (core) | increment_minor, mode, applies_to |
 | `tax` | `TaxSettings` | label, mode (inclusive/exclusive), default_rate_id |
 | `till` | `TillSettings` | till_id, till_code, business_day_cutoff_hour |

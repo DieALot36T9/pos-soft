@@ -40,7 +40,7 @@ pub struct FakeScale { /* weight + stable flag, set from the dev "Fake scale" pa
 ```
 Device calls run on a dedicated hardware thread in `app`, so a slow printer never blocks a command.
 
-**On macOS** (the current test machine), serial ports are `/dev/cu.*`. USB printers without a Mac driver use a raw CUPS queue. If that fails in M1, a `DirectUsb` transport is added ([[ADR-017 Windows first all three OS built]]).
+**On macOS** (the current test machine), serial ports are `/dev/cu.*`. USB printers without a Mac driver use a raw CUPS queue. If that fails when a printer is first tested (M13), a direct-USB connection is added ([[ADR-017 Windows first all three OS built]]).
 
 ## Tests
 - Scale parsing for each built-in profile from recorded raw lines (fixtures), including unstable then stable readings.
