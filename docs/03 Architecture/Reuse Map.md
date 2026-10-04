@@ -53,7 +53,7 @@ tags: [architecture, reuse]
 | Remember window size/position | **tauri-plugin-window-state** | C-M2 |
 | ESC/POS encoding + network/USB/serial/file connections, cut, QR | **escpos** crate (MIT) | B-printing, B-hardware |
 | Barcode images / test decoding | **barcoders**, **rxing** | B-barcode |
-| Currency list (codes, decimals, symbols) | **iso_currency** | B-settings, C-M2 |
+| Currency list (codes, decimals, symbols) | **iso_currency** (MIT, `iterator` feature) | **In use** (B-settings): `settings::currency_choices`, `currency_format_for` and the currency code check. Screens in C-M2 |
 | Phone number cleaning | **phonenumber** (libphonenumber port) | B-customers |
 | Log files with daily rotation and "keep 14" | **tracing-appender** (`Rotation::DAILY`, `max_log_files`) | C-M2 |
 | Keyboard shortcuts | **react-hotkeys-hook** (scopes, works in inputs), listed in one file | C-M6 |
@@ -73,6 +73,7 @@ tags: [architecture, reuse]
 | Per-module migration runner (`db`) | `rusqlite_migration` and `refinery` keep **one** version counter for the whole database. Our modules must add migrations independently, so versions are tracked per module. Small (~180 lines) and tested |
 | Pricing engine | Pricing rules are business-specific. We follow Odoo/ERPNext rule patterns, but there's no reusable Rust library |
 | Receipt layout (document → picture) | There's no receipt-layout library; text drawing itself uses **cosmic-text** and **tiny-skia** |
+| Suggested cash denominations (`settings::suggested_denominations`) | ISO 4217 lists currencies, not their notes and coins. A short table for BDT, INR, USD, EUR and GBP lives in `crates/settings/src/currency.rs` |
 | Scale protocol profiles | No Rust crate covers scale protocols; profiles follow each vendor's published protocol |
 | Windows print spooler "raw" connection | Added only if the `escpos` crate's Windows driver can't reach spooler-installed printers (checked in M13) |
 

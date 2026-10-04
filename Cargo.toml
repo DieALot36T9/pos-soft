@@ -11,6 +11,7 @@ publish = false
 
 # Shared third-party versions. A crate lists only what its module page approves.
 [workspace.dependencies]
+iso_currency = { version = "0.7.1", features = ["iterator"] }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde", "std"] }
 num-format = "0.4.4"
 proptest = "1.11"
