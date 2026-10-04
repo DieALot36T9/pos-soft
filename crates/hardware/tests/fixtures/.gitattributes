@@ -1,0 +1,2 @@
+# Scale recordings must stay byte for byte as the scale sends them (CR LF, STX).
+* -text
