@@ -47,5 +47,5 @@ status: in review
 - **UI:** React 19, TypeScript strict, Vite, Tailwind v4 (no shadows/blur/animations, only our colour tokens), shadcn base, `useText()` + `text/en.ts`, fake bridge (`pnpm dev:mock`), contrast test, flat-look test, `ActionButton`/`IconButton`/`Tip`, module-boundary lint rule.
 - **xtask:** `check-deps` (tests prove it fails for a module → module dependency), `gen-types [--check]`, `new-module`.
 - **CI:** `.github/workflows/ci.yml` — Linux on every push, Windows on pull requests, Mac `.dmg` on the `build-mac` label or a `v*` tag.
-- **Cloud setup:** `scripts/cloud-setup.sh`. Set the cloud environment's setup script to `bash scripts/cloud-setup.sh`.
+- **Cloud setup:** `scripts/cloud-setup.sh`, run at the start of every cloud session by the SessionStart hook in `.claude/settings.json`.
 - **Left open:** listed under "Open items" on [[Module - core]], [[Module - db]] and [[Module - app]]. The Mac build still needs to be opened on the product owner's Mac.

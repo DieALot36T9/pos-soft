@@ -5,6 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semant
 
 ## [Unreleased]
 ### Added
+- Cloud sessions set themselves up: a SessionStart hook runs `scripts/cloud-setup.sh`.
 - M0 Foundations (task A0): Cargo workspace with 19 crates, each module with its own `CLAUDE.md`.
 - `core`: Money, Qty, Bps, Id, Timestamp, BusinessDate, Clock, AppError, Permission, Secret, ReportTable, Bitmap1, rounding, allocate, cash_round, moving_average, business_date, format_money/parse_money, Migration/ModuleMigrations. Examples E1–E16 and shared money format examples.
 - `db`: opening SQLite with the agreed settings and the migration runner (`db_migrations`, checksums, refuses edited or newer migrations).
