@@ -1,0 +1,26 @@
+[package]
+name = "pos-core"
+description = "Shared value types and helpers used by every crate: money, quantities, ids, time, errors, permissions."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+# Rust's standard library already has a crate called `core`, so this one is `pos_core`.
+name = "pos_core"
+
+[dependencies]
+chrono.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+ts-rs.workspace = true
+ulid.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

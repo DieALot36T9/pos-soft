@@ -1,0 +1,64 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "xtask"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+license = "UNLICENSED"
+publish = false
+
+# Shared third-party versions. A crate lists only what its module page approves.
+[workspace.dependencies]
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde", "std"] }
+proptest = "1.11"
+rusqlite = { version = "0.40", features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.11"
+tauri = { version = "2.12", features = [] }
+tauri-build = { version = "2.7", features = [] }
+thiserror = "2.0"
+ts-rs = { version = "12.0", features = ["chrono-impl", "no-serde-warnings"] }
+ulid = "3.0"
+
+# Our own crates. The `core` folder holds the `pos-core` package (see Module - core).
+pos-core = { path = "crates/core" }
+db = { path = "crates/db" }
+settings = { path = "crates/settings" }
+auth = { path = "crates/auth" }
+audit = { path = "crates/audit" }
+tax = { path = "crates/tax" }
+catalog = { path = "crates/catalog" }
+pricing = { path = "crates/pricing" }
+barcode = { path = "crates/barcode" }
+inventory = { path = "crates/inventory" }
+sales = { path = "crates/sales" }
+shifts = { path = "crates/shifts" }
+customers = { path = "crates/customers" }
+purchasing = { path = "crates/purchasing" }
+reports = { path = "crates/reports" }
+io = { path = "crates/io" }
+printing = { path = "crates/printing" }
+hardware = { path = "crates/hardware" }
+
+[workspace.lints.rust]
+unsafe_code = "deny"            # the hardware crate allows it for Windows FFI only
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+float_arithmetic = "warn"       # "deny" in core, tax, pricing and sales (set in their lib.rs)
+too_many_lines = "warn"
+
+[profile.dev]
+opt-level = 0
+
+[profile.dev.package."*"]
+opt-level = 1                   # dependencies optimised, so dev builds aren't sluggish
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+opt-level = 3
+strip = true
