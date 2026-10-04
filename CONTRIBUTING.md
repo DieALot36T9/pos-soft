@@ -9,7 +9,8 @@ This page is short on purpose. The rules live in the design vault in `docs/`.
 3. Read `docs/09 Guides/Coding Standards.md` and `docs/09 Guides/Writing Style.md`.
 
 ## Set up a computer
-- Linux or a cloud session: `bash scripts/cloud-setup.sh` installs everything.
+- Claude cloud sessions set themselves up: a SessionStart hook (`.claude/hooks/session-start.sh`) runs `scripts/cloud-setup.sh`.
+- Linux: `bash scripts/cloud-setup.sh` installs everything.
 - Windows and macOS: `docs/09 Guides/Dev Environment Setup.md`.
 
 ## Everyday commands
