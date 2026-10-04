@@ -46,6 +46,10 @@ pub fn migrations() -> ModuleMigrations;
 **Watch out for**
 - 
 
+## Open items
+*Anything not finished yet. The next session working on this module starts here.*
+- (none)
+
 ## Change log (significant API/table changes)
 | Date | Change |
 |---|---|

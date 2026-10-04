@@ -24,10 +24,9 @@ Session and permission guard, login and lock screens, users and roles screens, t
 - If a module crate is missing something, add it **in that module** (with its contract test), then use it here.
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - Every permission is enforced in Rust and tested.
 - Integration tests in `crates/app/tests/` and Playwright flows for the new screens are green.
 - Module pages and [[Workflows]] match the code.
 - Pull request from `task/C-M3`, with the **Mac build** for the product owner to try (`build-mac` label).
 
-## Result
-*(filled in by the session)*

@@ -24,10 +24,9 @@ Price lists, tiers, promotions, and the **pure** pricing engine with every PRC-0
 - Stay inside `crates/pricing/` and [[Module - pricing]]. If the page is wrong or missing something, fix the page in the same pull request and say why.
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - `cargo nextest run -p pricing` is green. `cargo clippy -p pricing -- -D warnings` is clean. `cargo xtask check-deps` passes.
 - Every test listed on the module page exists and names its requirement ID.
 - [[Module - pricing]] matches the code.
 - Pull request opened from branch `task/B-pricing`.
 
-## Result
-*(filled in by the session: what was built, what's left open, notes for Phase C)*

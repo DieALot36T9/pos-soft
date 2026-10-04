@@ -13,7 +13,8 @@ How the app gets built on GitHub with Claude cloud sessions (claude.ai/code). Th
    - the module folder's `CLAUDE.md`
    - [[Module Rules]], [[Module - core]], [[Coding Standards]], [[Writing Style]]
    It should **not** read other modules' code or pages unless the brief says so.
-3. **Hand-over happens through the repository, never through chat.** Everything the next session needs ends up in code, tests, the module page and the task brief's "Result" section.
+3. **No hand-over is needed.** Modules are independent, and each module page is the contract: its tables, functions and "Working on this module" instructions. The only duty is to **keep the module page true to the code**. Anything unfinished goes under **"Open items"** on that page.
+   The only ordering rules: A0 is merged before anything else, and a C task starts after the module crates it connects are merged (listed in its brief as `depends_on`).
 4. **One branch and one pull request per task.** Branch name: `task/<brief-id>` (e.g. `task/B-catalog`).
 5. **The product owner merges.** CI must be green. The session's pull-request description says what was done, which requirement IDs are covered, and anything left open.
 

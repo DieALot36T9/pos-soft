@@ -90,3 +90,7 @@ Override **tokens** (single-use, 60 s) live in `app` memory, not here.
 - A new `Permission` defaults to Admin-only. Add it to [[Roles and Permissions]] and to the permission test in `app`.
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
+
+## Open items
+*Anything not finished yet. The next session working on this module starts here.*
+- Not started (see [[Task Index]]).

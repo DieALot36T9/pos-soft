@@ -24,10 +24,9 @@ Shifts, money movements, denomination counts, expected cash, close, summary, rev
 - Stay inside `crates/shifts/` and [[Module - shifts]]. If the page is wrong or missing something, fix the page in the same pull request and say why.
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - `cargo nextest run -p shifts` is green. `cargo clippy -p shifts -- -D warnings` is clean. `cargo xtask check-deps` passes.
 - Every test listed on the module page exists and names its requirement ID.
 - [[Module - shifts]] matches the code.
 - Pull request opened from branch `task/B-shifts`.
 
-## Result
-*(filled in by the session: what was built, what's left open, notes for Phase C)*

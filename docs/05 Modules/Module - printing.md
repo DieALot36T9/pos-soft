@@ -70,3 +70,7 @@ Receipt previews in Settings use `to_png`, so **the preview is exactly what prin
 - Every printed word comes from `ReceiptLabels`, never typed into a layout ([[ADR-022 Ready for more languages later]]).
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
+
+## Open items
+*Anything not finished yet. The next session working on this module starts here.*
+- Not started (see [[Task Index]]).

@@ -24,10 +24,9 @@ Import wizard for every entity (with backup first), exports, templates, barcode 
 - If a module crate is missing something, add it **in that module** (with its contract test), then use it here.
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - 50k products import in under 60 s; an export imports back unchanged.
 - Integration tests in `crates/app/tests/` and Playwright flows for the new screens are green.
 - Module pages and [[Workflows]] match the code.
 - Pull request from `task/C-M12`, with the **Mac build** for the product owner to try (`build-mac` label).
 
-## Result
-*(filled in by the session)*

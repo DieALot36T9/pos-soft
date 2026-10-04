@@ -72,3 +72,7 @@ Restore is a file swap done by `app` at restart, using `verify` first.
 - A released migration is never edited. Changes go in a new file.
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
+
+## Open items
+*Anything not finished yet. The next session working on this module starts here.*
+- Not started (see [[Task Index]]).

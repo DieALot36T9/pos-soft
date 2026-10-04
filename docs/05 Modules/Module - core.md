@@ -79,3 +79,7 @@ pub struct Bitmap1 { pub width: u32, pub height: u32, pub bits: Vec<u8> } // 1-b
 - Money formatting exists twice: `core::format_money` (receipts) and `formatMoney` in the UI. Both are tested against the same file of examples, `crates/core/tests/money_vectors.json`, so they can't disagree.
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
+
+## Open items
+*Anything not finished yet. The next session working on this module starts here.*
+- Not started (see [[Task Index]]).

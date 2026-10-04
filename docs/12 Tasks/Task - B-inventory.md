@@ -24,10 +24,9 @@ Ledger, levels, batches with FEFO, adjustments and reasons, reorder rules, low s
 - Stay inside `crates/inventory/` and [[Module - inventory]]. If the page is wrong or missing something, fix the page in the same pull request and say why.
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - `cargo nextest run -p inventory` is green. `cargo clippy -p inventory -- -D warnings` is clean. `cargo xtask check-deps` passes.
 - Every test listed on the module page exists and names its requirement ID.
 - [[Module - inventory]] matches the code.
 - Pull request opened from branch `task/B-inventory`.
 
-## Result
-*(filled in by the session: what was built, what's left open, notes for Phase C)*

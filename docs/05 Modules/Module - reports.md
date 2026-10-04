@@ -67,3 +67,7 @@ The UI shows it with one generic table component. `io` exports it to XLSX. `prin
 - If a view lacks a column you need, add it in the module that owns the view (with its contract test). Don't work around it here.
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
+
+## Open items
+*Anything not finished yet. The next session working on this module starts here.*
+- Not started (see [[Task Index]]).

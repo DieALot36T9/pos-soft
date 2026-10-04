@@ -63,3 +63,7 @@ pub fn bitmap(code: &str, sym: Symbology, width_dots: u32, height_dots: u32) -> 
 - The barcode examples in CHK-08 and on this page are tests. Keep them correct (check digits included).
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
+
+## Open items
+*Anything not finished yet. The next session working on this module starts here.*
+- Not started (see [[Task Index]]).

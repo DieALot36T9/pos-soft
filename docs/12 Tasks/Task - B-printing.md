@@ -24,10 +24,9 @@ Document model, receipt/report/label/shelf-tag layouts, drawing to a picture wit
 - Stay inside `crates/printing/` and [[Module - printing]]. If the page is wrong or missing something, fix the page in the same pull request and say why.
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - `cargo nextest run -p printing` is green. `cargo clippy -p printing -- -D warnings` is clean. `cargo xtask check-deps` passes.
 - Every test listed on the module page exists and names its requirement ID.
 - [[Module - printing]] matches the code.
 - Pull request opened from branch `task/B-printing`.
 
-## Result
-*(filled in by the session: what was built, what's left open, notes for Phase C)*

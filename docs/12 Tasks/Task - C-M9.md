@@ -24,10 +24,9 @@ Return with and without receipt, exchange, void, all reversals (stock, shift, po
 - If a module crate is missing something, add it **in that module** (with its contract test), then use it here.
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - Money and tax reverse exactly (property tests).
 - Integration tests in `crates/app/tests/` and Playwright flows for the new screens are green.
 - Module pages and [[Workflows]] match the code.
 - Pull request from `task/C-M9`, with the **Mac build** for the product owner to try (`build-mac` label).
 
-## Result
-*(filled in by the session)*

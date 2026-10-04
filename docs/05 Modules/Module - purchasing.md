@@ -102,3 +102,7 @@ pub fn migrations() -> ModuleMigrations;
 - PO, GRN and return numbers are gapless.
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
+
+## Open items
+*Anything not finished yet. The next session working on this module starts here.*
+- Not started (see [[Task Index]]).

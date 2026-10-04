@@ -24,10 +24,9 @@ Scan and cart workflows (reprice on every change), the [[Checkout Screen]], weig
 - If a module crate is missing something, add it **in that module** (with its contract test), then use it here.
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - A full day of selling by keyboard only; killing the app at any moment loses no completed sale. **Alpha build 1.**
 - Integration tests in `crates/app/tests/` and Playwright flows for the new screens are green.
 - Module pages and [[Workflows]] match the code.
 - Pull request from `task/C-M6`, with the **Mac build** for the product owner to try (`build-mac` label).
 
-## Result
-*(filled in by the session)*

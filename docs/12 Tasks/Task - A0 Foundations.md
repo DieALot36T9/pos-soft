@@ -27,10 +27,9 @@ status: ready
 11. `CONTRIBUTING.md` (short, linking to the guides).
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - CI is green on Linux and Windows. The Mac build opens on the product owner's Mac to an empty, flat app window.
 - `cargo xtask check-deps` fails if a module crate is made to depend on another module (prove it with a test).
 - All `core` examples pass.
 - [[Module - core]] and [[Module - db]] pages match the code.
 
-## Result
-*(filled in by the session: what was built, anything left open, notes for later tasks)*

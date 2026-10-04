@@ -84,3 +84,7 @@ pub async fn checkout_scan(state: State<'_, AppState>, code: String) -> Result<S
 - If a workflow needs something new from a module, change that module first (with its contract test), then use it here.
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
+
+## Open items
+*Anything not finished yet. The next session working on this module starts here.*
+- Not started (see [[Task Index]]).

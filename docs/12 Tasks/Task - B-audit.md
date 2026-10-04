@@ -24,10 +24,9 @@ The append-only audit table with triggers, `record`, `query`.
 - Stay inside `crates/audit/` and [[Module - audit]]. If the page is wrong or missing something, fix the page in the same pull request and say why.
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - `cargo nextest run -p audit` is green. `cargo clippy -p audit -- -D warnings` is clean. `cargo xtask check-deps` passes.
 - Every test listed on the module page exists and names its requirement ID.
 - [[Module - audit]] matches the code.
 - Pull request opened from branch `task/B-audit`.
 
-## Result
-*(filled in by the session: what was built, what's left open, notes for Phase C)*

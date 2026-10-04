@@ -163,3 +163,7 @@ The sales module **does not calculate prices**. `complete` receives fully calcul
 - `complete()` refuses totals that don't add up. Don't loosen this check.
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
+
+## Open items
+*Anything not finished yet. The next session working on this module starts here.*
+- Not started (see [[Task Index]]).

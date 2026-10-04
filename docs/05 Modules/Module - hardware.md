@@ -68,3 +68,7 @@ Device calls run on a dedicated hardware thread in `app`, so a slow printer neve
 - Fakes must behave like real devices (delays, errors), so error handling gets tested without hardware.
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
+
+## Open items
+*Anything not finished yet. The next session working on this module starts here.*
+- Not started (see [[Task Index]]).

@@ -24,10 +24,9 @@ Products, units, categories, brands, barcodes, variants, kits, images, FTS searc
 - Stay inside `crates/catalog/` and [[Module - catalog]]. If the page is wrong or missing something, fix the page in the same pull request and say why.
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - `cargo nextest run -p catalog` is green. `cargo clippy -p catalog -- -D warnings` is clean. `cargo xtask check-deps` passes.
 - Every test listed on the module page exists and names its requirement ID.
 - [[Module - catalog]] matches the code.
 - Pull request opened from branch `task/B-catalog`.
 
-## Result
-*(filled in by the session: what was built, what's left open, notes for Phase C)*

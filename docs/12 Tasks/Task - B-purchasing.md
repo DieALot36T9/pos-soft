@@ -24,10 +24,9 @@ Suppliers, purchase orders, GRNs, supplier returns, payables ledger, payments, a
 - Stay inside `crates/purchasing/` and [[Module - purchasing]]. If the page is wrong or missing something, fix the page in the same pull request and say why.
 
 ## Done when
+- Anything not finished is listed under **"Open items"** on the module page, so a later session can find it without any hand-over.
 - `cargo nextest run -p purchasing` is green. `cargo clippy -p purchasing -- -D warnings` is clean. `cargo xtask check-deps` passes.
 - Every test listed on the module page exists and names its requirement ID.
 - [[Module - purchasing]] matches the code.
 - Pull request opened from branch `task/B-purchasing`.
 
-## Result
-*(filled in by the session: what was built, what's left open, notes for Phase C)*
