@@ -1891,7 +1891,13 @@ dependencies = [
 name = "inventory"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "pos-core",
+ "proptest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
