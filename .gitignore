@@ -1,0 +1,26 @@
+# Rust build output
+/target/
+**/target/
+
+# UI dependencies and builds
+node_modules/
+ui/dist/
+ui/src/generated/*.tmp
+
+# Local databases, backups, logs and dev print previews
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+dev-prints/
+logs/
+
+# Obsidian personal workspace files (the vault itself is committed)
+docs/.obsidian/workspace*.json
+docs/.obsidian/cache
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
