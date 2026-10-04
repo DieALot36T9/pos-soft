@@ -1,0 +1,100 @@
+/*
+  The one fixed look of the app (docs/07 UI Design/Design System.md).
+  Flat: no shadows, blur, gradients or animations. The default Tailwind colours,
+  shadows, blurs and animations are removed, so those classes don't exist.
+  theme.contrast.test.ts checks every text/background pair reaches 7 : 1.
+*/
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f7f5;
+  --panel: #ffffff;
+  --border: #b9bec4;
+  --text: #1f2328;
+  --text-muted: #454c54;
+  --green: #225a39;
+  --green-soft: #e5f2ea;
+  --red: #8c2c26;
+  --red-soft: #f9e7e5;
+  --amber-fill: #f2b544;
+  --amber: #6d4911;
+  --amber-soft: #fbf0dc;
+  --blue: #255086;
+  --blue-soft: #e7eff9;
+  --purple: #5c3e8b;
+  --purple-soft: #f0eaf8;
+  --teal: #175954;
+  --teal-soft: #e2f3f1;
+  --grey: #4d5054;
+  --grey-soft: #eef0f1;
+}
+
+@theme {
+  --color-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --text-shadow-*: initial;
+  --blur-*: initial;
+  --backdrop-blur-*: initial;
+  --animate-*: initial;
+
+  --color-white: #ffffff;
+  --radius-ui: 6px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-red: var(--red);
+  --color-red-soft: var(--red-soft);
+  --color-amber-fill: var(--amber-fill);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-blue: var(--blue);
+  --color-blue-soft: var(--blue-soft);
+  --color-purple: var(--purple);
+  --color-purple-soft: var(--purple-soft);
+  --color-teal: var(--teal);
+  --color-teal-soft: var(--teal-soft);
+  --color-grey: var(--grey);
+  --color-grey-soft: var(--grey-soft);
+}
+
+@layer base {
+  html {
+    /* The computer's dark mode never changes the look. */
+    color-scheme: light only;
+    font-size: 16px;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family:
+      system-ui,
+      "Segoe UI",
+      -apple-system,
+      "SF Pro Text",
+      sans-serif;
+    font-weight: 400;
+  }
+
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+
+  /* Keyboard focus is always visible: 2 px solid blue. */
+  :focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
+}

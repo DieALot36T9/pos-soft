@@ -9,7 +9,7 @@ tags: [guide, modules]
    ```bash
    cargo xtask new-module loyalty
    ```
-   This creates `crates/loyalty/` (`Cargo.toml` depending on `core` only, `src/lib.rs`, `src/error.rs`, `migrations/001_init.sql`, `tests/contract.rs`), `ui/src/modules/loyalty/` (`api.ts`, `text/en.ts`) `docs/05 Modules/Module - loyalty.md` from the template, and a `CLAUDE.md` in both module folders that points to that page.
+   This creates `crates/loyalty/` (`Cargo.toml` depending on `core` only, `src/lib.rs`, `src/error.rs`, `migrations/001_init.sql`, `tests/contract.rs`), `ui/src/modules/loyalty/` (`api.ts`, `text/en.ts`, `text/index.ts`) `docs/05 Modules/Module - loyalty.md` from the template, and a `CLAUDE.md` in both module folders that points to that page.
 4. Fill in the module page **first**: purpose, tables, public API, views, tests, and the **"Working on this module"** section (requirements, what it gets from `app`, who uses it, traps).
 5. Write contract tests for the API (failing).
 6. Implement: migrations → functions → tests green.
