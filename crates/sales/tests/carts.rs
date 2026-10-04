@@ -285,7 +285,7 @@ fn chk_10_only_a_held_cart_can_be_resumed() {
 }
 
 #[test]
-fn a_cashier_has_only_one_open_cart_per_till() {
+fn chk_19_a_cashier_has_only_one_open_cart_per_till() {
     let mut conn = test_db();
     let till = Till::new("T1");
     cart_with(&mut conn, &till, &[]);
@@ -352,7 +352,7 @@ fn chk_12_impossible_discounts_are_refused() {
 }
 
 #[test]
-fn open_carts_on_shift_counts_only_carts_with_lines() {
+fn shf_06_open_carts_on_shift_counts_only_carts_with_lines() {
     let mut conn = test_db();
     let rahim = Till::new("T1");
     let karim = Till {

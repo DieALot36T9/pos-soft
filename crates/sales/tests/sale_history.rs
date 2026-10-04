@@ -72,7 +72,7 @@ fn support_return(conn: &mut rusqlite::Connection, till: &Till) -> Id {
 }
 
 #[test]
-fn reading_sales_back_by_invoice_and_last_on_the_till() {
+fn pay_10_ret_01_reading_sales_back_by_invoice_and_last_on_the_till() {
     let mut conn = test_db();
     let till = Till::new("T1");
     let other = Till::new("T2");
@@ -107,7 +107,7 @@ fn reading_sales_back_by_invoice_and_last_on_the_till() {
 }
 
 #[test]
-fn a_completed_sale_can_never_be_edited_or_deleted() {
+fn pay_07_a_completed_sale_can_never_be_edited_or_deleted() {
     let mut conn = test_db();
     let till = Till::new("T1");
     let sale = sell(&mut conn, &till, &[(&Id::new(), 1_000)]);

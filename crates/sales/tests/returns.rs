@@ -333,7 +333,7 @@ fn ret_04_a_sale_with_returns_cannot_be_voided_and_a_void_sale_cannot_be_returne
 }
 
 #[test]
-fn returns_can_never_be_edited_or_deleted() {
+fn ret_06_returns_can_never_be_edited_or_deleted() {
     let mut conn = test_db();
     let till = Till::new("T1");
     let sale = sell(&mut conn, &till, &[(&Id::new(), 1_000)]);

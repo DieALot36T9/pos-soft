@@ -125,7 +125,7 @@ fn pay_07_complete_saves_the_snapshot_and_deletes_the_cart() {
 }
 
 #[test]
-fn complete_refuses_header_totals_that_dont_match_the_lines() {
+fn pay_07_complete_refuses_header_totals_that_dont_match_the_lines() {
     let mut conn = test_db();
     let till = Till::new("T1");
     let cart = cart_with(
@@ -154,7 +154,7 @@ fn complete_refuses_header_totals_that_dont_match_the_lines() {
 }
 
 #[test]
-fn complete_refuses_a_line_that_doesnt_add_up() {
+fn pay_07_complete_refuses_a_line_that_doesnt_add_up() {
     let mut conn = test_db();
     let till = Till::new("T1");
     let cart = cart_with(&mut conn, &till, &[(&Id::new(), 1_000)]);
@@ -195,7 +195,7 @@ fn complete_refuses_a_line_that_doesnt_add_up() {
 }
 
 #[test]
-fn complete_refuses_lines_that_dont_match_the_cart() {
+fn pay_07_complete_refuses_lines_that_dont_match_the_cart() {
     let mut conn = test_db();
     let till = Till::new("T1");
     let cart = cart_with(&mut conn, &till, &[(&Id::new(), 1_000)]);
@@ -207,7 +207,7 @@ fn complete_refuses_lines_that_dont_match_the_cart() {
 }
 
 #[test]
-fn complete_refuses_a_held_or_missing_cart() {
+fn pay_07_complete_refuses_a_held_or_missing_cart() {
     let mut conn = test_db();
     let till = Till::new("T1");
     let cart = cart_with(&mut conn, &till, &[(&Id::new(), 1_000)]);

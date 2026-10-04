@@ -139,19 +139,19 @@ mod tests {
     }
 
     #[test]
-    fn a_payment_after_everything_is_paid_is_refused() {
+    fn pay_03_a_payment_after_everything_is_paid_is_refused() {
         let error = settle_payments(Money(1_000), &[cash(1_000), cash(500)]).unwrap_err();
         assert_eq!(error.code(), Some("payment_not_needed"));
     }
 
     #[test]
-    fn zero_or_negative_payments_are_refused() {
+    fn pay_03_zero_or_negative_payments_are_refused() {
         let error = settle_payments(Money(1_000), &[cash(0)]).unwrap_err();
         assert_eq!(error.code(), Some("payment_amount_invalid"));
     }
 
     #[test]
-    fn two_cash_payments_add_up() {
+    fn pay_03_two_cash_payments_add_up() {
         let settled = settle_payments(Money(1_000), &[cash(300), cash(1_000)]).unwrap();
         assert_eq!(settled.payments[1].amount, Money(700));
         assert_eq!(settled.change, Money(300));

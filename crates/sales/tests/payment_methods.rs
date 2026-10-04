@@ -140,7 +140,7 @@ fn set_15_cash_stays_on_because_change_is_given_in_cash() {
 }
 
 #[test]
-fn an_unknown_method_is_not_found() {
+fn set_15_an_unknown_method_is_not_found() {
     let conn = test_db();
     assert!(matches!(
         sales::payment_method(&conn, &Id::new()),

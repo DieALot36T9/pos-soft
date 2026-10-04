@@ -134,7 +134,7 @@ mod tests {
     }
 
     #[test]
-    fn returning_more_than_was_sold_is_a_bug() {
+    fn ret_01_returning_more_than_was_sold_is_a_bug() {
         let stored = amounts(100, 0, 0);
         assert!(
             split_refund(
@@ -150,7 +150,7 @@ mod tests {
     }
 
     #[test]
-    fn many_small_returns_never_refund_more_than_the_line() {
+    fn ret_02_many_small_returns_never_refund_more_than_the_line() {
         // 5 minor units over 7 units: plain rounding would give 1 each time (7 > 5).
         let stored = amounts(5, 0, 0);
         let mut refunded = LineAmounts::default();
@@ -191,7 +191,7 @@ mod tests {
 
     proptest! {
         #[test]
-        fn refunds_of_a_line_always_add_up_to_the_line(
+        fn ret_02_refunds_of_a_line_always_add_up_to_the_line(
             net in 0_i64..10_000_000,
             tax in 0_i64..2_000_000,
             cost in 0_i64..10_000_000,
