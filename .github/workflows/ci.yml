@@ -1,0 +1,154 @@
+# Checks every change. See docs/08 Testing/Test Strategy.md ("CI gates").
+# - Linux: every push (and pull requests).
+# - Windows: pull requests (the shop target, ADR-017).
+# - macOS: a .dmg to try, on pull requests labelled `build-mac` or on a version tag.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event.action == 'labeled' && 'label' || 'code' }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux:
+    name: Linux checks
+    # Adding a label doesn't change the code, so don't test it again.
+    if: github.event.action != 'labeled'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Tauri's Linux packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev \
+            librsvg2-dev libudev-dev libxdo-dev
+
+      - name: Install Rust (version from rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Rust formatting
+        run: cargo fmt --all --check
+
+      - name: Module boundaries
+        run: cargo xtask check-deps
+
+      - name: Generated TypeScript types are up to date
+        run: cargo xtask gen-types --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Rust tests
+        run: cargo nextest run --workspace
+
+      - name: UI type check
+        run: pnpm typecheck
+
+      - name: UI lint
+        run: pnpm lint
+
+      - name: UI tests
+        run: pnpm test
+
+  windows:
+    name: Windows checks
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (version from rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Rust tests
+        run: cargo nextest run --workspace
+
+      - name: UI type check
+        run: pnpm typecheck
+
+      - name: UI tests
+        run: pnpm test
+
+      # A debug build is enough to prove the app and its screens build on Windows.
+      - name: Build the app (no installer)
+        run: pnpm tauri build --debug --no-bundle
+
+  mac-build:
+    name: macOS app (.dmg)
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'build-mac'))
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (version from rust-toolchain.toml)
+        run: |
+          rustup show active-toolchain || rustup toolchain install
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # One .dmg that runs on both Apple silicon and Intel Macs. Unsigned for now
+      # (ADR-017): open it with right-click → Open the first time.
+      - name: Build the .dmg
+        run: pnpm tauri build --target universal-apple-darwin --bundles dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: supershop-pos-mac
+          path: target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          if-no-files-found: error

@@ -1,0 +1,44 @@
+[package]
+name = "app"
+description = "The Tauri application: commands, session, permission checks, workflows and start-up. The only crate that connects the modules."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "app"
+
+[[bin]]
+name = "supershop-pos"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+pos-core.workspace = true
+db.workspace = true
+settings.workspace = true
+auth.workspace = true
+audit.workspace = true
+tax.workspace = true
+catalog.workspace = true
+pricing.workspace = true
+barcode.workspace = true
+inventory.workspace = true
+sales.workspace = true
+shifts.workspace = true
+customers.workspace = true
+purchasing.workspace = true
+reports.workspace = true
+io.workspace = true
+printing.workspace = true
+hardware.workspace = true
+serde.workspace = true
+tauri.workspace = true
+ts-rs.workspace = true
+
+[lints]
+workspace = true

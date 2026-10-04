@@ -4,7 +4,7 @@ id: A0
 model: claude-opus-5-5
 effort: medium
 phase: A
-status: ready
+status: in review
 ---
 # Task A0: Foundations (milestone M0)
 
@@ -37,3 +37,15 @@ status: ready
 - All `core` examples pass.
 - [[Module - core]] and [[Module - db]] pages match the code.
 
+
+## Result
+- **Workspace:** root `Cargo.toml` (shared lints, profiles, dependency versions), `rust-toolchain.toml` (1.97.0), `.cargo/config.toml`, `clippy.toml`.
+- **19 crates:** `core` (package `pos-core`), `db`, 16 business modules, `hardware` and `app`. Each module crate has `Cargo.toml` (depends on `pos-core` only), `src/lib.rs`, `tests/contract.rs` and `CLAUDE.md`. The 11 crates with tables have `migrations/` and `pub fn migrations()` (empty list for now).
+- **core:** everything in [[Module - core]]; examples E1–E16, `money_vectors.json`, property tests.
+- **db:** the migration runner and its tests ([[Module - db]]). Backups are task B-db.
+- **app:** Tauri 2 window with the flat frame, fixed light theme, `app_info` command ([[Module - app]]).
+- **UI:** React 19, TypeScript strict, Vite, Tailwind v4 (no shadows/blur/animations, only our colour tokens), shadcn base, `useText()` + `text/en.ts`, fake bridge (`pnpm dev:mock`), contrast test, flat-look test, `ActionButton`/`IconButton`/`Tip`, module-boundary lint rule.
+- **xtask:** `check-deps` (tests prove it fails for a module → module dependency), `gen-types [--check]`, `new-module`.
+- **CI:** `.github/workflows/ci.yml` — Linux on every push, Windows on pull requests, Mac `.dmg` on the `build-mac` label or a `v*` tag.
+- **Cloud setup:** `scripts/cloud-setup.sh`. Set the cloud environment's setup script to `bash scripts/cloud-setup.sh`.
+- **Left open:** listed under "Open items" on [[Module - core]], [[Module - db]] and [[Module - app]]. The Mac build still needs to be opened on the product owner's Mac.

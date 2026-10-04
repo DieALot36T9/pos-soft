@@ -32,6 +32,13 @@ supershop-pos/
     └── release.yml               # tauri-action builds + signing on tag
 ```
 
+**Notes on the built layout (task A0):**
+- The `core` folder holds the package **`pos-core`** (code writes `pos_core::Money`), because Rust already has a crate called `core`. See [[Module - core]].
+- `scripts/cloud-setup.sh` gets a fresh Linux machine or cloud session ready (Rust, Node/pnpm, cargo-nextest, Tauri's Linux packages).
+- `xtask` has `check-deps`, `gen-types` and `new-module` so far. `seed`, `bench` and `release-notes` come later.
+- `.cargo/config.toml` adds the `cargo xtask` alias and the ts-rs settings. `clippy.toml` lets tests use `unwrap`.
+- Only `ci.yml` exists so far; `release.yml` comes with signing (M15).
+
 ## Workspace settings (root `Cargo.toml`)
 ```toml
 [workspace.lints.rust]

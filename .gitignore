@@ -24,3 +24,6 @@ docs/.obsidian/cache
 .vscode/*
 !.vscode/extensions.json
 *.swp
+
+# Files Tauri generates while building
+crates/app/gen/
