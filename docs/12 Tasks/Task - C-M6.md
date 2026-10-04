@@ -1,11 +1,14 @@
 ---
 tags: [task]
 id: C-M6
+effort: high
 phase: C
 depends_on: [C-M5, B-sales, B-shifts, B-pricing, B-tax]
 status: waiting
 ---
 # Task C-M6: Shifts and checkout
+
+**Suggested effort: high**
 
 **Start in a fresh session**, only after the tasks it depends on are merged: C-M5, B-sales, B-shifts, B-pricing, B-tax.
 This task connects finished module crates into the app (`crates/app/`) and builds their screens.

@@ -1,11 +1,14 @@
 ---
 tags: [task]
 id: C-M5
+effort: medium
 phase: C
 depends_on: [C-M4, B-inventory]
 status: waiting
 ---
 # Task C-M5: Stock
+
+**Suggested effort: medium**
 
 **Start in a fresh session**, only after the tasks it depends on are merged: C-M4, B-inventory.
 This task connects finished module crates into the app (`crates/app/`) and builds their screens.

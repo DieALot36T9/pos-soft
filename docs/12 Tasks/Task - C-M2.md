@@ -1,11 +1,14 @@
 ---
 tags: [task]
 id: C-M2
+effort: medium
 phase: C
 depends_on: [C-M1, B-settings, B-tax, B-auth, B-db]
 status: waiting
 ---
 # Task C-M2: Settings, setup wizard and backups
+
+**Suggested effort: medium**
 
 **Start in a fresh session**, only after the tasks it depends on are merged: C-M1, B-settings, B-tax, B-auth, B-db.
 This task connects finished module crates into the app (`crates/app/`) and builds their screens.

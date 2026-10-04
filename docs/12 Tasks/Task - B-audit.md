@@ -1,11 +1,14 @@
 ---
 tags: [task]
 id: B-audit
+effort: low
 phase: B
 depends_on: [A0]
 status: ready
 ---
 # Task B-audit: Build the `audit` module crate
+
+**Suggested effort: low**
 
 **Start in a fresh session.** Work only on this module. You don't need to know the rest of the app.
 

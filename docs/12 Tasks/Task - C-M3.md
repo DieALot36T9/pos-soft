@@ -1,11 +1,14 @@
 ---
 tags: [task]
 id: C-M3
+effort: medium
 phase: C
 depends_on: [C-M2, B-auth, B-audit]
 status: waiting
 ---
 # Task C-M3: Login, roles, admin approval and audit
+
+**Suggested effort: medium**
 
 **Start in a fresh session**, only after the tasks it depends on are merged: C-M2, B-auth, B-audit.
 This task connects finished module crates into the app (`crates/app/`) and builds their screens.

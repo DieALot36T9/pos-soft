@@ -48,5 +48,12 @@ A0 first and alone → all B tasks in parallel → C tasks one after another, in
 | D-M14 | UAT: a simulated trading day ([[UAT Script]]) | D-M13 | Product owner + a cashier |
 | D-M15 | Release 1.0 and pilot (signing set up here) | D-M14 | Product owner |
 
+## Effort
+Each brief suggests an effort level (shown at the top). The plan already did the hard thinking, so most tasks need only **medium**.
+- **Low:** B-audit, B-barcode, small fixes. Short and fully specified.
+- **High:** B-pricing, B-inventory, B-sales, B-printing, C-M6, C-M9. Tricky rules where a subtle mistake costs money or data.
+- **Medium:** everything else.
+If a session at a lower effort gets stuck or its tests keep failing, start a fresh session at the next level up rather than pushing the same one.
+
 ## Status
 Each brief has a `status` at the top: `ready` → `in progress` → `in review` → `done` (or `waiting` while its dependencies aren't merged). The session updates it in its pull request.

@@ -1,11 +1,14 @@
 ---
 tags: [task]
 id: B-settings
+effort: medium
 phase: B
 depends_on: [A0]
 status: ready
 ---
 # Task B-settings: Build the `settings` module crate
+
+**Suggested effort: medium**
 
 **Start in a fresh session.** Work only on this module. You don't need to know the rest of the app.
 

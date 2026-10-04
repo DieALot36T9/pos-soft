@@ -1,11 +1,14 @@
 ---
 tags: [task]
 id: B-sales
+effort: high
 phase: B
 depends_on: [A0]
 status: ready
 ---
 # Task B-sales: Build the `sales` module crate
+
+**Suggested effort: high**
 
 **Start in a fresh session.** Work only on this module. You don't need to know the rest of the app.
 

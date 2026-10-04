@@ -1,11 +1,14 @@
 ---
 tags: [task]
 id: B-inventory
+effort: high
 phase: B
 depends_on: [A0]
 status: ready
 ---
 # Task B-inventory: Build the `inventory` module crate
+
+**Suggested effort: high**
 
 **Start in a fresh session.** Work only on this module. You don't need to know the rest of the app.
 

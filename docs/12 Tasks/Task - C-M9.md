@@ -1,11 +1,14 @@
 ---
 tags: [task]
 id: C-M9
+effort: high
 phase: C
 depends_on: [C-M8]
 status: waiting
 ---
 # Task C-M9: Returns and voids
+
+**Suggested effort: high**
 
 **Start in a fresh session**, only after the tasks it depends on are merged: C-M8.
 This task connects finished module crates into the app (`crates/app/`) and builds their screens.

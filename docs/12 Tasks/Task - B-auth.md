@@ -1,11 +1,14 @@
 ---
 tags: [task]
 id: B-auth
+effort: medium
 phase: B
 depends_on: [A0]
 status: ready
 ---
 # Task B-auth: Build the `auth` module crate
+
+**Suggested effort: medium**
 
 **Start in a fresh session.** Work only on this module. You don't need to know the rest of the app.
 
