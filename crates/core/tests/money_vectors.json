@@ -1,0 +1,84 @@
+{
+  "about": "Shared examples for money formatting and parsing. core::format_money (receipts) and formatMoney in the UI are both tested against this file, so they can't disagree. Rule SET-05.",
+  "format": [
+    {
+      "about": "SET-05: taka, symbol before, 2 digits, Indian grouping",
+      "minor": 123456750,
+      "format": { "code": "BDT", "symbol": "৳", "symbol_before": true, "minor_digits": 2, "decimal_sep": ".", "group_sep": ",", "grouping": "indian" },
+      "text": "৳12,34,567.50"
+    },
+    {
+      "about": "Western grouping, 2 digits",
+      "minor": 123456750,
+      "format": { "code": "USD", "symbol": "$", "symbol_before": true, "minor_digits": 2, "decimal_sep": ".", "group_sep": ",", "grouping": "western" },
+      "text": "$1,234,567.50"
+    },
+    {
+      "about": "Negative amount: the minus sign goes first",
+      "minor": -45,
+      "format": { "code": "BDT", "symbol": "৳", "symbol_before": true, "minor_digits": 2, "decimal_sep": ".", "group_sep": ",", "grouping": "indian" },
+      "text": "-৳0.45"
+    },
+    {
+      "about": "Zero",
+      "minor": 0,
+      "format": { "code": "BDT", "symbol": "৳", "symbol_before": true, "minor_digits": 2, "decimal_sep": ".", "group_sep": ",", "grouping": "indian" },
+      "text": "৳0.00"
+    },
+    {
+      "about": "Symbol after, with a space; comma decimals and dot grouping",
+      "minor": 123450,
+      "format": { "code": "EUR", "symbol": "€", "symbol_before": false, "minor_digits": 2, "decimal_sep": ",", "group_sep": ".", "grouping": "western" },
+      "text": "1.234,50 €"
+    },
+    {
+      "about": "No minor digits",
+      "minor": 1234567,
+      "format": { "code": "JPY", "symbol": "¥", "symbol_before": true, "minor_digits": 0, "decimal_sep": ".", "group_sep": ",", "grouping": "western" },
+      "text": "¥1,234,567"
+    },
+    {
+      "about": "Three minor digits, symbol after",
+      "minor": -1234567,
+      "format": { "code": "KWD", "symbol": "KD", "symbol_before": false, "minor_digits": 3, "decimal_sep": ".", "group_sep": ",", "grouping": "western" },
+      "text": "-1,234.567 KD"
+    },
+    {
+      "about": "No grouping separator and no symbol",
+      "minor": 123456789,
+      "format": { "code": "BDT", "symbol": "", "symbol_before": true, "minor_digits": 2, "decimal_sep": ".", "group_sep": "", "grouping": "indian" },
+      "text": "1234567.89"
+    },
+    {
+      "about": "Indian grouping below one lakh",
+      "minor": 9999900,
+      "format": { "code": "INR", "symbol": "₹", "symbol_before": true, "minor_digits": 2, "decimal_sep": ".", "group_sep": ",", "grouping": "indian" },
+      "text": "₹99,999.00"
+    },
+    {
+      "about": "Indian grouping, crores",
+      "minor": 1234567890,
+      "format": { "code": "BDT", "symbol": "৳", "symbol_before": true, "minor_digits": 0, "decimal_sep": ".", "group_sep": ",", "grouping": "indian" },
+      "text": "৳1,23,45,67,890"
+    }
+  ],
+  "parse": [
+    { "text": "123.45", "minor_digits": 2, "minor": 12345 },
+    { "text": "123.4", "minor_digits": 2, "minor": 12340 },
+    { "text": "123", "minor_digits": 2, "minor": 12300 },
+    { "text": " 7.5 ", "minor_digits": 2, "minor": 750 },
+    { "text": "-0.45", "minor_digits": 2, "minor": -45 },
+    { "text": "0.001", "minor_digits": 3, "minor": 1 },
+    { "text": "1500", "minor_digits": 0, "minor": 1500 },
+    { "text": "123.456", "minor_digits": 2, "error": "money_too_many_decimals" },
+    { "text": "12.5", "minor_digits": 0, "error": "money_too_many_decimals" },
+    { "text": "", "minor_digits": 2, "error": "money_empty" },
+    { "text": "   ", "minor_digits": 2, "error": "money_empty" },
+    { "text": "12.", "minor_digits": 2, "error": "money_not_a_number" },
+    { "text": ".5", "minor_digits": 2, "error": "money_not_a_number" },
+    { "text": "1,234.00", "minor_digits": 2, "error": "money_not_a_number" },
+    { "text": "abc", "minor_digits": 2, "error": "money_not_a_number" },
+    { "text": "--5", "minor_digits": 2, "error": "money_not_a_number" },
+    { "text": "99999999999999999999", "minor_digits": 2, "error": "money_too_large" }
+  ]
+}

@@ -1,0 +1,10 @@
+[alias]
+xtask = "run --quiet --package xtask --"
+
+[env]
+# ts-rs writes TypeScript types while tests run. Normal test runs write them to
+# target/ (thrown away); `cargo xtask gen-types` writes them to ui/src/generated.
+TS_RS_EXPORT_DIR = { value = "target/ts-bindings", relative = true }
+# Money and quantities are i64 in Rust. They stay below 2^53, so a plain
+# TypeScript number holds them exactly.
+TS_RS_LARGE_INT = "number"
