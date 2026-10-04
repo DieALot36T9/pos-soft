@@ -247,6 +247,11 @@ name = "audit"
 version = "0.1.0"
 dependencies = [
  "pos-core",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "ts-rs",
 ]
 
 [[package]]
