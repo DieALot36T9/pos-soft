@@ -1,6 +1,7 @@
 ---
 tags: [task]
 id: C-M4
+model: claude-opus-5-5
 effort: medium
 phase: C
 depends_on: [C-M3, B-catalog, B-barcode]
@@ -8,7 +9,7 @@ status: waiting
 ---
 # Task C-M4: Products
 
-**Suggested effort: medium**
+**Model: Opus 5.5 · Effort: medium**
 
 **Start in a fresh session**, only after the tasks it depends on are merged: C-M3, B-catalog, B-barcode.
 This task connects finished module crates into the app (`crates/app/`) and builds their screens.

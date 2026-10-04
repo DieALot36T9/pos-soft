@@ -1,14 +1,15 @@
 ---
 tags: [task]
 id: B-barcode
-effort: low
+model: claude-opus-5-5
+effort: medium
 phase: B
 depends_on: [A0]
 status: ready
 ---
 # Task B-barcode: Build the `barcode` module crate
 
-**Suggested effort: low**
+**Model: Opus 5.5 · Effort: medium**
 
 **Start in a fresh session.** Work only on this module. You don't need to know the rest of the app.
 

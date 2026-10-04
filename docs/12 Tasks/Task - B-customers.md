@@ -1,6 +1,7 @@
 ---
 tags: [task]
 id: B-customers
+model: claude-opus-5-5
 effort: medium
 phase: B
 depends_on: [A0]
@@ -8,7 +9,7 @@ status: ready
 ---
 # Task B-customers: Build the `customers` module crate
 
-**Suggested effort: medium**
+**Model: Opus 5.5 · Effort: medium**
 
 **Start in a fresh session.** Work only on this module. You don't need to know the rest of the app.
 

@@ -1,6 +1,7 @@
 ---
 tags: [task]
 id: C-M1
+model: claude-opus-5-5
 effort: medium
 phase: C
 depends_on: [B-printing, B-hardware, B-barcode]
@@ -8,7 +9,7 @@ status: waiting
 ---
 # Task C-M1: Receipt pictures and fake hardware
 
-**Suggested effort: medium**
+**Model: Opus 5.5 · Effort: medium**
 
 **Start in a fresh session**, only after the tasks it depends on are merged: B-printing, B-hardware, B-barcode.
 This task connects finished module crates into the app (`crates/app/`) and builds their screens.

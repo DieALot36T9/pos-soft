@@ -1,13 +1,14 @@
 ---
 tags: [task]
 id: A0
+model: claude-opus-5-5
 effort: medium
 phase: A
 status: ready
 ---
 # Task A0: Foundations (milestone M0)
 
-**Suggested effort: medium**
+**Model: Opus 5.5 · Effort: medium**
 
 **Start in a fresh session.** This is the first task. Everything else depends on it.
 

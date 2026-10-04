@@ -1,6 +1,7 @@
 ---
 tags: [task]
 id: B-sales
+model: claude-opus-5-5
 effort: high
 phase: B
 depends_on: [A0]
@@ -8,7 +9,7 @@ status: ready
 ---
 # Task B-sales: Build the `sales` module crate
 
-**Suggested effort: high**
+**Model: Opus 5.5 · Effort: high**
 
 **Start in a fresh session.** Work only on this module. You don't need to know the rest of the app.
 
