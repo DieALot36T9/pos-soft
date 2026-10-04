@@ -60,6 +60,10 @@ tags: [architecture, reuse]
 | Toast messages | **sonner** (shadcn/ui default) | C tasks |
 | Command palette (`Ctrl+K`) | **cmdk** (shadcn/ui `Command`) | C tasks |
 | Tooltips, dialogs, menus | **Radix UI** via shadcn/ui | All screens |
+| Reading CSV files (RFC 4180) | **csv** | **In use** (B-io) |
+| Reading Excel (.xlsx) files | **calamine** (MIT) | **In use** (B-io) |
+| Writing Excel (.xlsx) files with typed cells and number formats | **rust_xlsxwriter** (MIT/Apache-2.0) | **In use** (B-io) |
+| Temporary files in tests | **tempfile** | **In use** (B-io tests) |
 | Fake data for big test databases | **fake** crate | `xtask seed` |
 | Benchmarks | **criterion** | `xtask bench` |
 | Test coverage | **cargo-llvm-cov** | CI |
@@ -74,6 +78,8 @@ tags: [architecture, reuse]
 | Pricing engine | Pricing rules are business-specific. We follow Odoo/ERPNext rule patterns, but there's no reusable Rust library |
 | Receipt layout (document → picture) | There's no receipt-layout library; text drawing itself uses **cosmic-text** and **tiny-skia** |
 | Scale protocol profiles | No Rust crate covers scale protocols; profiles follow each vendor's published protocol |
+| CSV separator guess (comma, semicolon or tab) in `io` | The `csv` crate doesn't guess separators, and `csv-sniffer` has had no release for years. Ours counts the three characters in the header line (about 20 lines, tested) |
+| CSV formula guard in `io` | A few lines following the **OWASP "CSV Injection"** advice (leading apostrophe), plus the reverse on reading so exports round-trip. No maintained crate does both |
 | Windows print spooler "raw" connection | Added only if the `escpos` crate's Windows driver can't reach spooler-installed printers (checked in M13) |
 
 ## Open-source projects to learn from
