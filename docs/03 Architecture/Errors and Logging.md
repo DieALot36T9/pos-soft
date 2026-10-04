@@ -27,7 +27,7 @@ pub enum AppError {
 | Library | `tracing` + `tracing-subscriber` + `tracing-appender` |
 | Always on | WARN and ERROR to the log file |
 | Switch | Settings → Logs → "Detailed logging" turns INFO+DEBUG on/off **at runtime** through a `reload::Handle` on the filter. The state is saved in settings and applied at the next startup |
-| Files | `logs/pos.YYYY-MM-DD.log`, daily rotation, keep 14 files (old ones removed at startup) |
+| Files | `logs/pos.YYYY-MM-DD.log`, daily rotation, keep 14 files (handled by `tracing-appender`'s `Rotation::DAILY` + `max_log_files(14)`; no cleanup code of our own) |
 | Format | One line per event: time, level, command span, fields. Human-readable |
 | Spans | Each Tauri command runs in a span: `cmd{name=checkout_scan req=01HX…}` with the user id |
 | Panics | Panic hook logs the panic and backtrace at ERROR before the default handler |

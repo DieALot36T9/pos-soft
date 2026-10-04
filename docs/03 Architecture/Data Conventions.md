@@ -28,7 +28,7 @@ tags: [architecture, database, conventions]
 6. **Ledgers are append-only:** every `*_ledger` table and `audit_events` gets triggers that `RAISE(ABORT)` on UPDATE or DELETE.
 7. **Snapshots:** documents (sales, returns, GRNs) copy the names, prices, tax rates and costs they used ([[ADR-011 Snapshots on sale lines]]).
 8. **Text** is stored as given (UTF-8). Searching uses FTS5 with the `unicode61` tokenizer and `remove_diacritics 2`.
-9. **Phone numbers** are stored normalized: digits only, with an optional leading `+`.
+9. **Phone numbers** are stored in **E.164** form (e.g. `+8801711123456`), cleaned with the `phonenumber` crate using the shop's country as the default ([[Reuse Map]]).
 10. **Enum values** are lower snake case (`buy_x_get_y`). Rust enums map them with `serde(rename_all = "snake_case")`.
 
 ## Document numbers

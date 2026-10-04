@@ -32,6 +32,7 @@ Until a Windows PC is available, demo testing happens on the product owner's Mac
 | NFR-R5 | The database integrity check runs at startup. If it fails, the app offers to restore the latest good backup |
 | NFR-R6 | Automatic backups are checked after they're written ([[Req - Backup and Logging]]) |
 | NFR-R7 | The database schema upgrade takes a backup first, and refuses to run on a database from a newer app version |
+| NFR-R8 | Only one copy of the app can run on a computer (a second launch brings the first window to the front), so two copies can never write to the database at once (`tauri-plugin-single-instance`) |
 
 ## Offline and portability
 | ID | Requirement |

@@ -14,7 +14,7 @@ tags: [architecture, security]
 | Malicious import file | Formula injection in CSV | On export, cells starting with `= + - @` get a leading `'`. On import, cells are treated as text, never evaluated |
 
 ## Authentication
-- Passwords and PINs are hashed with **argon2id** (memory 19 MiB, 2 iterations, 1 lane; tuned in M3 so a check takes ≤ 300 ms on the reference PC).
+- Passwords and PINs are hashed with **argon2id** (memory 19 MiB, 2 iterations, 1 lane: the **OWASP Password Storage Cheat Sheet** recommendation; checked in M3 so a check takes ≤ 300 ms on the reference PC).
 - PINs are 4–8 digits. Passwords are at least 8 characters.
 - Lockout: 5 failures → 60 s, per user.
 - The session lives only in Rust memory. Restarting the app logs everyone out (an open cart is kept in the database).

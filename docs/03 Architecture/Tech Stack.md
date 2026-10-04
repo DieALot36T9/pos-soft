@@ -75,4 +75,4 @@ StyleX (Meta's compile-time CSS-in-JS) is a good library, but it's **a worse cho
 7. **No animations** at all, except a 0.3 s flash on a new cart line ([[Design System]]).
 8. **The writer connection is never blocked by reports.** Reports use a separate read connection (WAL allows reads during writes).
 
-**Alternatives considered:** an Electron + Node stack would be slightly faster for me to iterate (one language), but costs about 150 MB installers, 300+ MB RAM and slower startup. Pure Rust UI frameworks (egui, Slint, Iced) are fast but much slower to build polished forms, tables and Bangla text input with. Tauri + Rust + React gives the best balance.
+**Alternatives considered:** an Electron + Node stack would be slightly faster for me to iterate (one language), but costs about 150 MB installers, 300+ MB RAM and slower startup. Pure Rust UI frameworks (egui, Slint, Iced) are fast but much slower to build polished forms, tables and complex text input with. Tauri + Rust + React gives the best balance.

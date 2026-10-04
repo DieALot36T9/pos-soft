@@ -3,7 +3,7 @@ tags: [architecture, modules]
 ---
 # Module Map
 
-19 crates in one Cargo workspace. **16 business modules** depend only on `core`. `db` and `hardware` are infrastructure. `app` connects everything.
+19 crates in one Cargo workspace: `core` (shared types), **15 business modules**, 2 infrastructure crates (`db`, `hardware`), and `app`. The 17 business and infrastructure crates depend only on `core`. `app` connects everything.
 
 ```mermaid
 flowchart TB

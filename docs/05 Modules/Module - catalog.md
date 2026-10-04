@@ -13,6 +13,7 @@ milestone: M4
 ```sql
 CREATE TABLE catalog_units (
   id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, symbol TEXT NOT NULL,
+  unit_code TEXT,                       -- optional UN/ECE Rec 20 code: H87 piece, KGM, GRM, LTR, MLT (see Reuse Map)
   decimals INTEGER NOT NULL CHECK (decimals BETWEEN 0 AND 3),
   is_system INTEGER NOT NULL DEFAULT 0, archived_at INTEGER
 );
