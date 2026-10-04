@@ -9,6 +9,12 @@ publish.workspace = true
 
 [dependencies]
 pos-core.workspace = true
+# Turns a code into bars (Reuse Map). Only the SVG drawer; we draw printer pictures ourselves.
+barcoders = { version = "2.0.0", default-features = false, features = ["std", "svg"] }
+
+[dev-dependencies]
+# Reads our pictures back in tests, to prove they scan (Reuse Map).
+rxing = "0.9.3"
 
 [lints]
 workspace = true
