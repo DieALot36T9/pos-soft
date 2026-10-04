@@ -1,0 +1,5 @@
+US,GS,+  0.850kg
+US,GS,+  1.180kg
+US,GS,+  1.236kg
+ST,GS,+  1.234kg
+ST,GS,+  1.234kg

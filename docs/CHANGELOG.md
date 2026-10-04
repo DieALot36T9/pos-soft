@@ -4,6 +4,13 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-hardware)
+- `hardware` crate: printer connections (Windows spooler, network, serial, CUPS, file and **Preview**), with a time limit on every device call. Network, serial and file use the `escpos` crate's drivers; the Windows spooler uses the `windows` crate.
+- The Preview printer reads the ESC/POS bytes back into pictures and notices drawer pulses, so `app` can show each receipt without a printer (HW-10).
+- Scale reading with profiles (generic continuous, CAS-type, Toledo-type), tested with recorded-format lines; "3 equal readings" when a scale has no stable flag (HW-05).
+- Listing installed printers and serial ports. Fakes that act like real devices: `MockPrinter`, `MockScale`, `FakeScale`.
+- TypeScript types for the hardware settings (`PrinterConfig`, `ScaleProfile`, `SerialSettings`, `Reading` and others).
+- `deny.toml` allows MPL-2.0 for the `serialport` crate only (Reuse Map).
 ### Changed (task A1: reuse before building, ADR-023)
 - Module crates are kept apart by **cargo-deny** (`deny.toml`, `wrappers = ["app"]`), which also checks licences, advisories and sources. CI runs `cargo deny check` and `scripts/check-module-bans.sh`, which proves a module depending on another module is refused. The hand-written xtask command for this is gone; `cargo xtask new-module` adds new modules to `deny.toml`.
 - Screen module folders are kept apart by **eslint-plugin-boundaries**, with a test that proves `pnpm lint` refuses a module importing another module.

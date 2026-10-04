@@ -57,6 +57,8 @@ exceptions = [
     { crate = "selectors", allow = ["MPL-2.0"] },        # tauri-utils → dom_query
     { crate = "dtoa-short", allow = ["MPL-2.0"] },       # tauri-utils → dom_query → cssparser
     { crate = "option-ext", allow = ["MPL-2.0"] },       # tauri → dirs
+    # The `hardware` module uses this for scales and serial printers (Module - hardware).
+    { crate = "serialport", allow = ["MPL-2.0"] },       # hardware, and escpos's serial driver
 ]
 
 [licenses.private]
