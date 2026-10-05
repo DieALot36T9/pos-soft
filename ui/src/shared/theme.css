@@ -98,3 +98,23 @@
     outline-offset: 2px;
   }
 }
+
+/* Printing through the computer's print dialog (rule HW-07, ADR-013): only the
+   part marked data-print-area is printed, at the top left of the page. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  [data-print-area],
+  [data-print-area] * {
+    visibility: visible;
+  }
+  [data-print-area] {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  [data-print-area] img {
+    border: none;
+  }
+}

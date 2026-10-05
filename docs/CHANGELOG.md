@@ -4,6 +4,19 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task C-M1: receipt pictures and fake hardware)
+- **Test print** (HW-02, HW-03): `hardware_test_print` draws a sample receipt with text, the ৳ sign, a logo, a barcode and a QR code at 58 or 80 mm and sends it to the receipt printer. Until printer settings are saved (C-M2, C-M7) that is always the Preview printer.
+- **Preview printer** (HW-10): `preview_take_printouts` hands the screen each printout as the exact PNG picture, notices drawer pulses ("Drawer opened"), and saves every picture in the app's data folder (`dev-prints/`).
+- **Printing through the computer's print dialog** (HW-07, ADR-013): `print_window` opens the system print dialog; only the newest printout is printed, so any normal printer or "Save as PDF" works.
+- **Dev-only tools** (HW-10), in debug builds and in Mac pull-request builds (`dev-tools` feature): the fake scale panel (`dev_fake_scale_get`, `dev_fake_scale_set`, `dev_fake_scale_read`) and the scan simulator (`Ctrl+Shift+S`) with a scan test box.
+- The first golden receipt pictures in `crates/app/tests/golden/` (test receipt at 58 and 80 mm), waiting for the product owner's approval.
+- Screens: `ui/src/modules/hardware/` (test print, Preview printer, fake scale, scan simulator); shared `Field`, `CheckBox` and `Badge`; a message for each device error code.
+- Playwright screen flows (`pnpm e2e`, `ui/e2e/`), run in CI on Linux.
+
+### Changed (task C-M1)
+- `AppInfo` tells the screens whether the dev tools are built in (`dev_tools`).
+- The fake bridge is loaded only in mock and test modes, so the real app doesn't carry its demo data.
+
 ### Added (reports follow-up)
 - Z and X reports show the cash count per denomination (SHF-08), from the new `shifts_v_counts` view (shifts migration 002, with its contract test).
 - `supplier_statement` and `customer_statement` reports (RPT-07): opening balance, each ledger row with the balance after it, and the closing balance.

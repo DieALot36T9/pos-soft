@@ -52,9 +52,10 @@ pnpm tauri dev
 No printer, scanner or scale is needed to build or test the app.
 | Device | Stand-in | How to use it |
 |---|---|---|
-| Receipt printer | **Preview printer** | Settings → Hardware → Printer: *Preview*. Every receipt opens in a preview window as the exact picture that would print, and is saved as a PNG in `dev-prints/` |
+| Receipt printer | **Preview printer** | Settings → Hardware → Printer: *Preview* (for now the only printer: the "Printer and devices" page on the first screen). Every printout shows in the Preview printer panel as the exact picture that would print, and is saved as a PNG in `dev-prints/` inside the app's data folder (on the Mac: `~/Library/Application Support/com.supershop.pos/dev-prints/`). The panel shows each file's path |
 | Normal printer / PDF | The Mac print dialog | "Print on another printer" → **Save as PDF** |
-| Barcode scanner | **Scan simulator** (dev builds only, `Ctrl+Shift+S`) | Click a product's barcode, or type one, and it's "scanned" at scanner speed. Typing a code + Enter in the scan box also works, because real scanners act like a keyboard |
-| Scale | **Fake scale** (dev builds only) | A small panel to set the weight and switch it between *stable* and *moving* |
+| Barcode scanner | **Scan simulator** (dev builds only, `Ctrl+Shift+S`) | Click in a text box, then click a sample code (or type one) and it's "scanned" into that box at scanner speed, followed by Enter. Typing a code + Enter also works, because real scanners act like a keyboard. The "Scan test box" shows what arrived and how long it took |
+| Scale | **Fake scale** (dev builds only) | A small panel to set the weight, switch it between *still* and *moving*, unplug it, and "Read scale" the way checkout will |
 | Cash drawer | Preview printer | The preview window shows "Drawer opened" when a drawer pulse would be sent |
+"Dev builds only" means debug builds (`pnpm tauri dev`) and builds made with the `dev-tools` feature: the Mac `.dmg` made for a pull request has it, a version tag's build does not.
 With real devices later: see [[Printer Setup]] and [[Scale Setup]].

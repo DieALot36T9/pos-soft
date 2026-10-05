@@ -130,11 +130,11 @@ pub enum PrintError { LogoUnreadable(String), QrTooLong, TooBig { width, height 
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- Built in task B-printing. Not yet connected to `app` (C-M1 does that).
-- **Golden images are not approved yet.** The pictures in `tests/golden/` were made in B-printing and are the current reference. The product owner approves them in C-M1; if they ask for changes, update the layouts and re-approve.
+- Built in task B-printing. **Connected to `app` in C-M1:** "Test print" (`app::workflows::test_print`) draws a sample receipt with `receipt`, `rasterize` and `escpos::encode`; `app::receipt_words::english` fills `ReceiptLabels`; the Preview printer shows printouts with `to_png`. Its golden pictures are in `crates/app/tests/golden/` (not approved yet).
+- **Golden images are not approved yet.** The pictures in `tests/golden/` were made in B-printing and are the current reference. C-M1 put the test receipt (same layout) on screen in the Preview printer for the product owner to approve; if they ask for changes, update the layouts and re-approve both sets.
 - **Golden images on other systems:** they were made on Linux and match in debug and release builds. CI on Windows (and the Mac build) will show whether the font drawing is dot-for-dot the same there. If not, find the difference before re-approving anything.
 - **Real printers (M13):** check on real hardware that (1) the `GS v 0` strips of 256 rows print without gaps, (2) the drawer opens with 50 ms / 500 ms pulses, (3) TSPL's flipped bits are right (0 = black) and the 203 dpi assumption holds (a 300 dpi label printer needs a `dots_per_mm` setting), (4) labels need a side margin if the label roll drifts (the layouts use the full label width).
-- **Error words for `app` (C-M1):** add `logo_unreadable` and `qr_text_too_long` to `ui/src/shared/text/en/errors.ts`.
+- **Error words:** `logo_unreadable` and `qr_text_too_long` are in `ui/src/shared/text/en/errors.ts` (C-M1).
 - `RUSTSEC-2026-0192`: `ttf-parser` (inside `fontdb` 0.23, inside `cosmic-text` 0.19) is unmaintained. It is ignored in `deny.toml` because it reads only our bundled fonts. Remove the ignore when a `cosmic-text` release drops it.
 - Currency signs from other scripts (Thai ฿, Arabic ؋ ﷼, Khmer ៛) need a font cut like the taka one, added the same way, if a shop uses them.
 - A4 label sheets and the system print dialog are not here: they go through the webview ([[ADR-013 A4 and PDF output through the webview]]).

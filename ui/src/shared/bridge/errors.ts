@@ -33,8 +33,10 @@ export function errorMessage(error: unknown, t: TFunction<"errors">): string {
       return t("permission_denied");
     case "override_required":
       return t("override_required");
-    case "hardware":
-      return t("hardware");
+    case "hardware": {
+      const code = `hardware_${error.code}`;
+      return isKnownCode(code) ? t(code, { device: error.device }) : t("hardware");
+    }
     case "internal":
       return t("internal", { ref: error.id.slice(-6) });
   }

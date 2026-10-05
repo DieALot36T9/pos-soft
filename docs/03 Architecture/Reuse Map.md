@@ -62,7 +62,9 @@ tags: [architecture, reuse]
 | Currency list (codes, decimals, symbols) | **iso_currency** (MIT, `iterator` feature) | **In use** (B-settings): `settings::currency_choices`, `currency_format_for` and the currency code check. Screens in C-M2 |
 | Phone number cleaning | **phonenumber** (libphonenumber port, Apache-2.0) | **In use** (B-customers), in `customers::normalize_phone` |
 | Log files with daily rotation and "keep 14" | **tracing-appender** (`Rotation::DAILY`, `max_log_files`) | C-M2 |
-| Keyboard shortcuts | **react-hotkeys-hook** (scopes, works in inputs), listed in one file | C-M6 |
+| Keyboard shortcuts | **react-hotkeys-hook** (scopes, works in inputs), listed in one file (`ui/src/shared/keyboard/shortcuts.ts`) | **In use** (C-M1: the scan simulator's `Ctrl+Shift+S`) |
+| Screen flows in a real browser | **Playwright** (`@playwright/test`, Chromium) against the fake bridge | **In use** (C-M1), `pnpm e2e` |
+| PNG pictures sent to the screen as `data:` addresses | **base64** (already inside Tauri) | **In use** (C-M1), `app::preview` |
 | Toast messages | **sonner** (shadcn/ui default) | C tasks |
 | Command palette (`Ctrl+K`) | **cmdk** (shadcn/ui `Command`) | C tasks |
 | Tooltips, dialogs, menus | **Radix UI** via shadcn/ui | All screens |

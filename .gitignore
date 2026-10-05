@@ -5,6 +5,8 @@
 # UI dependencies and builds
 node_modules/
 ui/dist/
+ui/test-results/
+ui/playwright-report/
 ui/src/generated/*.tmp
 
 # Local databases, backups, logs and dev print previews

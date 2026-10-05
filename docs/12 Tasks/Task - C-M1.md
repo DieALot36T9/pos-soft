@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: medium
 phase: C
 depends_on: [B-printing, B-hardware, B-barcode]
-status: waiting
+status: in review
 ---
 # Task C-M1: Receipt pictures and fake hardware
 

@@ -26,6 +26,15 @@ describe("errorMessage", () => {
     expect(errorMessage(error, t)).toContain("ref 0V1K2M");
   });
 
+  it("hw_08: says which device failed and what to do, by the hardware code", () => {
+    const error = { kind: "hardware", device: "printer", code: "not_connected", detail: "x" };
+    expect(errorMessage(error, t)).toBe(
+      "The printer isn't connected. Check the cable or network, then try again.",
+    );
+    const unknown = { kind: "hardware", device: "scale", code: "something_new", detail: "" };
+    expect(errorMessage(unknown, t)).toBe(errors.hardware);
+  });
+
   it("has a safe message for anything unexpected", () => {
     expect(errorMessage(new Error("boom"), t)).toBe(errors.unknown);
     expect(errorMessage({ kind: "validation", field: null, code: "nope", params: {} }, t)).toBe(

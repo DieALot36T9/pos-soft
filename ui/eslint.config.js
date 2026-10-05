@@ -36,7 +36,7 @@ const boundaryPolicies = [
 ];
 
 export default tseslint.config(
-  { ignores: ["dist", "src/generated", "node_modules"] },
+  { ignores: ["dist", "src/generated", "node_modules", "test-results", "playwright-report"] },
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
   {
@@ -76,7 +76,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["eslint.config.js", "vite.config.ts"],
+    files: ["eslint.config.js", "vite.config.ts", "playwright.config.ts", "e2e/**"],
     languageOptions: { globals: globals.node },
   },
   {

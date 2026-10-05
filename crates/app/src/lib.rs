@@ -6,9 +6,18 @@
 
 pub mod audit_actions;
 pub mod commands;
+pub mod dev_tools;
+pub mod devices;
 pub mod migrations;
+pub mod preview;
+pub mod receipt_words;
+pub mod workflows;
 
-use tauri::Manager;
+use std::sync::Arc;
+
+use tauri::{Manager, Wry};
+
+use devices::Devices;
 
 /// The window Tauri makes from `tauri.conf.json` when it has no label of its own.
 const MAIN_WINDOW: &str = "main";
@@ -21,13 +30,57 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _folder| {
             show_main_window(app);
         }))
-        .invoke_handler(tauri::generate_handler![commands::system::app_info])
+        .setup(|app| {
+            // Preview printouts are also saved as PNG files, in the app's own data folder.
+            let prints_folder = app
+                .path()
+                .app_local_data_dir()
+                .ok()
+                .map(|folder| folder.join("dev-prints"));
+            app.manage(Arc::new(Devices::new(prints_folder)));
+            Ok(())
+        })
+        .invoke_handler(command_handler())
         .run(tauri::generate_context!());
     // Start-up failures can't be shown in a window, because there is none yet.
     if let Err(error) = result {
         eprintln!("The app could not start: {error}");
         std::process::exit(1);
     }
+}
+
+/// What Tauri calls with each command from the window.
+type CommandHandler = Box<dyn Fn(tauri::ipc::Invoke<Wry>) -> bool + Send + Sync>;
+
+/// Every command the window may call: `commands::COMMANDS`, plus `commands::DEV_COMMANDS`
+/// when the dev tools are built in.
+fn command_handler() -> CommandHandler {
+    use commands::{dev, hardware, system};
+    if dev_tools::ON {
+        boxed(tauri::generate_handler![
+            system::app_info,
+            hardware::hardware_test_print,
+            hardware::preview_take_printouts,
+            hardware::print_window,
+            dev::dev_fake_scale_get,
+            dev::dev_fake_scale_set,
+            dev::dev_fake_scale_read,
+        ])
+    } else {
+        boxed(tauri::generate_handler![
+            system::app_info,
+            hardware::hardware_test_print,
+            hardware::preview_take_printouts,
+            hardware::print_window,
+        ])
+    }
+}
+
+/// Lets the two command lists above have the same type.
+fn boxed(
+    handler: impl Fn(tauri::ipc::Invoke<Wry>) -> bool + Send + Sync + 'static,
+) -> CommandHandler {
+    Box::new(handler)
 }
 
 /// Brings the main window to the front, even if it was minimised.

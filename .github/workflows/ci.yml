@@ -95,6 +95,13 @@ jobs:
       - name: UI tests
         run: pnpm test
 
+      # Screen flows in Chromium against the fake bridge (ui/e2e).
+      - name: Install the Playwright browser
+        run: pnpm --filter ui exec playwright install --with-deps chromium
+
+      - name: UI flows (Playwright)
+        run: pnpm e2e
+
   windows:
     name: Windows checks
     if: github.event_name == 'pull_request' && github.event.action != 'labeled'
@@ -163,8 +170,10 @@ jobs:
 
       # One .dmg that runs on both Apple silicon and Intel Macs. Unsigned for now
       # (ADR-017): open it with right-click → Open the first time.
+      # Pull request builds are demos for the product owner, so they keep the dev tools
+      # (scan simulator, fake scale: HW-10). Version tags build without them.
       - name: Build the .dmg
-        run: pnpm tauri build --target universal-apple-darwin --bundles dmg
+        run: pnpm tauri build --target universal-apple-darwin --bundles dmg ${{ startsWith(github.ref, 'refs/tags/v') && ' ' || '--features dev-tools' }}
 
       - uses: actions/upload-artifact@v7
         with:
