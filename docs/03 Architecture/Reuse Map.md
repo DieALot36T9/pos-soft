@@ -60,7 +60,7 @@ tags: [architecture, reuse]
 | Patterns that find the weight in a scale's line | **regex** | **In use** (B-hardware) |
 | Barcode images / test decoding | **barcoders**, **rxing** | B-barcode |
 | Currency list (codes, decimals, symbols) | **iso_currency** | B-settings, C-M2 |
-| Phone number cleaning | **phonenumber** (libphonenumber port) | B-customers |
+| Phone number cleaning | **phonenumber** (libphonenumber port, Apache-2.0) | **In use** (B-customers), in `customers::normalize_phone` |
 | Log files with daily rotation and "keep 14" | **tracing-appender** (`Rotation::DAILY`, `max_log_files`) | C-M2 |
 | Keyboard shortcuts | **react-hotkeys-hook** (scopes, works in inputs), listed in one file | C-M6 |
 | Toast messages | **sonner** (shadcn/ui default) | C tasks |
@@ -99,7 +99,7 @@ tags: [architecture, reuse]
 | ERPNext / POS Awesome | GPL-3.0 | Ideas: pricing rules, tax templates, POS closing |
 | Open Source Point of Sale (OSPOS) | MIT | Ideas: barcode labels, stock, reports. Code can be reused with attribution |
 
-**Licences we accept for Tauri's own dependencies:** a few crates that Tauri needs are under **MPL-2.0** (`cssparser`, `cssparser-macros`, `selectors`, `dtoa-short` through `tauri-utils`; `option-ext` through `dirs`). MPL-2.0 only asks that changes to those files stay open; we use them unchanged. `deny.toml` allows MPL-2.0 for exactly these crates, not for any other dependency. **serialport** (MPL-2.0) is allowed too, for the same reason: `hardware` uses it unchanged for scales and serial printers, and no permissively licensed serial port crate is as widely used and maintained. Two advisories are ignored in `deny.toml`: `proc-macro-error` is unmaintained (RUSTSEC-2024-0370), but it only runs at build time, inside Tauri's Linux window toolkit (gtk-rs); and `ttf-parser` is unmaintained (RUSTSEC-2026-0192), but it comes only through `cosmic-text` (whose newest release still uses it) and reads only the fonts bundled in `crates/printing/fonts`.
+**Licences we accept for Tauri's own dependencies:** a few crates that Tauri needs are under **MPL-2.0** (`cssparser`, `cssparser-macros`, `selectors`, `dtoa-short` through `tauri-utils`; `option-ext` through `dirs`). MPL-2.0 only asks that changes to those files stay open; we use them unchanged. `deny.toml` allows MPL-2.0 for exactly these crates, not for any other dependency. **serialport** (MPL-2.0) is allowed too, for the same reason: `hardware` uses it unchanged for scales and serial printers, and no permissively licensed serial port crate is as widely used and maintained. Three advisories are ignored in `deny.toml`, all "unmaintained" notices rather than security holes. `proc-macro-error` is unmaintained (RUSTSEC-2024-0370), but it only runs at build time, inside Tauri's Linux window toolkit (gtk-rs). `ttf-parser` is unmaintained (RUSTSEC-2026-0192), but it comes only through `cosmic-text` (whose newest release still uses it) and reads only the fonts bundled in `crates/printing/fonts`. `atomic-polyfill` is unmaintained (RUSTSEC-2023-0089); it comes from `phonenumber` → `postcard` → `heapless` 0.7, which reads the built-in phone rules. On our targets it only uses the standard atomics, and no safe upgrade exists yet.
 
 **Fonts:** Noto Sans and a two-letter cut of Noto Sans Bengali (for ৳) are bundled in `crates/printing/fonts` under the **SIL Open Font License 1.1** (`OFL.txt` there). It lets us bundle and change the fonts; we may not sell the fonts on their own.
 
