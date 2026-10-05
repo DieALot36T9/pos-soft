@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: high
 phase: B
 depends_on: [A0, A1]
-status: ready
+status: in review
 ---
 # Task B-printing: Build the `printing` module crate
 
