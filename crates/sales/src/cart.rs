@@ -216,7 +216,7 @@ pub fn held_carts(conn: &Connection, till_id: &Id) -> Result<Vec<HeldCartRow>, S
                 (SELECT count(*) FROM sales_cart_lines l WHERE l.cart_id = c.id) AS line_count
          FROM sales_carts c
          WHERE c.till_id = :till AND c.status = 'held'
-         ORDER BY c.updated_at, c.id",
+         ORDER BY c.updated_at, c.rowid",
     )?;
     let rows = statement.query_map(named_params! { ":till": till_id.as_str() }, |row| {
         Ok(HeldCartRow {

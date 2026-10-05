@@ -133,7 +133,7 @@ pub fn settle_payments(total_due: Money, &[EnteredPayment]) -> Result<Settlement
 pub fn complete(tx, CompletedSale /* header + snapshot lines + payments */) -> Result<SaleRef>; // assigns invoice_no, deletes the cart
 pub fn get_sale(conn, &Id) -> Result<Sale>;
 pub fn find_by_invoice(conn, &str) -> Result<Option<Sale>>;
-pub fn last_sale(conn, till: &Id) -> Result<Option<Sale>>;
+pub fn last_sale(conn, till: &Id) -> Result<Option<Sale>>;                            // the one saved last
 pub fn returnable_qty(conn, sale: &Id) -> Result<HashMap<Id /*line*/, Qty>>;
 pub fn void(tx, sale: &Id, by: &Id, approved_by: Option<&Id>, reason: &str, now) -> Result<()>;
 pub fn has_any_sale(conn) -> Result<bool>;                                             // true once any sale or return exists
@@ -176,14 +176,14 @@ The sales module **does not calculate prices or tax**. `complete` receives fully
 `qty_not_positive`, `qty_too_large`, `price_negative`, `discount_invalid`, `cart_empty`, `till_code_missing`, `payment_amount_invalid`, `payment_not_needed`, `payment_over_remaining`, `payment_not_enough`, `payment_reference_missing`, `payment_method_inactive`, `payment_method_name_missing`, `payment_kind_reserved`, `payment_kind_fixed`, `payment_cash_required`, `return_qty_too_large` (`max_milli`), `return_line_repeated`, `return_lines_mixed`, `return_empty`, `void_reason_missing` · conflicts: `cart_already_open`, `cart_not_open`, `cart_not_held`, `cart_in_progress`, `sale_already_voided`, `sale_has_returns`, `sale_voided`.
 
 ## Tests
-Every test names its requirement. `cargo nextest run -p sales` (79 tests).
+Every test names its requirement. `cargo nextest run -p sales` (80 tests).
 
 | Page promise | Tests |
 |---|---|
 | Invoice numbers are gapless per till under 1,000 sequential completes | `complete::pay_08_invoice_numbers_are_gapless_over_1000_sales`, `pay_08_each_till_counts_on_its_own`, `numbers::pay_08_invoice_numbers_have_the_till_code_and_six_digits` |
 | A failed transaction doesn't use a number | `complete::pay_07_a_failed_transaction_does_not_use_a_number`, `carts::chk_05_cancel_returns_the_cart_and_uses_no_invoice_number` |
 | `complete` refuses inconsistent totals | `complete::pay_07_complete_refuses_header_totals_that_dont_match_the_lines`, `pay_07_complete_refuses_a_line_that_doesnt_add_up`, `pay_07_complete_refuses_lines_that_dont_match_the_cart`, `pay_07_complete_refuses_a_held_or_missing_cart`, `pay_03_complete_refuses_a_short_payment`, `pay_01_change_that_doesnt_match_the_cash_is_refused`, `pay_03_non_cash_payments_have_no_tendered_amount`, `pay_02_a_method_that_needs_a_reference_refuses_a_payment_without_one` |
-| A sale is saved with its snapshot; it never changes | `complete::pay_07_complete_saves_the_snapshot_and_deletes_the_cart`, `pay_01_complete_stores_cash_tendered_and_change`, `sale_history::pay_07_a_completed_sale_can_never_be_edited_or_deleted`, `sale_history::pay_10_ret_01_reading_sales_back_by_invoice_and_last_on_the_till` |
+| A sale is saved with its snapshot; it never changes | `complete::pay_07_complete_saves_the_snapshot_and_deletes_the_cart`, `pay_01_complete_stores_cash_tendered_and_change`, `sale_history::pay_07_a_completed_sale_can_never_be_edited_or_deleted`, `sale_history::pay_10_ret_01_reading_sales_back_by_invoice_and_last_on_the_till`, `sale_history::pay_10_last_sale_is_the_one_saved_last_even_in_the_same_millisecond` |
 | Payments and change (E12, E13) | `settle::e12_pay_01_cash_change`, `e13_pay_03_split_wallet_then_cash`, `pay_03_*` (5 more) |
 | Merge vs non-merge scans | `carts::chk_01_repeat_scan_merges_into_the_same_line`, `chk_01_without_merge_each_scan_is_a_new_line`, `chk_08_price_label_lines_never_merge`, `chk_12_a_discounted_line_is_not_merged_into` |
 | Quantity 0 removes | `carts::chk_04_quantity_zero_removes_the_line`, `chk_04_negative_quantities_are_refused`, `chk_05_remove_line` |
@@ -222,6 +222,7 @@ Test helpers live in `crates/sales/tests/support/mod.rs`: `test_db()` (in-memory
 - `complete()` expects the lines in the cart's order, one per cart line. If pricing ever splits or adds lines, change the check here in the same change.
 - Repeat scans merge only into a **plain** line (no scale price, override or discount). The workflow passes `merge = false` for weighed items or when the shop turned merging off (SET-17).
 - An empty open cart doesn't block closing a shift (`open_carts_on_shift` counts carts with lines only).
+- Never sort by `id` to find "the newest": ULIDs made in the same millisecond don't sort by creation. `last_sale` uses `rowid` (sales are never deleted, so it only grows).
 
 **Done when:** the [[Definition of Done]] is met, and this page matches the code.
 

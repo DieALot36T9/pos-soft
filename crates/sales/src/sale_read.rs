@@ -25,11 +25,13 @@ pub fn find_by_invoice(conn: &Connection, invoice_no: &str) -> Result<Option<Sal
     find_sale(conn, "invoice_no = :key", invoice_no.trim())
 }
 
-/// The most recent sale on this till, for "reprint last receipt" (PAY-10).
+/// The sale saved last on this till, for "reprint last receipt" (PAY-10).
 pub fn last_sale(conn: &Connection, till_id: &Id) -> Result<Option<Sale>, SalesError> {
     let sale_id = conn
         .query_row(
-            "SELECT id FROM sales_sales WHERE till_id = :till ORDER BY completed_at DESC, id DESC LIMIT 1",
+            // rowid is the order sales were saved in. Sales are never deleted, so it only
+            // grows. Ids made in the same millisecond don't sort by creation, so they can't be used.
+            "SELECT id FROM sales_sales WHERE till_id = :till ORDER BY rowid DESC LIMIT 1",
             named_params! { ":till": till_id.as_str() },
             |row| get_id(row, "id"),
         )

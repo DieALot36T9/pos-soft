@@ -123,3 +123,18 @@ fn pay_07_a_completed_sale_can_never_be_edited_or_deleted() {
         assert!(conn.execute(sql, [id]).is_err(), "{sql} should be refused");
     }
 }
+
+#[test]
+fn pay_10_last_sale_is_the_one_saved_last_even_in_the_same_millisecond() {
+    // Bug found by CI: two sales with the same `completed_at` came back in random order,
+    // because ids made in the same millisecond don't sort by creation.
+    let mut conn = test_db();
+    let till = Till::new("T1");
+    for _ in 0..30 {
+        let sale = sell(&mut conn, &till, &[(&Id::new(), 1_000)]);
+        assert_eq!(
+            sales::last_sale(&conn, &till.till).unwrap().unwrap().id,
+            sale.id
+        );
+    }
+}
