@@ -11,6 +11,7 @@ mod overrides;
 mod sales_by;
 mod shift;
 mod sql;
+mod statement;
 mod stock;
 mod summary;
 mod table;
@@ -23,6 +24,7 @@ pub use error::ReportsError;
 pub use overrides::discounts_overrides;
 pub use sales_by::{profit, sales_by};
 pub use shift::shift_report;
+pub use statement::{customer_statement, supplier_statement};
 pub use stock::{low_stock, near_expiry, stock_movement, stock_value};
 pub use tax::tax_report;
 pub use types::{

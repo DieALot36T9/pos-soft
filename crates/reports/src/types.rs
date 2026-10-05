@@ -69,7 +69,7 @@ fn name_from(names: &BTreeMap<Id, String>, id_text: &str) -> String {
 }
 
 /// "exchange_credit" → "Exchange credit".
-fn kind_name(kind: &str) -> String {
+pub(crate) fn kind_name(kind: &str) -> String {
     let words = kind.replace('_', " ");
     let mut letters = words.chars();
     match letters.next() {

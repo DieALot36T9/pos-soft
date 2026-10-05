@@ -83,7 +83,10 @@ fn load_shift(conn: &Connection, shift: &Id) -> Result<ShiftRow, ReportsError> {
     found
         .into_iter()
         .next()
-        .ok_or_else(|| ReportsError::ShiftNotFound(shift.clone()))
+        .ok_or_else(|| ReportsError::NotFound {
+            entity: "shift",
+            id: shift.clone(),
+        })
 }
 
 /// Shop details are printed by `printing` from settings; this part has till, cashier,

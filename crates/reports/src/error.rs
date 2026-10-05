@@ -9,9 +9,9 @@ pub enum ReportsError {
     /// Example: "date_range_backwards".
     #[error("not allowed: {0}")]
     Invalid(&'static str),
-    /// No shift has this id.
-    #[error("shift {0} was not found")]
-    ShiftNotFound(Id),
+    /// No shift, supplier or customer has this id. `entity` says which.
+    #[error("{entity} {id} was not found")]
+    NotFound { entity: &'static str, id: Id },
     /// A money sum overflowed, or a stored value could not be read back.
     #[error(transparent)]
     Core(#[from] AppError),
@@ -24,9 +24,9 @@ impl From<ReportsError> for AppError {
     fn from(error: ReportsError) -> AppError {
         match error {
             ReportsError::Invalid(code) => AppError::validation(code),
-            ReportsError::ShiftNotFound(shift) => AppError::NotFound {
-                entity: "shift".to_string(),
-                key: shift.to_string(),
+            ReportsError::NotFound { entity, id } => AppError::NotFound {
+                entity: entity.to_string(),
+                key: id.to_string(),
             },
             ReportsError::Core(error) => error,
             ReportsError::Database(error) => AppError::internal(format!("reports: {error}")),

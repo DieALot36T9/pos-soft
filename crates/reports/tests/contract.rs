@@ -7,9 +7,9 @@ mod support;
 
 use pos_core::{Cell, ColumnKind, ReportTable};
 use reports::{
-    DateRange, GroupBy, SalesDimension, SalesFilters, daily_summary, discounts_overrides,
-    low_stock, near_expiry, payables_aging, profit, receivables_aging, sales_by, shift_report,
-    stock_movement, stock_value, tax_report,
+    DateRange, GroupBy, SalesDimension, SalesFilters, customer_statement, daily_summary,
+    discounts_overrides, low_stock, near_expiry, payables_aging, profit, receivables_aging,
+    sales_by, shift_report, stock_movement, stock_value, supplier_statement, tax_report,
 };
 use rusqlite::Connection;
 use support::{date, empty_db, id, shop, shop_context};
@@ -89,6 +89,12 @@ fn every_report_has_one_cell_of_the_right_kind_per_column() {
     let mut reports = every_report(&conn);
     reports.push(shift_report(&conn, &id("SH1"), &shop_context()).unwrap());
     reports.push(shift_report(&conn, &id("SH3"), &shop_context()).unwrap());
+    let range = DateRange {
+        from: date("2026-01-01"),
+        to: date("2026-03-31"),
+    };
+    reports.push(supplier_statement(&conn, &id("SP1"), range).unwrap());
+    reports.push(customer_statement(&conn, &id("CN"), range).unwrap());
     for report in &reports {
         check_shape(report);
     }
