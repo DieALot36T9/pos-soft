@@ -4,6 +4,13 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-sales)
+- `sales` module: carts and held carts saved on every change, completing a sale from already-priced lines, gapless invoice numbers (`T1-000123`) and return numbers (`T1-R000045`) per till, payment methods with the system methods built in, payments with cash change (`settle_payments`), returns with exact refunds from the stored sale line (the last return refunds exactly what is left), voids, and the `sales_v_sales`, `sales_v_lines`, `sales_v_return_lines` and `sales_v_payments` views.
+- `complete()` refuses a sale whose lines, totals or payments don't add up, before it uses an invoice number.
+- Database triggers stop completed sales, their lines and payments, and returns from being changed or deleted (only the void fields of a sale can be set, once).
+- Sale headers also store tier and invoice discount totals; sale and return lines store their cost.
+- `sales_summary` gives the number of sales and the last invoice number of a database or backup, for the backup restore list (BAK-05).
+
 ### Added (task B-pricing)
 - `pricing` crate: price lists, tiers and promotions (tables, migration `001_init`, view `pricing_v_promotions`) and their admin functions with save checks.
 - The pricing engine `price_cart`, a pure function: unit price (override, price list, retail), the single best promotion per product on the combined quantity (ADR-019), tier discount on lines without a promotion, manual line discounts and the invoice discount split. `load_context` reads what it needs. `manual_discount_bps` gives the largest manual discount % for the role limit check.
