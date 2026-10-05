@@ -1,0 +1,5 @@
+---
+source: crates/printing/tests/escpos_bytes.rs
+expression: "hex(&escpos::drawer_pulse(DrawerPin::Pin5).unwrap())"
+---
+1B 70 01 19 FA
