@@ -4,6 +4,9 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-audit)
+- `audit`: the append-only `audit_events` table with triggers that refuse UPDATE and DELETE, the `audit_v_events` view, `record` (refuses badly named actions, non-object details and secret-sounding keys) and `query` (newest first, filters by business date, user and action, pages of up to 500). USR-08.
+
 ### Added (task B-io)
 - `io`: reads .csv (BOM, comma/semicolon/tab, quoted newlines, must be UTF-8) and .xlsx (first or chosen sheet) into a table of text cells; writes .csv (UTF-8 BOM, formula guard) and .xlsx (real numbers with number formats); exports a report to .xlsx with the shop name, report name, date range and time made (RPT-09); matches file headers to fields (`auto_map`); reads money, quantities, yes/no and dates without ever rounding (IO-04); lists bad cells with row and column (`CellErr`). 50k rows read in about 1.3 s (IO-05). Uses `csv`, `calamine` and `rust_xlsxwriter` (added to the Reuse Map).
 
