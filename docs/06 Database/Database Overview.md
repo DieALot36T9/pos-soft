@@ -43,7 +43,7 @@ erDiagram
 ## Table index
 | Module | Tables | Published views |
 |---|---|---|
-| db | db_migrations, db_meta | — |
+| db | db_migrations | — |
 | settings | settings_values, settings_setup_steps | — |
 | auth | auth_roles, auth_role_permissions, auth_users, auth_recovery | — |
 | audit | audit_events | audit_v_events |
