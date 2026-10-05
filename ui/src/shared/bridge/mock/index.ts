@@ -4,7 +4,10 @@ import type { FakeScaleView } from "../../../generated/FakeScaleView";
 import type { PaperWidth } from "../../../generated/PaperWidth";
 import type { PreviewPrintout } from "../../../generated/PreviewPrintout";
 import type { Reading } from "../../../generated/Reading";
+import type { CurrencyFormat } from "../../../generated/CurrencyFormat";
+import { formatMoney, parseMoney } from "../../format/money";
 import { mockScale, mockScaleRead, mockScaleSet } from "./scale";
+import { shopHandlers } from "./shop";
 import { testReceiptPicture } from "./testReceipt";
 
 // What the fake Preview printer has printed and not yet handed out.
@@ -13,6 +16,15 @@ let waitingPrintouts: PreviewPrintout[] = [];
 // The fake Rust side for `pnpm dev:mock` and tests, filled with demo data.
 // Each answer is typed with the generated types, so it can't drift from Rust.
 const handlers = {
+  ...shopHandlers,
+  money_preview: (args?: Record<string, unknown>): string => {
+    const format = args?.format as CurrencyFormat;
+    const parsed = parseMoney(
+      format.minor_digits === 0 ? "1234567" : "1234567.5",
+      format.minor_digits,
+    );
+    return parsed.ok ? formatMoney(parsed.minor, format) : "";
+  },
   app_info: (): AppInfo => ({
     name: "Supershop POS",
     version: "0.1.0 (fake bridge)",

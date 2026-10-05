@@ -112,8 +112,9 @@ pub type Result<T> = std::result::Result<T, SettingsError>;
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- Built in task B-settings: all typed settings, `get`/`set`, setup progress, `snapshot`, the ISO 4217 currency list and suggested denominations. No `app` wiring and no screens yet (task C-M2).
-- **For `app` (C-M2):** refuse a change to `minor_digits` once `sales::has_any_sale` is true (SET-05); check backup folders can be written (SET-11); call `barcode::validate_rule` and `barcode::rules_overlap` before saving scale rules; set `TillSettings::till_id` at the till step; fill in `BackupSettings::primary_dir` when it's empty; write the old and new values from `set` to the audit log (SET-13).
+- Built in task B-settings: all typed settings, `get`/`set`, setup progress, `snapshot`, the ISO 4217 currency list and suggested denominations.
+- **Connected in C-M2** (`app::workflows::setup` and `settings_change`): the `minor_digits` lock after a sale (SET-05), writable backup folders (SET-11), `till_id` set once at the till step, the default `backups` folder filled in by `app` when `primary_dir` is empty (not saved), old and new values audited (SET-13). Screens: the setup wizard (`ui/src/modules/setup/`) and the Settings screen (`ui/src/modules/settings/`: shop, money and rounding, tax, till, receipt, backups, logs).
+- **Still to do in `app`:** call `barcode::validate_rule` and `barcode::rules_overlap` before saving scale rules (no screen for them yet); Settings sections for hardware, payment methods, denominations, checkout, inventory, loyalty, credit and barcode rules; the logo upload (SET-04); the live receipt preview (SET-14).
 - Payment methods (SET-15) are owned by `sales` (`sales_payment_methods`), not stored here.
 - Text lengths (shop name, receipt lines) have no upper limit yet. Add one if the receipt layout needs it (B-printing).
-- Loyalty defaults (spend unit 100.00, point value 1.00) assume 2 currency decimals. The wizard should scale them for 0, 1 or 3 decimals (C-M2).
+- Loyalty defaults (spend unit 100.00, point value 1.00) assume 2 currency decimals. Scale them for 0, 1 or 3 decimals when the loyalty settings get their screen (not done in C-M2).

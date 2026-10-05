@@ -109,6 +109,7 @@ Restore is a file swap done by `app` at restart, using `verify` first.
 *Anything not finished yet. The next session working on this module starts here.*
 - Done in A0: `Db` (open, settings, write, read), `migrate`, `pending`, the `db_migrations` table.
 - Done in B-db: `backup_to`, `verify`, `open_read_only`, `quick_check`, `change_marker`, `has_changed_since`, `backup_file_name`, `prune_backups`, and the power-cut test. `db_meta` dropped (see Tables).
-- For `app` (Phase C, not this crate): the backup timer, backups on close and before migrations/imports/restores/count postings, copying each checked backup to the second folder (BAK-02), the restore file swap, the startup recovery screen, and the daily `integrity_check` on the newest backup.
+- **Done in `app` (C-M2):** the backup timer, backups on close, before migrations and before restores, the copy to the second folder (BAK-02), the restore file swap at the next start, and the startup recovery screen (`ui/src/modules/backup/`, with the Backups screen).
+- Still for `app`: backups before imports (C-M12) and count postings (C-M5), and the daily `integrity_check` on the newest backup.
 - For M13: the power cut on a real Windows PC (pulling the plug), on top of the killed-process test here.
-- Screens (`ui/src/modules/backup/`): not started; they come with the Phase C tasks.
+- Screens (`ui/src/modules/backup/`): Backups (list, Back up now, restore with a confirmation) and the recovery screen, built in C-M2.

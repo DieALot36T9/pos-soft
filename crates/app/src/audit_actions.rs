@@ -7,6 +7,16 @@ pub const CART_CANCEL: &str = "cart.cancel";
 pub const SALE_VOID: &str = "sale.void";
 /// The drawer was opened without a sale (SHF-04).
 pub const DRAWER_NO_SALE: &str = "drawer.no_sale";
+/// A setting was changed after setup; details hold the old and new values (SET-13).
+pub const SETTINGS_CHANGE: &str = "settings.change";
+/// A tax rate was added, changed or deactivated after setup (TAX-02, TAX-10).
+pub const TAX_RATE_CHANGE: &str = "tax_rate.change";
+/// Someone pressed "Back up now" (BAK-04).
+pub const BACKUP_MANUAL: &str = "backup.manual";
+/// A backup was restored. Written into the restored database after the restart (BAK-05).
+pub const BACKUP_RESTORE: &str = "backup.restore";
+/// Detailed logging was switched on or off (BAK-07).
+pub const LOGGING_SWITCH: &str = "logging.switch";
 
 #[cfg(test)]
 mod tests {

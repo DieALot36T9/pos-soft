@@ -15,3 +15,4 @@ export async function call<T>(command: string, args?: Record<string, unknown>): 
 }
 
 export { errorMessage } from "./errors";
+export { errorField } from "./fieldError";

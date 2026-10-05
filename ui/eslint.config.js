@@ -36,7 +36,7 @@ const boundaryPolicies = [
 ];
 
 export default tseslint.config(
-  { ignores: ["dist", "src/generated", "node_modules", "test-results", "playwright-report"] },
+  { ignores: ["dist", "src/generated", "node_modules", "test-results", "playwright-report", "dist-mock"] },
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
   {

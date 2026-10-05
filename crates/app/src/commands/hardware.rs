@@ -19,7 +19,7 @@ pub async fn hardware_test_print(
     paper: PaperWidth,
 ) -> Result<(), AppError> {
     let devices = Arc::clone(&devices);
-    on_worker(move || {
+    on_worker("hardware_test_print", move || {
         let printer = devices.receipt_printer();
         test_print::run(printer.as_ref(), paper, &devices.fonts)
     })
@@ -32,7 +32,10 @@ pub async fn preview_take_printouts(
     devices: State<'_, Arc<Devices>>,
 ) -> Result<Vec<PreviewPrintout>, AppError> {
     let devices = Arc::clone(&devices);
-    on_worker(move || preview::take_printouts(&devices)).await
+    on_worker("preview_take_printouts", move || {
+        preview::take_printouts(&devices)
+    })
+    .await
 }
 
 /// Opens the system print dialog for what the window shows. The screen shows only the

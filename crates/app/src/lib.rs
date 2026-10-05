@@ -5,63 +5,129 @@
 //! Page: `docs/05 Modules/Module - app.md`.
 
 pub mod audit_actions;
+pub mod audit_log;
 pub mod commands;
 pub mod dev_tools;
 pub mod devices;
+pub mod jobs;
+pub mod logging;
 pub mod migrations;
+pub mod paths;
 pub mod preview;
 pub mod receipt_words;
+pub mod session;
+pub mod startup;
+pub mod state;
 pub mod workflows;
 
 use std::sync::Arc;
 
-use tauri::{Manager, Wry};
+use pos_core::{AppError, SystemClock};
+use settings::LoggingSettings;
+use tauri::{Manager, RunEvent, Wry};
 
 use devices::Devices;
+use paths::AppPaths;
+use state::{AppState, DbHealth};
 
 /// The window Tauri makes from `tauri.conf.json` when it has no label of its own.
 const MAIN_WINDOW: &str = "main";
 
-/// Starts the app: opens the window and registers every command.
+/// Starts the app: logging, the database, the backup timer, the window and every command.
 pub fn run() {
-    let result = tauri::Builder::default()
+    let built = tauri::Builder::default()
         // Must be the first plugin: a second copy of the app stops here and
         // brings the running copy's window to the front instead.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _folder| {
             show_main_window(app);
         }))
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            let data_dir = app.path().app_local_data_dir()?;
+            let state = Arc::new(start_state(&data_dir)?);
+            if state.health == DbHealth::Ok {
+                jobs::start_backup_timer(Arc::clone(&state));
+            }
             // Preview printouts are also saved as PNG files, in the app's own data folder.
-            let prints_folder = app
-                .path()
-                .app_local_data_dir()
-                .ok()
-                .map(|folder| folder.join("dev-prints"));
-            app.manage(Arc::new(Devices::new(prints_folder)));
+            app.manage(Arc::new(Devices::new(Some(state.paths.prints()))));
+            app.manage(state);
             Ok(())
         })
         .invoke_handler(command_handler())
-        .run(tauri::generate_context!());
+        .build(tauri::generate_context!());
     // Start-up failures can't be shown in a window, because there is none yet.
-    if let Err(error) = result {
-        eprintln!("The app could not start: {error}");
-        std::process::exit(1);
+    let app = match built {
+        Ok(app) => app,
+        Err(error) => {
+            eprintln!("The app could not start: {error}");
+            std::process::exit(1);
+        }
+    };
+    app.run(|handle, event| {
+        if let RunEvent::Exit = event
+            && let Some(state) = handle.try_state::<Arc<AppState>>()
+        {
+            jobs::backup_on_close(&state);
+        }
+    });
+}
+
+/// Starts logging, then opens and checks the database (Workflows, "Startup").
+fn start_state(data_dir: &std::path::Path) -> Result<AppState, AppError> {
+    let paths = AppPaths::new(data_dir);
+    paths.create_folders()?;
+    let log = logging::start_logging(&paths.logs(), false)?;
+    let mut state = startup::start(paths, Arc::new(SystemClock))?;
+    if state.health == DbHealth::Ok {
+        let saved: LoggingSettings = state.db.read(|conn| Ok(settings::get(conn)?))?;
+        log.set_detailed(saved.detailed)?;
     }
+    state.log = Some(log);
+    tracing::warn!(version = env!("CARGO_PKG_VERSION"), health = ?state.health, "app started");
+    Ok(state)
 }
 
 /// What Tauri calls with each command from the window.
 type CommandHandler = Box<dyn Fn(tauri::ipc::Invoke<Wry>) -> bool + Send + Sync>;
 
 /// Every command the window may call: `commands::COMMANDS`, plus `commands::DEV_COMMANDS`
-/// when the dev tools are built in.
+/// when the dev tools are built in. The two lists must match (permissions test).
 fn command_handler() -> CommandHandler {
-    use commands::{dev, hardware, system};
+    use commands::{backup, dev, hardware, settings, setup, startup, system, tax};
     if dev_tools::ON {
         boxed(tauri::generate_handler![
             system::app_info,
             hardware::hardware_test_print,
             hardware::preview_take_printouts,
             hardware::print_window,
+            startup::cmd::startup_status,
+            startup::cmd::session_sign_in,
+            startup::cmd::session_sign_out,
+            startup::cmd::session_current,
+            startup::cmd::recovery_backups,
+            startup::cmd::recovery_restore,
+            setup::cmd::setup_status,
+            setup::cmd::setup_save_shop,
+            setup::cmd::setup_save_money,
+            setup::cmd::setup_save_tax,
+            setup::cmd::setup_save_admin,
+            setup::cmd::setup_save_till,
+            setup::cmd::setup_save_hardware,
+            setup::cmd::setup_save_backup,
+            setup::cmd::setup_finish,
+            setup::cmd::setup_restore_backup,
+            settings::cmd::currency_choices,
+            settings::cmd::currency_format_for,
+            settings::cmd::money_preview,
+            settings::cmd::settings_get,
+            settings::cmd::settings_save,
+            settings::cmd::logs_set_detailed,
+            tax::cmd::tax_rate_list,
+            tax::cmd::tax_rate_save,
+            tax::cmd::tax_rate_deactivate,
+            backup::cmd::backup_now,
+            backup::cmd::backup_list,
+            backup::cmd::backup_restore,
             dev::dev_fake_scale_get,
             dev::dev_fake_scale_set,
             dev::dev_fake_scale_read,
@@ -72,6 +138,34 @@ fn command_handler() -> CommandHandler {
             hardware::hardware_test_print,
             hardware::preview_take_printouts,
             hardware::print_window,
+            startup::cmd::startup_status,
+            startup::cmd::session_sign_in,
+            startup::cmd::session_sign_out,
+            startup::cmd::session_current,
+            startup::cmd::recovery_backups,
+            startup::cmd::recovery_restore,
+            setup::cmd::setup_status,
+            setup::cmd::setup_save_shop,
+            setup::cmd::setup_save_money,
+            setup::cmd::setup_save_tax,
+            setup::cmd::setup_save_admin,
+            setup::cmd::setup_save_till,
+            setup::cmd::setup_save_hardware,
+            setup::cmd::setup_save_backup,
+            setup::cmd::setup_finish,
+            setup::cmd::setup_restore_backup,
+            settings::cmd::currency_choices,
+            settings::cmd::currency_format_for,
+            settings::cmd::money_preview,
+            settings::cmd::settings_get,
+            settings::cmd::settings_save,
+            settings::cmd::logs_set_detailed,
+            tax::cmd::tax_rate_list,
+            tax::cmd::tax_rate_save,
+            tax::cmd::tax_rate_deactivate,
+            backup::cmd::backup_now,
+            backup::cmd::backup_list,
+            backup::cmd::backup_restore,
         ])
     }
 }

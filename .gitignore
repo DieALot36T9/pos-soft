@@ -5,6 +5,7 @@
 # UI dependencies and builds
 node_modules/
 ui/dist/
+ui/dist-mock/
 ui/test-results/
 ui/playwright-report/
 ui/src/generated/*.tmp

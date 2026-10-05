@@ -116,11 +116,20 @@ Backup (`pre-import`) → `io::read_table` → map rows to `catalog::NewProduct`
 ## Save product (back office)
 `catalog::create/update` + `inventory::set_reorder_rule` + `catalog` price history (if prices changed) + audit, in one transaction.
 
+## Startup
+`app::startup::start(paths, clock)`: make the data, `backups` and `logs` folders → finish a restore asked for before the restart (`restore-pending.json`: delete the database, its `-wal` and `-shm`, copy the backup in, remove the marker first so a failed restore never repeats) → `Db::open` → `db::quick_check` (a failure, or a file SQLite can't open, gives `DbHealth::Damaged`: only the recovery screen works, BAK-06) → if an existing database has pending migrations, `db::backup_to(backups/…-pre-upgrade.sqlite)` → `db::migrate` → audit the restore (`backup.restore`) **into the restored database**. Logging starts first (warnings and errors), then the saved `LoggingSettings` switch the detail on. The backup timer starts only for a healthy database.
+
+## Backups
+`workflows::backup::make_backup(state, reason)`: main folder (settings, or the app's `backups` folder) → `db::backup_to` (VACUUM INTO + check; a failed check sets the `backup_check_failed` banner) → `db::prune_backups` (newest `keep_last` + last of each day for 30 days) → copy to the second folder and prune there (a failure only sets the `backup_second_folder_failed` banner, BAK-02). A second backup in the same second gets `-2` after its reason. The timer (`jobs.rs`, every 30 s it checks whether `interval_min` has passed) calls `backup_if_changed`, which skips when `db::has_changed_since` is false. Closing the app always backs up (`close`) once setup is complete. "Back up now" audits `backup.manual`.
+
 ## Restore backup
-`db::verify(file)` → backup current (`pre-restore`) → `db::restore(file)` → audit is written **into the restored database** after restart (the event is stashed in a small file and replayed on next start) → restart.
+`db::verify(file)` → backup current (`pre-restore`, skipped when the database is damaged) → write `restore-pending.json` (file, user) → restart. The swap happens at the next start (see Startup), and the audit event is written into the restored database there.
 
 ## Test print
 `workflows::test_print::run(printer, paper, fonts)`: sample receipt data (sample shop, a sample logo, a Code 128 barcode from `barcode::bitmap`, a QR code) → `printing::receipt` with the English `ReceiptLabels` (`app::receipt_words`) → `printing::rasterize` → `printing::escpos::encode` (cut, no drawer) → `printer.send`. Saves nothing, so there is no transaction. A printer error comes back as `AppError::Hardware` (HW-08). Until printer settings are saved (C-M2, C-M7) the printer is always the Preview printer, and the shop details are samples.
 
 ## First-run setup
-Each wizard step saves through `settings` (and `tax`, `auth`) in its own transaction, then `settings::complete_step`. The last step creates the first sequence rows and marks setup complete.
+Each wizard step saves through `settings` (and `tax`, `auth`) in its own transaction together with `settings::complete_step` (`workflows::setup`), and is refused once setup is complete (`setup_already_done`). Shop → money (also fills the denominations from `suggested_denominations` if empty) → tax (the rates are added first with `tax_rate_save`; at least one is needed, the default must be one of them, `None` takes the first) → admin (`auth::create_user` with the Admin role + `auth::create_recovery_code`, then the admin is signed in) → till (gets its `till_id` once; the code is trimmed and upper-cased) → hardware (printer, paper width, drawer pin; can be skipped) → backup (folders must be writable) → products ("Add later" only for now). Setup itself isn't audited: there is no till yet. Sequence rows for invoices come with sales (C-M6).
+
+## Settings change
+`workflows::settings_change::save`: one section per call, in one transaction; each setting saved is audited (`settings.change`, details `{key, old, new}`, the old value being the one in use, the default if never saved). Money: refused with `minor_digits_locked` when the number of decimals changes and `sales::has_any_sale` (SET-05). Tax: the default rate must exist. Till: keeps its id. Backup: folders must be writable. Detailed logging is saved, audited (`logging.switch`) and applied at once.
