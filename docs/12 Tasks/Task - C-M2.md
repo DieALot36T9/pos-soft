@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: medium
 phase: C
 depends_on: [C-M1, B-settings, B-tax, B-auth, B-db]
-status: waiting
+status: in review
 ---
 # Task C-M2: Settings, setup wizard and backups
 

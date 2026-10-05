@@ -34,5 +34,8 @@ pub fn dev_fake_scale_set(
 #[tauri::command]
 pub async fn dev_fake_scale_read(devices: State<'_, Arc<Devices>>) -> Result<Reading, AppError> {
     let devices = Arc::clone(&devices);
-    on_worker(move || dev_tools::fake_scale_read(&devices, READ_LIMIT)).await
+    on_worker("dev_fake_scale_read", move || {
+        dev_tools::fake_scale_read(&devices, READ_LIMIT)
+    })
+    .await
 }

@@ -116,8 +116,9 @@ Every test names its requirement ID. Run with `cargo nextest run -p tax`.
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- Built in task B-tax: tables, calculation, rate functions and all tests above. No `app` commands and no screens yet; those come in Phase C (C-M2 setup wizard and rate screens, C-M6 checkout).
-- For Phase C: add the UI text for the error codes above to `ui/src/shared/text/en/errors.ts`.
+- Built in task B-tax: tables, calculation, rate functions and all tests above.
+- **Connected in C-M2:** `tax_rate_list`, `tax_rate_save` (add or change) and `tax_rate_deactivate` in `app` (audited as `tax_rate.change`), used by the wizard's tax step and the Tax rates screen (`ui/src/modules/tax/`). The error codes have messages in `ui/src/shared/text/en/errors.ts`. Checkout use comes in C-M6.
+- **Rate components (TAX-03)** can't be edited on screen yet: the form keeps a rate's existing parts. Add a parts editor with the tax report (C-M11) or when a shop needs it.
 - TAX-01 (tax label), TAX-04 (the shop's mode), and TAX-08/TAX-09 (receipt and report) are stored or shown by other modules (`settings`, `printing`, `reports`). This module only gives them rates and `split_components`; `TaxMode` itself is in `core`.
 - [[Money Tax and Rounding]] step 8 says components get `floor(…)`. The code rounds towards zero, which is the same for sales and keeps refunds symmetric (see Public API). The product owner may want that page's wording changed to match; it's outside this module's folders.
 - There is no "reactivate a rate" function. Add one if the product owner asks for it.

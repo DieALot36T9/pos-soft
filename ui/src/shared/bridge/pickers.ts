@@ -1,0 +1,31 @@
+import { open } from "@tauri-apps/plugin-dialog";
+
+// The fake bridge runs in `pnpm dev:mock` (a normal browser) and in tests.
+const useFakeBridge = import.meta.env.MODE === "mock" || import.meta.env.MODE === "test";
+
+// What the fake pickers answer, so screens can be tried without the desktop app.
+export const FAKE_BACKUP_FILE = "/fake/backups/pos-20261001-120000-manual.sqlite";
+export const FAKE_FOLDER = "/fake/usb-drive";
+
+// Lets the user pick one backup file with the computer's file picker. Null if cancelled.
+export async function pickBackupFile(title: string): Promise<string | null> {
+  if (useFakeBridge) {
+    return FAKE_BACKUP_FILE;
+  }
+  const picked = await open({
+    title,
+    multiple: false,
+    directory: false,
+    filters: [{ name: "Backup", extensions: ["sqlite"] }],
+  });
+  return typeof picked === "string" ? picked : null;
+}
+
+// Lets the user pick a folder with the computer's folder picker. Null if cancelled.
+export async function pickFolder(title: string): Promise<string | null> {
+  if (useFakeBridge) {
+    return FAKE_FOLDER;
+  }
+  const picked = await open({ title, multiple: false, directory: true });
+  return typeof picked === "string" ? picked : null;
+}

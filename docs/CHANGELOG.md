@@ -4,6 +4,21 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task C-M2: settings, setup wizard and backups)
+- **Startup** (BAK-06): pending restore → open → `quick_check` → backup before an upgrade → migrations. A damaged database opens only the **recovery screen**, which restores the newest checked backup.
+- **Setup wizard** (SET-01 to SET-12): welcome (new shop or restore from a backup), shop, money with live preview, tax with rates, first admin with the recovery code shown once, till, printer (can be skipped), backups, products ("add later"). Each step is saved on Next, so setup resumes where it stopped.
+- **Settings** screens (SET-04 to SET-14, SET-13 audit): shop, money and rounding, tax, till, receipt, backups, logs. Decimals lock after the first sale (SET-05). Every change is audited with old and new values.
+- **Tax rates** screen (TAX-02, TAX-07, TAX-10): add, change, deactivate (never delete), each audited.
+- **Backups** (BAK-01 to BAK-05): timer (skipped when nothing changed), on close, before an upgrade and a restore; second folder copy with a warning banner; pruning; Backups screen with "Back up now" and restore with a confirmation naming the date (the app restarts).
+- **Logging** (BAK-07): log files per day kept 14 days; errors and warnings always; the detailed switch works at once.
+- Interim **sign-in** with username and password (C-M3 adds login tiles and PINs), and a back-office frame with a side menu.
+- Shared screens parts: `Alert`, `SelectField`, `useSave`, file and folder pickers, `formatPercent` / `parsePercent`; a message for every new error code.
+
+### Changed (task C-M2)
+- Every command runs through `on_worker`, which logs it in a span and logs internal errors with their details.
+- Playwright tests run against a mock build served by `vite preview` (`pnpm e2e:serve`) instead of the dev server, so pages never reload mid-test.
+- `money_preview` shows 1234567 for a currency without decimals.
+
 ### Added (task C-M1: receipt pictures and fake hardware)
 - **Test print** (HW-02, HW-03): `hardware_test_print` draws a sample receipt with text, the ৳ sign, a logo, a barcode and a QR code at 58 or 80 mm and sends it to the receipt printer. Until printer settings are saved (C-M2, C-M7) that is always the Preview printer.
 - **Preview printer** (HW-10): `preview_take_printouts` hands the screen each printout as the exact PNG picture, notices drawer pulses ("Drawer opened"), and saves every picture in the app's data folder (`dev-prints/`).

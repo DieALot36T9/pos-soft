@@ -19,10 +19,13 @@ tags: [architecture, security]
 - Lockout: 5 failures → 60 s, per user.
 - The session lives only in Rust memory. Restarting the app logs everyone out (an open cart is kept in the database).
 
+**Until C-M3** an admin signs in with username and password on a plain sign-in form (`session_sign_in` → `auth::verify_login`, same lockout). The admin made in the setup wizard is signed in straight away. C-M3 adds the login tiles, PINs, lock screen and auditing of logins.
+
 ## Authorization
 - `Permission` is a Rust enum in `core`. Roles map to sets of permissions in `auth`.
 - Every Tauri command starts with `ctx.require(Permission::X)?` or `ctx.require_or_override(Permission::X, override_token)?`.
 - A unit test lists **every command** and asserts the permission it requires, so a new command can't be added without deciding its permission.
+- Setup commands need no sign-in (nobody exists yet), but work only until setup is complete. Settings and tax rate commands also work without sign-in during setup, because the wizard uses them; afterwards they need `SettingsManage` / `TaxManage`. The recovery commands work only while the database is damaged.
 - Override tokens: created by `auth::verify_override(admin_username, secret, permission)`, random 128-bit, **single use**, tied to one permission, expire after 60 s, kept in memory only.
 
 ## Audit
@@ -31,7 +34,7 @@ tags: [architecture, security]
 - See the list of audited events in [[Req - Users and Security]] USR-08.
 
 ## Tauri hardening
-- Capabilities: only our own commands, the `dialog` plugin (open/save file pickers) and `fs` limited to the app data folder and paths the user picks. No `shell`, no `http`.
+- Capabilities: only our own commands, the `dialog` plugin (`dialog:allow-open`: open file and folder pickers) and `fs` limited to the app data folder and paths the user picks. No `shell`, no `http`.
 - Strict CSP: `default-src 'self'; img-src 'self' asset: data:; style-src 'self' 'unsafe-inline'` (Tailwind needs inline styles only for Radix positioning).
 - No remote content is ever loaded.
 

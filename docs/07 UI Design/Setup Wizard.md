@@ -19,6 +19,8 @@ What the shop owner sees the first time the app opens. Requirements: [[Req - Set
 | 8 | Products | Import from CSV/Excel · Add later · Load demo data | Choose one |
 | ✓ | Done | Summary, "Create cashier users now" link, 🟩 **Start** | — |
 
+**Built in C-M2:** all steps above, with these gaps listed on [[Module - app]]: no logo upload in step 1, step 6 offers only the Preview printer (others come with the printer settings, C-M7), and step 8 offers only "Add products later". The admin step signs the new admin in.
+
 Rules
 - Steps 1–5 and 7 are required to finish. Step 6 can be done later; until then, the dashboard shows an amber "Printer not set up" card.
 - Settings that lock after the first sale (number of currency decimals) and the warning about changing the tax mode are explained right on the step.

@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Screen flows in a real browser against the fake bridge (`pnpm dev:mock`).
+// Screen flows in a real browser against the fake bridge. The screens are built once
+// in mock mode and served as they are (`pnpm e2e:serve`), so no page reloads mid-test.
 // Run with `pnpm e2e`. See docs/08 Testing/Test Strategy.md.
 export default defineConfig({
   testDir: "./e2e",
@@ -16,7 +17,7 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "pnpm dev:mock",
+    command: "pnpm e2e:serve",
     url: "http://localhost:1420",
     reuseExistingServer: !process.env.CI,
   },

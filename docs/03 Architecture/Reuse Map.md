@@ -49,8 +49,8 @@ tags: [architecture, reuse]
 | Digit grouping (Western / Indian) on receipts | **num-format** (`Grouping::Standard` / `Grouping::Indian`) | **In use** (A1), in `core::format_money` |
 | Money and number display on screens | Browser built-in **`Intl.NumberFormat`** | C tasks |
 | Only one copy of the app may run | **tauri-plugin-single-instance** | **In use** (A1), in `app::run()` |
-| File open/save dialogs, files | **tauri-plugin-dialog**, **tauri-plugin-fs** | C tasks |
-| Remember window size/position | **tauri-plugin-window-state** | C-M2 |
+| File open/save dialogs, files | **tauri-plugin-dialog**, **tauri-plugin-fs** | **tauri-plugin-dialog in use** (C-M2: pick a backup file to restore, pick backup folders; `ui/src/shared/bridge/pickers.ts`). tauri-plugin-fs: C tasks |
+| Remember window size/position | **tauri-plugin-window-state** | Not yet (open item on [[Module - app]]) |
 | ESC/POS encoding + network/USB/serial/file connections, cut, QR | **escpos** crate (MIT) | **In use**: B-printing for the start and cut commands; B-hardware for the network, serial and file connections. Two commands are written by hand (see below) |
 | Text on receipts and labels: shaping, line breaking, drawing letters | **cosmic-text** (with `swash`) on a **tiny-skia** page | **In use** (B-printing). Only our bundled Noto Sans fonts, never the system's |
 | QR codes on receipts | **qrcode** | **In use** (B-printing) |
@@ -61,7 +61,7 @@ tags: [architecture, reuse]
 | Barcode images / test decoding | **barcoders**, **rxing** | B-barcode |
 | Currency list (codes, decimals, symbols) | **iso_currency** (MIT, `iterator` feature) | **In use** (B-settings): `settings::currency_choices`, `currency_format_for` and the currency code check. Screens in C-M2 |
 | Phone number cleaning | **phonenumber** (libphonenumber port, Apache-2.0) | **In use** (B-customers), in `customers::normalize_phone` |
-| Log files with daily rotation and "keep 14" | **tracing-appender** (`Rotation::DAILY`, `max_log_files`) | C-M2 |
+| Log files with daily rotation and "keep 14" | **tracing** + **tracing-subscriber** (`reload` layer for the detailed switch) + **tracing-appender** (`Rotation::DAILY`, `max_log_files(14)`) | **In use** (C-M2), `app/src/logging.rs` |
 | Keyboard shortcuts | **react-hotkeys-hook** (scopes, works in inputs), listed in one file (`ui/src/shared/keyboard/shortcuts.ts`) | **In use** (C-M1: the scan simulator's `Ctrl+Shift+S`) |
 | Screen flows in a real browser | **Playwright** (`@playwright/test`, Chromium) against the fake bridge | **In use** (C-M1), `pnpm e2e` |
 | PNG pictures sent to the screen as `data:` addresses | **base64** (already inside Tauri) | **In use** (C-M1), `app::preview` |

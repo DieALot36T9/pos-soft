@@ -1,11 +1,20 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+// The fake shop starts set up with the admin signed in; the page is in the main menu.
+async function openHardwarePage(page: Page) {
+  await page.goto("/");
+  await page
+    .getByRole("navigation", { name: "Main menu" })
+    .getByRole("button", { name: /Printer and devices/ })
+    .click();
+}
 
 // Working without hardware (rule HW-10), against the fake bridge.
 
 test("hw_02/hw_10: a test print at 58 mm shows the receipt picture in the Preview printer", async ({
   page,
 }) => {
-  await page.goto("/");
+  await openHardwarePage(page);
   const preview = page.getByRole("region", { name: "Preview printer" });
   await expect(preview.getByText(/Nothing printed yet/)).toBeVisible();
 
@@ -20,7 +29,7 @@ test("hw_02/hw_10: a test print at 58 mm shows the receipt picture in the Previe
 });
 
 test("hw_10: the fake scale reads a moving weight, then a still one", async ({ page }) => {
-  await page.goto("/");
+  await openHardwarePage(page);
   const weight = page.getByRole("textbox", { name: "Weight" });
   await weight.fill("2.5");
   await page.getByRole("checkbox", { name: "Weight is still" }).uncheck();
@@ -37,7 +46,7 @@ test("hw_10: the fake scale reads a moving weight, then a still one", async ({ p
 test("hw_01/hw_10: Ctrl+Shift+S opens the scan simulator, which scans into the box", async ({
   page,
 }) => {
-  await page.goto("/");
+  await openHardwarePage(page);
   const scanBox = page.getByRole("textbox", { name: "Scan here" });
   await scanBox.click();
   await page.keyboard.press("Control+Shift+S");
@@ -53,13 +62,13 @@ test("hw_01/hw_10: Ctrl+Shift+S opens the scan simulator, which scans into the b
 test("design: every button and field has a tooltip, shown when reached with Tab", async ({
   page,
 }) => {
-  await page.goto("/");
+  await openHardwarePage(page);
   await page.getByRole("button", { name: /Scan simulator/ }).click();
   await page.getByRole("heading", { name: "Supershop POS" }).click();
   await page.keyboard.press("Tab");
   // The first control on screen shows its tooltip at once.
-  await expect(page.getByRole("button", { name: /Check app/ })).toBeFocused();
-  await expect(page.getByRole("tooltip")).toHaveText("Ask the app which version is running.");
+  await expect(page.getByRole("button", { name: /^Home/ })).toBeFocused();
+  await expect(page.getByRole("tooltip")).toHaveText("The start page with the app's version.");
 
   // Walk the page with the Tab key. Every control sits inside a tooltip trigger
   // (Radix marks each trigger with data-state). A tooltip that opens while the page
