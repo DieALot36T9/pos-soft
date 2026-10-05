@@ -89,6 +89,25 @@ fn shf_08_cash_summary_matches_the_count() {
 }
 
 #[test]
+fn shf_08_count_per_denomination() {
+    let conn = shop();
+    let report = shift_report(&conn, &id("SH1"), &shop_context()).unwrap();
+    let count = section(&report, "Count");
+
+    // Largest note first. A note missing at one stage counts 0 there.
+    assert_eq!(
+        count.rows,
+        vec![
+            vec![m(50_000), Cell::Int(2), Cell::Int(1), m(50_000)],
+            vec![m(10_000), Cell::Int(0), Cell::Int(4), m(40_000)],
+            vec![m(1_000), Cell::Int(0), Cell::Int(3), m(3_000)],
+        ]
+    );
+    // The closing count adds up to the counted cash.
+    assert_eq!(count.totals, Some(vec![E, E, E, m(93_000)]));
+}
+
+#[test]
 fn shf_05_x_report_while_the_shift_is_open() {
     let conn = shop();
     let report = shift_report(&conn, &id("SH3"), &shop_context()).unwrap();
@@ -103,6 +122,8 @@ fn shf_05_x_report_while_the_shift_is_open() {
     assert_eq!(row(cash, "Expected cash")[1], m(54_000));
     assert_eq!(row(cash, "Counted cash")[1], E);
     assert_eq!(row(cash, "Difference")[1], E);
+    // Karim's shift was opened without a count.
+    assert!(section(&report, "Count").rows.is_empty());
 }
 
 #[test]

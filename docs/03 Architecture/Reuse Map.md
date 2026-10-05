@@ -71,9 +71,9 @@ tags: [architecture, reuse]
 | Reading CSV files (RFC 4180) | **csv** | **In use** (B-io) |
 | Reading Excel (.xlsx) files | **calamine** (MIT) | **In use** (B-io) |
 | Writing Excel (.xlsx) files with typed cells and number formats | **rust_xlsxwriter** (MIT/Apache-2.0) | **In use** (B-io) |
-| Temporary files in tests | **tempfile** | **In use** (B-io tests) |
+| Temporary files in tests | **tempfile** | **In use** (B-io tests; reports benchmark) |
 | Fake data for big test databases | **fake** crate | `xtask seed` |
-| Benchmarks | **criterion** | **In use** (B-catalog: `cargo bench -p catalog`; B-auth: `cargo bench -p auth`). `xtask bench` later |
+| Benchmarks | **criterion** | **In use** (B-catalog: `cargo bench -p catalog`; B-auth: `cargo bench -p auth`; reports: `cargo bench -p reports`). `xtask bench` later |
 | Test coverage | **cargo-llvm-cov** | CI |
 | CI caching / tool install | `Swatinem/rust-cache`, `taiki-e/install-action`, `tauri-apps/tauri-action` | CI |
 | Database backup | SQLite's built-in `VACUUM INTO` | [[Module - db]] |

@@ -22,8 +22,8 @@ pub fn sales_by(
     shop: &ShopContext,
 ) -> Result<ReportTable, ReportsError> {
     let range = range.check()?;
-    let groups = group_totals(conn, dimension, range, filters, shop.utc_offset_minutes)?;
-    let total = overall(conn, &groups, range, filters)?;
+    let totals = group_totals(conn, dimension, range, filters, shop.utc_offset_minutes)?;
+    let total = overall(&totals)?;
     let names = Names::load(conn, dimension, shop)?;
 
     let mut params = range_params(range);
@@ -42,7 +42,7 @@ pub fn sales_by(
             column("share", "Share of total", ColumnKind::Percent),
         ],
     );
-    for group in sorted(dimension, groups) {
+    for group in sorted(dimension, totals.groups) {
         table.rows.push(vec![
             names.cell(dimension, &group),
             Cell::Qty(Qty(group.qty)),
@@ -85,8 +85,8 @@ pub fn profit(
     let dimension = SalesDimension::from(group_by);
     let filters = SalesFilters::default();
     let shop = ShopContext::default();
-    let groups = group_totals(conn, dimension, range, &filters, 0)?;
-    let total = overall(conn, &groups, range, &filters)?;
+    let totals = group_totals(conn, dimension, range, &filters, 0)?;
+    let total = overall(&totals)?;
     let names = Names::load(conn, dimension, &shop)?;
     let (key_title, key_kind) = key_column(dimension);
     let mut table = new_table(
@@ -100,7 +100,7 @@ pub fn profit(
             column("margin", "Margin", ColumnKind::Percent),
         ],
     );
-    for group in sorted(dimension, groups) {
+    for group in sorted(dimension, totals.groups) {
         table
             .rows
             .push(profit_row(names.cell(dimension, &group), &group)?);
@@ -188,11 +188,11 @@ impl<'a> Names<'a> {
     fn cell(&self, dimension: SalesDimension, group: &GroupTotals) -> Cell {
         let key = group.key.as_str();
         match dimension {
-            SalesDimension::Product | SalesDimension::Category => text(
-                self.catalog
-                    .get(key)
-                    .map_or(group.line_name.as_str(), String::as_str),
-            ),
+            // Products and categories are never deleted (only archived), so the
+            // catalog has every name; the id is shown just in case.
+            SalesDimension::Product | SalesDimension::Category => {
+                text(self.catalog.get(key).map_or(key, String::as_str))
+            }
             SalesDimension::Brand if key.is_empty() => text("No brand"),
             SalesDimension::Brand => text(self.catalog.get(key).map_or(key, String::as_str)),
             SalesDimension::Cashier => text(&self.shop.user_name(key)),

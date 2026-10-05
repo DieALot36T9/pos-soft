@@ -1,7 +1,7 @@
 //! X and Z shift reports (RPT-02, SHF-05, SHF-08).
 
 use chrono::DateTime;
-use pos_core::{BusinessDate, Cell, ColumnKind, Id, Money, ReportTable};
+use pos_core::{AppError, BusinessDate, Cell, ColumnKind, Id, Money, ReportTable};
 use rusqlite::Connection;
 
 use crate::sql::{query, query_one, text as text_param};
@@ -52,6 +52,7 @@ pub fn shift_report(
     report.sections.insert(0, details_section(&row, shop));
     let voids = report.sections.pop();
     report.sections.push(cash_section(conn, shift, &row)?);
+    report.sections.push(count_section(conn, shift)?);
     report.sections.extend(voids);
     Ok(report)
 }
@@ -82,7 +83,10 @@ fn load_shift(conn: &Connection, shift: &Id) -> Result<ShiftRow, ReportsError> {
     found
         .into_iter()
         .next()
-        .ok_or_else(|| ReportsError::ShiftNotFound(shift.clone()))
+        .ok_or_else(|| ReportsError::NotFound {
+            entity: "shift",
+            id: shift.clone(),
+        })
 }
 
 /// Shop details are printed by `printing` from settings; this part has till, cashier,
@@ -193,6 +197,59 @@ fn cash_section(
     table
         .rows
         .push(vec![text("Difference"), money_or_empty(row.difference)]);
+    Ok(table)
+}
+
+/// The cash count by denomination (SHF-08): how many of each note or coin at opening
+/// and at closing, and what the closing count is worth. Largest first. Empty when the
+/// shift was opened and closed without counting.
+fn count_section(conn: &Connection, shift: &Id) -> Result<ReportTable, ReportsError> {
+    let counts = query(
+        conn,
+        "SELECT denomination_minor,
+           SUM(CASE WHEN stage = 'open' THEN count ELSE 0 END),
+           SUM(CASE WHEN stage = 'close' THEN count ELSE 0 END)
+         FROM shifts_v_counts WHERE shift_id = :shift
+         GROUP BY denomination_minor ORDER BY denomination_minor DESC",
+        &[(":shift", text_param(shift.as_str()))],
+        |row| {
+            Ok((
+                Money(row.get(0)?),
+                row.get::<_, i64>(1)?,
+                row.get::<_, i64>(2)?,
+            ))
+        },
+    )?;
+    let mut table = new_table(
+        "Count",
+        Default::default(),
+        vec![
+            column("denomination", "Note or coin", ColumnKind::Money),
+            column("opening_count", "At opening", ColumnKind::Int),
+            column("closing_count", "At closing", ColumnKind::Int),
+            column("closing_amount", "Closing amount", ColumnKind::Money),
+        ],
+    );
+    let mut counted = Money::zero();
+    for (denomination, opening, closing) in counts {
+        let amount = denomination.0.checked_mul(closing).ok_or_else(|| {
+            AppError::internal(format!("count: {} × {closing} overflowed", denomination.0))
+        })?;
+        counted = counted.checked_add(Money(amount))?;
+        table.rows.push(vec![
+            Cell::Money(denomination),
+            Cell::Int(opening),
+            Cell::Int(closing),
+            Cell::Money(Money(amount)),
+        ]);
+    }
+    // The first column holds money, so the totals row has no "Total" label.
+    table.totals = Some(vec![
+        Cell::Empty,
+        Cell::Empty,
+        Cell::Empty,
+        Cell::Money(counted),
+    ]);
     Ok(table)
 }
 

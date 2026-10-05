@@ -147,6 +147,7 @@ pub fn add_shifts(conn: &Connection) {
         4_000,
         local_ms(0, 16, 0),
     );
+    add_counts(conn);
 }
 
 pub fn add_event(
@@ -185,4 +186,25 @@ pub fn add_audit(conn: &Connection) {
     add_event(conn, "sale.void", "T1", "R", Some("A"), local_ms(0, 13, 10));
     add_event(conn, "drawer.no_sale", "T1", "R", None, local_ms(0, 14, 0));
     add_event(conn, "cart.cancel", "T2", "K", None, local_ms(0, 16, 10));
+}
+
+/// SH1 opened with 2 × 500.00 and was counted at 930.00: 1 × 500, 4 × 100, 3 × 10.
+fn add_counts(conn: &Connection) {
+    let counts = [
+        ("open", 50_000, 2),
+        ("close", 50_000, 1),
+        ("close", 10_000, 4),
+        ("close", 1_000, 3),
+    ];
+    for (stage, denomination, count) in counts {
+        conn.execute(
+            "INSERT INTO shifts_counts (shift_id, stage, denomination_minor, count)
+             VALUES (:shift, :stage, :denomination, :count)",
+            named_params! {
+                ":shift": id("SH1").as_str(), ":stage": stage,
+                ":denomination": denomination, ":count": count,
+            },
+        )
+        .unwrap();
+    }
 }

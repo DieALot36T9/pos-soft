@@ -200,3 +200,37 @@ fn errors_turn_into_app_errors_with_stable_codes() {
     let error: pos_core::AppError = sales::hold(&tx, &cart, None, now()).unwrap_err().into();
     assert!(matches!(error, pos_core::AppError::Validation { code, .. } if code == "cart_empty"));
 }
+
+#[test]
+fn migrations_are_numbered_in_order() {
+    for (index, migration) in sales::migrations().migrations.iter().enumerate() {
+        assert_eq!(migration.version as usize, index + 1);
+    }
+}
+
+/// RPT-11: reports read a year of sale lines (about 1.6 million) through `sales_v_lines`.
+/// The columns they add up come from one index, so the wide line rows aren't read.
+#[test]
+fn rpt_11_reports_read_sale_lines_from_one_covering_index() {
+    let conn = test_db();
+    let plan: Vec<String> = conn
+        .prepare(
+            "EXPLAIN QUERY PLAN
+             SELECT l.sale_id, l.product_id, l.category_id, l.brand_id, l.user_id, l.qty_milli,
+                    l.net_minor, l.tax_minor, l.promo_discount_minor, l.tier_discount_minor,
+                    l.manual_discount_minor, l.invoice_discount_minor, l.cost_minor,
+                    l.tax_rate_id, l.tax_bps, l.price_overridden
+             FROM sales_v_lines l
+             WHERE l.status = 'completed' AND l.business_date BETWEEN '2026-01-01' AND '2026-12-31'",
+        )
+        .unwrap()
+        .query_map([], |row| row.get::<_, String>(3))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert!(
+        plan.iter()
+            .any(|step| step.contains("COVERING INDEX sales_lines_report")),
+        "{plan:?}"
+    );
+}

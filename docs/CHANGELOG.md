@@ -4,6 +4,17 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (reports follow-up)
+- Z and X reports show the cash count per denomination (SHF-08), from the new `shifts_v_counts` view (shifts migration 002, with its contract test).
+- `supplier_statement` and `customer_statement` reports (RPT-07): opening balance, each ledger row with the balance after it, and the closing balance.
+- The RPT-11 speed check: one year of reference data (50,000 products, 1,500 sales a day) and a budget test (`cargo nextest run -p reports --release --run-ignored only`) plus `cargo bench -p reports`. Every report now meets its budget: daily summary 16 ms, every year-long report under 3 s (product-level sales and profit about 2.9 s, close to the limit).
+- `app::audit_actions` with the three action names the reports count, tested against `reports::ACTION_*`.
+
+### Changed (reports follow-up)
+- Year-long reports add up rows in Rust instead of SQL `GROUP BY`, and their look-ups use indexes. Before: daily summary 3.2 s, tax report 10 s, stock movement 8.5 s, sales by 6 s.
+- `sales` migration 002 replaces the `sales_lines(sale_id)` index with the covering index `sales_lines_report`, so reports read a year of lines from the index.
+- `reports::ReportsError::ShiftNotFound` is now `NotFound { entity, id }` (also used for suppliers and customers).
+
 ### Added (task B-reports)
 - `reports` crate: every report as one `ReportTable` — daily summary (RPT-01), X/Z shift reports (RPT-02, SHF-05, SHF-08), sales by product, category, brand, cashier, hour, weekday or date with filters and top N (RPT-03), profit and margin from the cost saved on each line (RPT-04), stock value, low stock with supplier and suggested order, near expiry, stock movement (RPT-05), tax by rate and component (RPT-06, TAX-09), supplier and customer aging (RPT-07), and discounts and overrides per cashier (RPT-08). Reads only other modules' `*_v_*` views; owns no tables. Rust only; `app` wiring and screens come in Phase C.
 - A fixture shop with one scripted day; every report's numbers are checked against hand-worked values. Contract tests check every report's cells against its column kinds, also on an empty database.
