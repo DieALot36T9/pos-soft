@@ -30,8 +30,15 @@ pub fn migrations() -> ModuleMigrations {
 }
 
 // Add each new file in `migrations/` here, in order. Never edit a released one.
-const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    name: "init",
-    sql: include_str!("../migrations/001_init.sql"),
-}];
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        name: "init",
+        sql: include_str!("../migrations/001_init.sql"),
+    },
+    Migration {
+        version: 2,
+        name: "counts_view",
+        sql: include_str!("../migrations/002_counts_view.sql"),
+    },
+];

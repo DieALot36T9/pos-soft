@@ -262,6 +262,49 @@ fn view_shifts_v_shifts_shows_every_shift_column() {
 }
 
 #[test]
+fn shf_08_view_shifts_v_counts_publishes_the_opening_and_closing_counts() {
+    let mut conn = test_db();
+    let (till, user) = (Id::new(), Id::new());
+    let shift = write(&mut conn, |tx| {
+        shifts::open(
+            tx,
+            &till,
+            &user,
+            taka(600),
+            &[(taka(500), 1), (taka(100), 1)],
+            today(),
+            NOW,
+        )
+        .unwrap()
+    });
+    write(&mut conn, |tx| {
+        shifts::close(tx, &shift, &[(taka(100), 6)], &user, false, None, NOW).unwrap()
+    });
+    let mut statement = conn
+        .prepare(
+            "SELECT shift_id, stage, denomination_minor, count FROM shifts_v_counts
+             ORDER BY stage DESC, denomination_minor",
+        )
+        .unwrap();
+    let rows: Vec<(String, String, i64, i64)> = statement
+        .query_map([], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+        })
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    let id = shift.to_string();
+    assert_eq!(
+        rows,
+        vec![
+            (id.clone(), "open".to_string(), 10_000, 1),
+            (id.clone(), "open".to_string(), 50_000, 1),
+            (id, "close".to_string(), 10_000, 6),
+        ]
+    );
+}
+
+#[test]
 fn an_unknown_shift_is_not_found() {
     let mut conn = test_db();
     let missing = Id::new();

@@ -38,6 +38,8 @@ CREATE TABLE shifts_counts (
 );
 CREATE VIEW shifts_v_shifts AS SELECT * FROM shifts_shifts;
 CREATE VIEW shifts_v_movements AS SELECT m.*, s.business_date, s.till_id FROM shifts_movements m JOIN shifts_shifts s ON s.id = m.shift_id;
+-- 002_counts_view.sql: the counts by denomination, for the Z report (SHF-08)
+CREATE VIEW shifts_v_counts AS SELECT shift_id, stage, denomination_minor, count FROM shifts_counts;
 ```
 `open` writes the opening float as a `float` movement (method `cash`), so expected cash is simply the sum of all cash movements.
 
@@ -88,7 +90,7 @@ Unit tests in `src/rules.rs` and `src/error.rs`; contract tests in `tests/contra
 - The SHF-06 example: expected vs counted difference: `shf_06_expected_12450_counted_12400_records_a_shortage_of_50`.
 - Expected cash includes every cash kind with the right signs; non-cash methods are excluded: `shf_06_expected_cash_adds_every_cash_kind_with_its_sign_and_skips_other_methods`.
 - `reverse_ref` makes the shift totals return to what they were before the voided sale: `ret_04_reverse_ref_returns_the_shift_totals_to_before_the_voided_sale` (plus only once, nothing to reverse, closed shift).
-- Also: SHF-01 open (float as expected cash, counts kept, count mismatch, negative float), SHF-03 (reason needed, signs by kind), SHF-06 (count needed, closed shift is frozen), SHF-07 force close, SHF-08 summary totals, append-only movements, both views' columns, not found, migrations run on an empty database.
+- Also: SHF-01 open (float as expected cash, counts kept, count mismatch, negative float), SHF-03 (reason needed, signs by kind), SHF-06 (count needed, closed shift is frozen), SHF-07 force close, SHF-08 summary totals, append-only movements, the three views' columns (`shf_08_view_shifts_v_counts_publishes_the_opening_and_closing_counts` for `shifts_v_counts`, added for the reports Z report), not found, migrations run on an empty database.
 
 ## Working on this module
 *Everything needed to work on this module on its own. Read this page, [[Module Rules]] and [[Module - core]]. Nothing else is required. The same instructions are in `crates/shifts/CLAUDE.md`, which points back here.*
