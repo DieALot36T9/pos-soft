@@ -1,6 +1,23 @@
 //! Shifts, cash movements, cash counts and shift summaries.
 //!
-//! Page: `docs/05 Modules/Module - shifts.md`. Not built yet: see "Open items" there.
+//! Page: `docs/05 Modules/Module - shifts.md`.
+
+mod error;
+mod model;
+mod movement;
+mod rules;
+mod shift;
+mod store;
+mod summary;
+
+pub use error::ShiftsError;
+pub use model::{
+    CASH, CloseResult, DenominationCount, MethodTotal, MovementKind, MovementTotal, Shift,
+    ShiftMovement, ShiftStatus, ShiftSummary,
+};
+pub use movement::{expected_cash, record, reverse_ref};
+pub use shift::{close, current, open};
+pub use summary::summary;
 
 use pos_core::{Migration, ModuleMigrations};
 
@@ -12,6 +29,9 @@ pub fn migrations() -> ModuleMigrations {
     }
 }
 
-// Add each file in `migrations/` here, in order. Example:
-// Migration { version: 1, name: "init", sql: include_str!("../migrations/001_init.sql") }
-const MIGRATIONS: &[Migration] = &[];
+// Add each new file in `migrations/` here, in order. Never edit a released one.
+const MIGRATIONS: &[Migration] = &[Migration {
+    version: 1,
+    name: "init",
+    sql: include_str!("../migrations/001_init.sql"),
+}];

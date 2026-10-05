@@ -3964,6 +3964,8 @@ name = "shifts"
 version = "0.1.0"
 dependencies = [
  "pos-core",
+ "rusqlite",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
