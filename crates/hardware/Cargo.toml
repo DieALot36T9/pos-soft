@@ -7,8 +7,25 @@ rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
+# Approved on docs/05 Modules/Module - hardware.md.
 [dependencies]
 pos-core.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+ts-rs.workspace = true
+# Network, serial and file connections to receipt printers (Reuse Map).
+escpos = { version = "0.20", default-features = false, features = ["std", "serial_port"] }
+# Scales and the list of serial ports.
+serialport = "4.10"
+# The pattern in a scale profile that finds the number and the unit.
+regex = "1.13"
+
+[target.'cfg(windows)'.dependencies]
+# Printers installed in Windows: raw data through the print spooler (winspool).
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_Graphics_Printing"] }
+
+[dev-dependencies]
+serde_json.workspace = true
 
 [lints]
 workspace = true

@@ -21,6 +21,7 @@ mod qty;
 mod report;
 mod rounding;
 mod secret;
+mod tax_mode;
 mod time;
 
 pub use allocate::allocate;
@@ -37,4 +38,5 @@ pub use qty::Qty;
 pub use report::{Cell, Column, ColumnKind, ReportFilter, ReportParams, ReportTable};
 pub use rounding::{RoundingAppliesTo, RoundingMode, RoundingRule, cash_round, round_half_away};
 pub use secret::Secret;
+pub use tax_mode::TaxMode;
 pub use time::{BusinessDate, Clock, FixedClock, SystemClock, Timestamp, business_date};

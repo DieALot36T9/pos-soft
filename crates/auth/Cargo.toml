@@ -8,7 +8,23 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+argon2.workspace = true
 pos-core.workspace = true
+rand.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+ts-rs.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+serde_json.workspace = true
+
+# Security Model: one PIN or password check must take 300 ms or less on the reference PC.
+# Run with `cargo bench -p auth`.
+[[bench]]
+name = "hash_check"
+harness = false
 
 [lints]
 workspace = true
