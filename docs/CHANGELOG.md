@@ -4,6 +4,10 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-auth)
+- `auth` crate: roles (Admin, Cashier, custom), permissions, users, argon2id hashing of PINs and passwords (OWASP settings), login with lockout (5 wrong tries → 60 s), admin approval check (password only), and the recovery code. USR-01, USR-02, USR-04 to USR-07, USR-09.
+- Benchmark `cargo bench -p auth`: one PIN check takes about 19 ms on the cloud build machine (target ≤ 300 ms).
+
 ### Added (task B-settings)
 - `settings` crate: 17 typed settings (shop, currency, rounding, tax, till, receipt, hardware, scale rules, internal barcode, backup, logging, checkout, inventory, loyalty, credit, denominations, language), each with defaults and `validate()`. `get`, `set` (returns the old value for the audit log), setup-step progress (`setup_status`, `complete_step`) and `snapshot`. Tables `settings_values` and `settings_setup_steps` (SET-01 to SET-17).
 - The ISO 4217 currency list for the setup wizard comes from the **iso_currency** crate (`currency_choices`, `currency_format_for`). Suggested notes and coins for BDT, INR, USD, EUR and GBP.

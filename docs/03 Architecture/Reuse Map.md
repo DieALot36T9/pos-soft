@@ -66,12 +66,14 @@ tags: [architecture, reuse]
 | Toast messages | **sonner** (shadcn/ui default) | C tasks |
 | Command palette (`Ctrl+K`) | **cmdk** (shadcn/ui `Command`) | C tasks |
 | Tooltips, dialogs, menus | **Radix UI** via shadcn/ui | All screens |
+| Password, PIN and recovery-code hashing (argon2id) | **argon2** (RustCrypto) | **In use** (B-auth) |
+| Random recovery codes | **rand** (`rand::rng()`, a secure generator) | **In use** (B-auth) |
 | Reading CSV files (RFC 4180) | **csv** | **In use** (B-io) |
 | Reading Excel (.xlsx) files | **calamine** (MIT) | **In use** (B-io) |
 | Writing Excel (.xlsx) files with typed cells and number formats | **rust_xlsxwriter** (MIT/Apache-2.0) | **In use** (B-io) |
 | Temporary files in tests | **tempfile** | **In use** (B-io tests) |
 | Fake data for big test databases | **fake** crate | `xtask seed` |
-| Benchmarks | **criterion** | **In use** (B-catalog: `crates/catalog/benches/search.rs`, run with `cargo bench -p catalog`). `xtask bench` later |
+| Benchmarks | **criterion** | **In use** (B-catalog: `cargo bench -p catalog`; B-auth: `cargo bench -p auth`). `xtask bench` later |
 | Test coverage | **cargo-llvm-cov** | CI |
 | CI caching / tool install | `Swatinem/rust-cache`, `taiki-e/install-action`, `tauri-apps/tauri-action` | CI |
 | Database backup | SQLite's built-in `VACUUM INTO` | [[Module - db]] |

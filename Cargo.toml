@@ -11,6 +11,7 @@ publish = false
 
 # Shared third-party versions. A crate lists only what its module page approves.
 [workspace.dependencies]
+argon2 = "0.6.0"
 calamine = { version = "0.36", features = ["chrono"] }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde", "std"] }
 criterion = { version = "0.8.2", default-features = false, features = ["cargo_bench_support"] }
@@ -20,6 +21,7 @@ iso_currency = { version = "0.7.1", features = ["iterator"] }
 num-format = "0.4.4"
 phonenumber = "0.3.10"
 proptest = "1.11"
+rand = "0.10.3"
 rust_xlsxwriter = "0.99"
 rusqlite = { version = "0.40", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }
