@@ -4,6 +4,13 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-pricing)
+- `pricing` crate: price lists, tiers and promotions (tables, migration `001_init`, view `pricing_v_promotions`) and their admin functions with save checks.
+- The pricing engine `price_cart`, a pure function: unit price (override, price list, retail), the single best promotion per product on the combined quantity (ADR-019), tier discount on lines without a promotion, manual line discounts and the invoice discount split. `load_context` reads what it needs. `manual_discount_bps` gives the largest manual discount % for the role limit check.
+- Tests for every PRC-06 example, PRC-01 to PRC-07, CHK-08, CHK-12, CHK-13, CHK-16 and CHK-17, contract tests for the API and view, and a property test that no line goes below zero.
+### Changed (task B-pricing)
+- Module - pricing page: `price_cart` returns a `Result`; a promotion's saving on several lines of one product is split in proportion to each line's base; scale sticker and overridden lines get no automatic discounts but still take manual and invoice discounts.
+
 ### Added (task B-purchasing)
 - `purchasing` crate: suppliers (PUR-01), purchase orders with PO-numbers, statuses and low-stock suggestions (PUR-02), goods received against an order or directly (PUR-03), supplier returns (PUR-04), the append-only payables ledger with payments, adjustments and aging (PUR-05), and supplier statements (PUR-06). Rust only; `app` wiring and screens come in Phase C.
 
