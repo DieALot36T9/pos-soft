@@ -118,6 +118,7 @@ Unit tests in `src/rules.rs` and `src/error.rs`; contract tests in `tests/contra
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
 - Built in task B-shifts: tables, public API and tests. No `app` wiring and no screens yet (Phase C, task C-M6).
+- Migration 002 publishes `shifts_v_counts` (shift_id, stage, denomination_minor, count) for the Z report's count per denomination (SHF-08). `reports::shift_report` reads it.
 - For Phase C: the public structs have no `serde`/`ts-rs` derives yet. Add them (and approve `serde` and `ts-rs` on this page) when `app` sends shifts data to the UI.
 - For `app` (C-M6): pass the business date from `core::business_date` with the settings cutoff, check open carts and permissions before `close`, write the audit events (cash in/out, no-sale drawer SHF-04, force close SHF-07). SHF-04 (no-sale drawer opening) moves no money, so it has no movement row here; it is only an audit event.
 - For `reports`: counts of sales, returns, voids and cancelled carts (SHF-08) come from `sales`, not from this module.

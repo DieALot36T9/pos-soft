@@ -4,6 +4,7 @@
 //!
 //! Page: `docs/05 Modules/Module - app.md`.
 
+pub mod audit_actions;
 pub mod commands;
 pub mod migrations;
 

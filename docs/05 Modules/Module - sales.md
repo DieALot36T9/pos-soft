@@ -243,4 +243,5 @@ Test helpers live in `crates/sales/tests/support/mod.rs`: `test_db()` (in-memory
 | Date | Change |
 |---|---|
 | 2026-10-04 | B-sales: first version. Header gets `tier_discount_minor` and `invoice_discount_minor`; lines and return lines get `cost_minor`; system payment methods added by the migration; `get_cart`, `set_exchange_return`, `settle_payments`, `refund_amounts`, `get_return`, `payment_method`, `system_payment_method` added; every cart change takes `now` |
+| 2026-10-05 | Migration 002 (`002_report_index.sql`): `sales_lines_sale(sale_id)` is replaced by the covering index `sales_lines_report(sale_id, product_id, category_id, brand_id, qty_milli, net_minor, tax_minor, the four discounts, cost_minor, tax_rate_id, tax_bps, price_overridden)`. It still finds a sale's lines by `sale_id`, and reports read a year of lines from it without the wide rows (RPT-11; about 1.6 s → 0.9 s on the reference data). Test: `contract::rpt_11_reports_read_sale_lines_from_one_covering_index` |
 | 2026-10-05 | `last_sale` finds the sale saved last by `rowid` (ids made in the same millisecond don't sort by creation). `sales_summary` added for the backup restore list (BAK-05) |
