@@ -7,7 +7,7 @@ milestone: M4
 
 **Purpose:** pure barcode logic: parse scanned codes (including scale labels), validate and compute check digits, generate internal codes, render barcode images. **No tables, no I/O.**
 
-**Requirements:** [[Req - Checkout]] CHK-08, [[Req - Catalog]] CAT-04/11/12. **Depends on:** `core`, `barcoders` (bars and SVG; only its `std` and `svg` features). **Tests also use:** `rxing` (reads our pictures back).
+**Requirements:** [[Req - Checkout]] CHK-08, [[Req - Catalog]] CAT-04/11/12. **Depends on:** `core`, `barcoders` (bars and SVG; only its `std` and `svg` features). **Tests also use:** `rxing` (reads our pictures back), without its default features: its `image` feature pins `image` to one exact version, which would hold back the `image` crate that `printing` uses.
 
 ## Scale-label rule patterns (Odoo-compatible)
 A pattern describes every digit of the barcode **except the last one**, which is always the EAN check digit. So an EAN-13 pattern covers 12 digits and an EAN-8 pattern covers 7. Braces don't count as digits.
