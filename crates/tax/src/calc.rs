@@ -1,9 +1,9 @@
 //! The tax calculation. Pure functions: no database.
 //! Rules: `docs/03 Architecture/Money Tax and Rounding.md`, "Line calculation" steps 7 and 8.
 
-use pos_core::{AppError, Bps, Money, percent_of, round_half_away};
+use pos_core::{AppError, Bps, Money, TaxMode, percent_of, round_half_away};
 
-use crate::{LineTax, RateWithComponents, Result, TaxMode};
+use crate::{LineTax, RateWithComponents, Result};
 
 /// Works out the net, tax and gross of one sale line, after its discounts (rule TAX-05).
 /// Tax is rounded per line, half away from zero. Example: 100.00 inclusive at 15% → tax 13.04.

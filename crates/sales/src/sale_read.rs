@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use pos_core::{AppError, Id, Qty};
+use pos_core::{AppError, Id, Qty, TaxMode};
 use rusqlite::{Connection, OptionalExtension, Row, named_params};
 
 use crate::sql::{
@@ -11,7 +11,7 @@ use crate::sql::{
 };
 use crate::{
     CustomerSnapshot, LineSnapshot, Payment, PaymentKind, PromotionSnapshot, Sale, SaleLine,
-    SaleStatus, SaleTotals, SalesError, TaxMode, TaxPart, VoidInfo,
+    SaleStatus, SaleTotals, SalesError, TaxPart, VoidInfo,
 };
 
 /// One sale with its lines and payments.

@@ -42,8 +42,8 @@ CREATE VIEW tax_v_rates AS SELECT id, name, rate_bps, active FROM tax_rates;
 ## Public API
 Files: `calc.rs` (the pure calculation), `rates.rs` (saving and reading), `types.rs`, `error.rs`.
 ```rust
+// TaxMode comes from core (pos_core::TaxMode), shared with settings and sales.
 // types.rs: all derive serde and ts-rs (written to ui/src/generated/)
-pub enum TaxMode { Inclusive, Exclusive }                       // sent as "inclusive" / "exclusive"
 pub struct LineTax { pub net: Money, pub tax: Money, pub gross: Money }
 pub struct RateComponent { pub name: String, pub rate_bps: Bps }
 pub struct RateWithComponents { pub id: Id, pub name: String, pub rate_bps: Bps, pub active: bool,
@@ -118,6 +118,6 @@ Every test names its requirement ID. Run with `cargo nextest run -p tax`.
 *Anything not finished yet. The next session working on this module starts here.*
 - Built in task B-tax: tables, calculation, rate functions and all tests above. No `app` commands and no screens yet; those come in Phase C (C-M2 setup wizard and rate screens, C-M6 checkout).
 - For Phase C: add the UI text for the error codes above to `ui/src/shared/text/en/errors.ts`.
-- TAX-01 (tax label), TAX-04 (the shop's mode), and TAX-08/TAX-09 (receipt and report) are stored or shown by other modules (`settings`, `printing`, `reports`). This module only gives them `TaxMode`, rates and `split_components`.
+- TAX-01 (tax label), TAX-04 (the shop's mode), and TAX-08/TAX-09 (receipt and report) are stored or shown by other modules (`settings`, `printing`, `reports`). This module only gives them rates and `split_components`; `TaxMode` itself is in `core`.
 - [[Money Tax and Rounding]] step 8 says components get `floor(…)`. The code rounds towards zero, which is the same for sales and keeps refunds symmetric (see Public API). The product owner may want that page's wording changed to match; it's outside this module's folders.
 - There is no "reactivate a rate" function. Add one if the product owner asks for it.

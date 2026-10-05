@@ -3,9 +3,9 @@
 
 mod support;
 
-use pos_core::{Bps, Money};
+use pos_core::{Bps, Money, TaxMode};
 use support::{NOW, component, rate, test_db};
-use tax::{TaxMode, calc_line, split_components};
+use tax::{calc_line, split_components};
 
 #[test]
 fn migrations_belong_to_this_module() {

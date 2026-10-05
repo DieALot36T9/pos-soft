@@ -149,7 +149,7 @@ pub fn system_payment_method(conn, PaymentKind) -> Result<PaymentMethod>;       
 pub fn save_payment_method(tx, PaymentMethodInput) -> Result<Id>;                   // id None = add
 pub fn migrations() -> ModuleMigrations;
 ```
-Main types: `Cart`, `CartLine`, `CartStatus`, `LineSource`, `Discount` (`Percent(Bps)` / `Amount(Money)`), `PriceOverride`, `NewCartLine`, `HeldCartRow`; `CompletedSale`, `LineSnapshot`, `SaleTotals`, `TaxMode`, `TaxPart`, `PromotionSnapshot`, `CustomerSnapshot`, `NewPayment`, `SaleRef`, `Sale`, `SaleLine`, `SaleStatus`, `VoidInfo`, `Payment`; `EnteredPayment`, `Settlement`; `ReturnQty`, `LineRefund`, `LineAmounts`, `NewReturn`, `NewReturnLine` (`FromSale` / `WithoutReceipt`), `ReturnedSaleLine`, `ReturnedProduct`, `ReturnRef`, `Return`, `ReturnLine`, `ReturnTotals`; `SalesSummary`; `PaymentKind`, `PaymentMethod`, `PaymentMethodInput`; `SalesError`.
+Main types: `Cart`, `CartLine`, `CartStatus`, `LineSource`, `Discount` (`Percent(Bps)` / `Amount(Money)`), `PriceOverride`, `NewCartLine`, `HeldCartRow`; `CompletedSale`, `LineSnapshot`, `SaleTotals`, `TaxPart`, `PromotionSnapshot`, `CustomerSnapshot`, `NewPayment`, `SaleRef`, `Sale`, `SaleLine`, `SaleStatus`, `VoidInfo`, `Payment`; `EnteredPayment`, `Settlement`; `ReturnQty`, `LineRefund`, `LineAmounts`, `NewReturn`, `NewReturnLine` (`FromSale` / `WithoutReceipt`), `ReturnedSaleLine`, `ReturnedProduct`, `ReturnRef`, `Return`, `ReturnLine`, `ReturnTotals`; `SalesSummary`; `PaymentKind`, `PaymentMethod`, `PaymentMethodInput`; `SalesError`. `tax_mode` fields use `pos_core::TaxMode`.
 
 The sales module **does not calculate prices or tax**. `complete` receives fully calculated snapshot lines from the workflow and checks that they're consistent before saving anything.
 
