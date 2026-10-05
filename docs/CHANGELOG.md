@@ -4,6 +4,11 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-inventory)
+- `inventory` crate: the stock ledger with append-only triggers, cached levels and batch stock updated in the same transaction, batches with first-expiry-first-out (FEFO) splitting, negative stock allowed or refused (INV-04), adjustments with configurable reasons (INV-02), reorder rules and the low-stock list (INV-03), near-expiry list and expired-batch check (INV-05), stock counts with expected quantities captured at the first scan (INV-06), history with a running balance (INV-07), `reverse` for voids, and `verify` (INV-10). Rust only; `app` wiring and screens come in Phase C.
+- Views `inventory_v_levels` (also lists products that have only a reorder rule), `inventory_v_ledger` and `inventory_v_batches`, with contract tests.
+- Randomized test: any sequence of stock changes keeps every level and batch equal to its ledger sum.
+
 ### Added (task B-auth)
 - `auth` crate: roles (Admin, Cashier, custom), permissions, users, argon2id hashing of PINs and passwords (OWASP settings), login with lockout (5 wrong tries → 60 s), admin approval check (password only), and the recovery code. USR-01, USR-02, USR-04 to USR-07, USR-09.
 - Benchmark `cargo bench -p auth`: one PIN check takes about 19 ms on the cloud build machine (target ≤ 300 ms).
