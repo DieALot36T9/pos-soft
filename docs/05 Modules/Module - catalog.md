@@ -7,7 +7,9 @@ milestone: M4
 
 **Purpose:** everything about *what* the shop sells: products, variants, kits, barcodes, units, categories, brands, images, search, price history.
 
-**Requirements:** [[Req - Catalog]], parts of [[Req - Checkout]]. **Depends on:** `core`, `rusqlite`, `image` (resizing).
+**Requirements:** [[Req - Catalog]], parts of [[Req - Checkout]]. **Depends on:** `core`, `rusqlite`, `serde`, `thiserror`, `image` (reading and resizing pictures; PNG, JPEG and WebP only). **Dev-only:** `criterion` (the search benchmark).
+
+**Status:** built in task B-catalog (Rust only; screens and `app` commands come in C-M4).
 
 ## Tables
 ```sql
@@ -79,6 +81,12 @@ CREATE VIRTUAL TABLE catalog_search USING fts5(
   product_id UNINDEXED, name, sku, barcodes, category, brand,
   tokenize = 'unicode61 remove_diacritics 2', prefix = '2 3 4'
 );
+-- Which search row belongs to which product. FTS5 can't look rows up by product_id
+-- quickly, and VACUUM may renumber the products table's hidden rowid, so this links them.
+CREATE TABLE catalog_search_rows (
+  product_id TEXT PRIMARY KEY REFERENCES catalog_products(id),
+  search_rowid INTEGER NOT NULL UNIQUE
+);
 CREATE VIEW catalog_v_products AS
   SELECT p.id, p.kind, p.name, p.sku, p.category_id, c.name AS category_name,
          p.brand_id, b.name AS brand_name, u.symbol AS unit_symbol, u.decimals AS unit_decimals,
@@ -89,39 +97,71 @@ CREATE VIEW catalog_v_products AS
   JOIN catalog_units u ON u.id = p.unit_id;
 CREATE VIEW catalog_v_categories AS SELECT id, parent_id, name FROM catalog_categories;
 ```
-Seeded system units: piece(0), kg(3), g(0), litre(3), ml(0), pack(0). Seeded category: "Uncategorised".
+The full SQL is `crates/catalog/migrations/001_init.sql`. It also has `CHECK (x IN (0, 1))` on the yes/no columns and a few extra indexes (category parent, product brand and name, kit component, price history by product).
 
-## Public API (main functions)
+Seeded system units, with fixed ids so code can name them (`catalog::UNIT_PIECE` … `UNIT_PACK`): piece `pc` (0 decimals, `H87`), kg (3, `KGM`), g (0, `GRM`), litre `L` (3, `LTR`), ml (0, `MLT`), pack (0, no code). Seeded category: "Uncategorised" (`catalog::UNCATEGORISED`). Sequences `sku` and `internal_barcode` start at 1.
+
+`image_path` holds a **file name** inside the images folder `app` passes in (`<product id>.jpg`); the thumbnail is `<product id>.thumb.jpg` (`catalog::thumbnail_file`). Keeping only the name means the data folder can move.
+
+## Public API
+Data-changing functions take `&rusqlite::Transaction`; reading functions take `&rusqlite::Connection` (a transaction works too). Every function returns `Result<_, CatalogError>`, and `CatalogError` turns into `AppError` (codes below).
 ```rust
-pub fn create_product(tx, NewProduct, by: &Id, now) -> Result<Id>;
-pub fn update_product(tx, &Id, ProductUpdate, by: &Id, now) -> Result<PriceChanges>;
+// products
+pub fn create_product(tx, NewProduct, now: Timestamp) -> Result<Id>;          // blank SKU → "P000001"; no category → Uncategorised
+pub fn update_product(tx, &Id, ProductUpdate, by: &Id, now) -> Result<PriceChanges>; // writes price history (reason "manual")
 pub fn archive_product(tx, &Id, now) -> Result<()>;
-pub fn delete_unused_product(tx, &Id, used_elsewhere: bool) -> Result<()>;   // app passes the "used" check
-pub fn get(conn, &Id) -> Result<Product>;
-pub fn list(conn, &ProductFilter, Page) -> Result<Paged<ProductRow>>;
-pub fn find_by_code(conn, code: &str) -> Result<Option<SaleProduct>>;       // barcode, then SKU
+pub fn delete_unused_product(tx, &Id, used_elsewhere: bool) -> Result<()>;    // app passes the "used" check
+pub fn get(conn, &Id) -> Result<Product>;                                     // with barcodes (primary first) and attributes
+pub fn list(conn, &ProductFilter, ProductPage) -> Result<ProductList>;       // sorted by name; category filter includes sub-categories
+// selling
+pub fn find_by_code(conn, code: &str) -> Result<Option<SaleProduct>>;        // barcode, then SKU; never archived or variant parents
 pub fn find_by_scale_code(conn, item_code: &str) -> Result<Option<SaleProduct>>;
-pub fn search(conn, q: &str, limit: u32) -> Result<Vec<SearchHit>>;         // FTS + exact first
-pub fn price_info(conn, ids: &[Id]) -> Result<HashMap<Id, ProductPriceInfo>>; // price, tax id, category path, brand (app maps it to pricing's own input type)
-pub fn add_barcode(tx, &Id, code: &str, now) -> Result<()>;                 // uniqueness, check digit validated by app via barcode crate
-pub fn remove_barcode(tx, code: &str) -> Result<()>;
-pub fn next_internal_number(tx) -> Result<u64>;
-pub fn set_cost(tx, &Id, Money, reason: &str, by: &Id, now) -> Result<()>;
+pub fn search(conn, q: &str, limit: u32) -> Result<Vec<SearchHit>>;          // exact barcode/SKU first, then FTS ranked by bm25
+pub fn rebuild_search(tx) -> Result<()>;                                     // rewrites every search row (after a restore, or if search looks wrong)
+pub fn price_info(conn, ids: &[Id]) -> Result<HashMap<Id, ProductPriceInfo>>; // price, cost, tax id, category path (own first), brand
+// barcodes and numbers
+pub fn add_barcode(tx, &Id, code: &str, now) -> Result<()>;                 // uniqueness here; check digit validated by app via barcode crate
+pub fn remove_barcode(tx, code: &str) -> Result<()>;                        // next oldest barcode becomes primary
+pub fn next_internal_number(tx) -> Result<u64>;                             // app builds the EAN-13 with prefix and check digit
+// prices
+pub fn set_cost(tx, &Id, Money, reason: &str, by: &Id, now) -> Result<()>;  // reason: "manual", "grn" or "import"
+pub fn price_history(conn, &Id) -> Result<Vec<PriceHistoryRow>>;           // oldest first (CAT-09)
+// kits and variants
 pub fn kit_components(conn, kit: &Id) -> Result<Vec<(Id, Qty)>>;
-pub fn set_kit_components(tx, kit: &Id, &[(Id, Qty)]) -> Result<()>;
-pub fn generate_variants(tx, parent: &Id, attrs: &[(String, Vec<String>)], now) -> Result<Vec<Id>>;
-pub fn set_image(tx, &Id, source: &Path, images_dir: &Path) -> Result<()>;
-// units, categories, brands: create/update/archive/list
+pub fn set_kit_components(tx, kit: &Id, &[(Id, Qty)]) -> Result<()>;      // replaces the list
+pub fn generate_variants(tx, parent: &Id, attrs: &[(String, Vec<String>)], now) -> Result<Vec<Id>>; // skips combinations that exist
+// images
+pub fn set_image(tx, &Id, source: &Path, images_dir: &Path) -> Result<()>; // PNG/JPG/WebP ≤ 10 MB → 512 px JPEG + 96 px thumbnail
+pub fn thumbnail_file(image_file: &str) -> String;
+// units, categories, brands
+pub fn create_unit(tx, &UnitFields) -> Result<Id>;  update_unit(tx, &Id, &UnitFields);  archive_unit(tx, &Id, now);  list_units(conn, include_archived);
+pub fn create_category(tx, &CategoryFields) -> Result<Id>;  update_category(tx, &Id, &CategoryFields);  archive_category(tx, &Id, now);  list_categories(conn, include_archived);
+pub fn create_brand(tx, name) -> Result<Id>;  rename_brand(tx, &Id, name);  archive_brand(tx, &Id, now);  list_brands(conn, include_archived);
 pub fn migrations() -> ModuleMigrations;
 ```
+**Data shapes** (all plain structs with `serde`; see `src/types.rs`): `NewProduct` (`NewProduct::new(kind, name, unit_id, tax_rate_id)` gives the defaults), `Product`, `ProductUpdate` (`ProductUpdate::from_product(&product)` to start an edit), `ProductKind` (`standard`, `variant_parent`, `variant`, `kit`), `PriceChanges`/`PriceChange`, `PriceField`, `PriceHistoryRow`, `ProductFilter`, `ProductPage { offset, limit }`, `ProductList { rows, total }`, `ProductRow`, `SaleProduct`, `SearchHit`, `ProductPriceInfo`, `Unit`/`UnitFields`, `Category`/`CategoryFields` (`CategoryFields::new(name)`), `Brand`.
+
+**Rules the functions enforce**
+- Name required, at most 120 characters (products, units, categories, brands). Prices ≥ 0. A weighed product needs a unit with decimals.
+- Unit, category and brand must exist and be active when a product is saved.
+- SKU, barcode and scale item code each belong to one product. A generated SKU skips numbers typed by hand.
+- Kits and variant parents never track stock (`track_stock` is saved as false). A variant parent can't have barcodes or be a kit component.
+- Variants are made only by `generate_variants` (`create_product` refuses kind `variant`). Name = parent name + values ("Shampoo 200 ml Mango"); label = values joined by " / ".
+- Archiving a unit is refused for built-in units and units used by an active product; changing decimals is refused while any product uses the unit. Archiving a category is refused for "Uncategorised", with active children, or with active products. A category can't move under itself or its own child.
+- Delete is refused when `used_elsewhere`, when the product is a kit component, or when it has variants.
+
+**Error codes** (`AppError` `code`): validation: `name_missing`, `name_too_long`, `sku_missing`, `price_negative`, `price_reason_invalid`, `weighed_unit_needs_decimals`, `variant_needs_parent`, `parent_not_sellable`, `barcode_invalid`, `not_a_kit`, `kit_contains_itself`, `kit_contains_kit`, `kit_qty_not_positive`, `kit_component_repeated`, `not_a_variant_parent`, `variant_attribute_missing`, `variant_attribute_repeated`, `symbol_missing`, `unit_decimals_invalid`, `category_parent_loop`, `image_too_large`, `image_not_supported`. Conflict: `barcode_in_use` (params `code`, `product_name`, `sku`), and with param `value`: `sku_in_use`, `scale_item_code_in_use`, `product_in_use`, `product_has_variants`, `unit_name_in_use`, `unit_in_use`, `unit_is_built_in`, `brand_name_in_use`, `category_is_built_in`, `category_has_children`, `category_has_products`. Not found: entity `product`, `unit`, `category`, `brand` or `barcode`. Database and file errors are `Internal`.
 
 ## Tests
-- CAT-04 duplicate barcode message; SKU auto-generation; archive hides from search and `find_by_code`.
-- Search: prefix search, accented letters, exact match ranked first; the search row is updated on barcode/category rename.
-- Variant generation creates the cartesian product; parent not sellable.
-- Kit cycles refused (a kit can't contain itself or another kit).
-- Price change rows written only when prices change.
-- Benchmark: `search` ≤ 150 ms and `find_by_code` ≤ 2 ms over 50k products.
+Every test name starts with the requirement it covers. Run them with `cargo nextest run -p catalog`.
+- `tests/products.rs`: CAT-01 SKU auto-generation (and skipping hand-typed SKUs), duplicate SKU, name rules, Uncategorised default, weighed needs decimals, negative prices, scale item code; **CAT-04 duplicate barcode message** (names the owner and SKU), primary barcode, removed barcodes reusable; **CAT-08 archive hides from search and `find_by_code`**, archived only listed on request, delete refused when used; **CAT-09 price change rows written only when prices change**, `set_cost` reason; CAT-11 internal numbers; CHK-01 barcode then SKU; CHK-02 unknown code.
+- `tests/search.rs`: CAT-05 **prefix search**, every word must match, **accented letters**, finds by SKU/barcode/category/brand, **exact match ranked first**, **search row updated on barcode change and on category/brand rename**, and on product edits; `rebuild_search`; CHK-03 symbols ignored and limit respected.
+- `tests/variants_kits.rs`: CAT-06 **variant generation creates the cartesian product**, generating again adds only new combinations, only parents have variants, parent holds no stock; CHK-15 **parent not sellable**, variants found by search and barcode; CHK-14 kit components saved; CAT-07 **kit cycles refused** (contains itself, contains another kit), quantities above zero and listed once, only kits have components.
+- `tests/units_categories_brands.rs`: CAT-02 built-in units, adding units, unit in use, built-in units stay; CAT-03 category tree and loops, archive refused with products or children, brands unique; CAT-01 unknown unit or archived category refused.
+- `tests/images.rs`: CAT-10 resize to 512 px + 96 px thumbnail, small pictures not enlarged, WebP and JPEG read, other files and files over 10 MB refused.
+- `tests/contract.rs`: migrations labelled; every table and view has the `catalog_` prefix; `catalog_v_products` and `catalog_v_categories` columns; `price_info`; `list` filters and paging; `get`; `SearchHit` and `SaleProduct` fields; error codes in `AppError`.
+- `tests/benchmark.rs`: **NFR-P2/NFR-P1: `search` ≤ 150 ms and `find_by_code` ≤ 2 ms over 50k products** (80k barcodes). It builds 50,000 products, so it is ignored by default: `cargo nextest run -p catalog --release --run-ignored only`. `cargo bench -p catalog` (criterion, `benches/search.rs`) gives detailed timings. Measured in task B-catalog (Linux cloud machine, release build): `search` "mil" about 10 ms, "rice sug" about 0.8 ms, "p0012" about 0.5 ms; `find_by_code` about 4 µs by barcode or SKU. The debug build also passes the budgets.
+- Unit tests next to the code: FTS query building, cartesian product, attribute checks, SKU format, name checks, LIKE escaping, white background blending, error conversion, built-in ids.
 
 ## Working on this module
 *Everything needed to work on this module on its own. Read this page, [[Module Rules]] and [[Module - core]]. Nothing else is required. The same instructions are in `crates/catalog/CLAUDE.md`, which points back here.*
@@ -147,4 +187,9 @@ pub fn migrations() -> ModuleMigrations;
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- Not started (see [[Task Index]]).
+- **TypeScript types:** the data shapes derive `serde` only. Add `ts_rs::TS` derives (and run `cargo xtask gen-types`) in C-M4, when the `app` commands and screens that use them are written. Watch for name clashes in `ui/src/generated/` (e.g. `ProductRow`).
+- **Images:** files are written before the transaction commits. If the caller rolls back, the new files stay on disk (they overwrite the product's own `<id>.jpg`, so nothing else breaks). Old files of deleted products aren't removed yet. The file name doesn't change when the picture changes, so the screen should add `?v=<updated_at>` (or similar) to avoid showing a cached picture. There is no "remove image" function yet.
+- **Benchmark in CI:** `tests/benchmark.rs` is ignored by default. The nightly performance job (`xtask bench`, [[Test Strategy]]) should run it with `--release --run-ignored only` once that job exists.
+- **Kit stock:** "available kit quantity" (CAT-07) needs stock, so it belongs to `inventory`/`app`, using `kit_components`.
+- **Labels and shelf tags** (CAT-12, CAT-13) are printing and screen work for C-M4; the catalog already gives names, prices, barcodes and units.
+- **Unarchive:** there is no function to bring back an archived product, unit, category or brand yet. Add one if C-M4's screens need it.

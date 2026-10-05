@@ -13,11 +13,11 @@ A0 → A1, each alone → all B tasks in parallel → C tasks one after another,
 | [[Task - A0 Foundations]] | Workspace, all crates, core, app shell, CI, cloud setup | — | ✅ done |
 | [[Task - A1 Reuse Alignment]] | Swap hand-written parts for standard tools (cargo-deny, eslint-plugin-boundaries, i18next, num-format, single-instance), clear CI warning | A0 | ✅ done |
 | [[Task - B-db]] | `db` crate | A0 | parallel |
-| [[Task - B-settings]] | `settings` crate | A0 | parallel |
+| [[Task - B-settings]] | `settings` crate | A0 | ✅ done |
 | [[Task - B-auth]] | `auth` crate | A0 | parallel |
 | [[Task - B-audit]] | `audit` crate | A0 | parallel |
 | [[Task - B-tax]] | `tax` crate | A0 | parallel |
-| [[Task - B-catalog]] | `catalog` crate | A0 | parallel |
+| [[Task - B-catalog]] | `catalog` crate | A0 | ✅ done |
 | [[Task - B-pricing]] | `pricing` crate | A0 | parallel |
 | [[Task - B-barcode]] | `barcode` crate | A0 | parallel |
 | [[Task - B-inventory]] | `inventory` crate | A0 | parallel |
