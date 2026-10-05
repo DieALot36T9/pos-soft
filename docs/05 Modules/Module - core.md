@@ -36,6 +36,10 @@ pub enum RoundingMode { Nearest, Down, Up }            // Down/Up go by size: re
 pub enum RoundingAppliesTo { AllPayments, CashOnly }   // used by sales; cash_round ignores it
 pub fn cash_round(amount: Money, rule: &RoundingRule) -> Result<Money, AppError>; // the rounded amount; step 0 = off
 
+// tax_mode.rs: one shop-wide choice (ADR-008). Stored by settings, used by tax and sales
+pub enum TaxMode { Inclusive, Exclusive }             // sent and saved as "inclusive" / "exclusive"
+impl TaxMode { pub fn as_str(self) -> &'static str; pub fn parse(text: &str) -> Option<TaxMode>; }
+
 // cost.rs
 pub fn moving_average(on_hand: Qty, old_cost: Money, received: Qty, received_cost: Money) -> Result<Money, AppError>;
 
@@ -89,7 +93,7 @@ pub struct ModuleMigrations { pub module: &'static str, pub migrations: &'static
 - `tests/money_vectors.rs` + `tests/money_vectors.json`: `format_money` and `parse_money` against the shared examples. The UI's `formatMoney`/`parseMoney` pass the same file.
 - `tests/properties.rs` (proptest): `allocate` sums exactly; `round_half_away` matches a second reference rounding; cash rounding is never more than half the step; parse/format round trip for 0–3 digits.
 - Unit tests in `currency.rs`: digit grouping (Western, Indian, none) through `num-format`.
-- Unit tests: `business_date` across the cutoff, negative offsets and a DST change; ids; permissions; error JSON shape; `Secret` hides its value.
+- Unit tests: `business_date` across the cutoff, negative offsets and a DST change; ids; permissions; error JSON shape; `Secret` hides its value; `TaxMode` text round trip.
 
 ## Working on this module
 *Everything needed to work on this module on its own. Read this page, [[Module Rules]] and [[Module - core]]. Nothing else is required. The same instructions are in `crates/core/CLAUDE.md`, which points back here.*

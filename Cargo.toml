@@ -11,14 +11,21 @@ publish = false
 
 # Shared third-party versions. A crate lists only what its module page approves.
 [workspace.dependencies]
-iso_currency = { version = "0.7.1", features = ["iterator"] }
+calamine = { version = "0.36", features = ["chrono"] }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde", "std"] }
+criterion = { version = "0.8.2", default-features = false, features = ["cargo_bench_support"] }
+csv = "1.4"
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
+iso_currency = { version = "0.7.1", features = ["iterator"] }
 num-format = "0.4.4"
+phonenumber = "0.3.10"
 proptest = "1.11"
+rust_xlsxwriter = "0.99"
 rusqlite = { version = "0.40", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.11"
+tempfile = "3.27"
 tauri = { version = "2.12", features = [] }
 tauri-build = { version = "2.7", features = [] }
 tauri-plugin-single-instance = "2.5.2"

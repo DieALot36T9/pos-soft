@@ -28,7 +28,7 @@ pub use features::{
 pub use setting::Setting;
 pub use setup::{SetupStatus, SetupStep, complete_step, setup_status};
 pub use shop::{
-    LanguageSettings, PaperWidth, ReceiptSettings, ShopProfile, TaxMode, TaxSettings, TillSettings,
+    LanguageSettings, PaperWidth, ReceiptSettings, ShopProfile, TaxSettings, TillSettings,
 };
 pub use snapshot::{SettingsSnapshot, snapshot};
 pub use store::{get, set};

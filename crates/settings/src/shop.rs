@@ -1,6 +1,6 @@
 //! Settings about the shop itself, its tax, this till and the receipt.
 
-use pos_core::{AppError, Id};
+use pos_core::{AppError, Id, TaxMode};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -92,17 +92,6 @@ impl Setting for ShopProfile {
         }
         Ok(())
     }
-}
-
-/// Whether shelf prices already contain tax (rule SET-07, ADR-008).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "snake_case")]
-#[ts(export)]
-pub enum TaxMode {
-    /// Prices include tax. Example: 115.00 already contains 15.00 VAT.
-    Inclusive,
-    /// Tax is added on top of the price.
-    Exclusive,
 }
 
 /// The tax name and price mode. The rates themselves live in the `tax` module.

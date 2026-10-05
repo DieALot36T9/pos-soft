@@ -4,14 +4,15 @@
 #![allow(clippy::unwrap_used)]
 
 use pos_core::{
-    CurrencyFormat, Grouping, Id, Money, RoundingAppliesTo, RoundingMode, RoundingRule, Timestamp,
+    CurrencyFormat, Grouping, Id, Money, RoundingAppliesTo, RoundingMode, RoundingRule, TaxMode,
+    Timestamp,
 };
 use rusqlite::Connection;
 use settings::{
     BackupSettings, CheckoutSettings, CostMethod, CreditSettings, Denominations, DrawerPin,
     ExpiredPolicy, HardwareSettings, InternalBarcode, InventorySettings, LanguageSettings,
     LoggingSettings, LoyaltySettings, PaperWidth, PrinterConnection, ReceiptSettings, ScaleKind,
-    ScaleRule, ScaleRules, ScaleSettings, Setting, ShopProfile, TaxMode, TaxSettings, TillSettings,
+    ScaleRule, ScaleRules, ScaleSettings, Setting, ShopProfile, TaxSettings, TillSettings,
 };
 
 /// An in-memory database built only by this module's own migrations (rule R6).
