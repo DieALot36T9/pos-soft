@@ -9,6 +9,19 @@ publish.workspace = true
 
 [dependencies]
 pos-core.workspace = true
+rusqlite.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+
+# Test only (rule R1): the tests build the other modules' views with their own migrations.
+[dev-dependencies]
+audit.workspace = true
+catalog.workspace = true
+customers.workspace = true
+inventory.workspace = true
+purchasing.workspace = true
+sales.workspace = true
+shifts.workspace = true
 
 [lints]
 workspace = true

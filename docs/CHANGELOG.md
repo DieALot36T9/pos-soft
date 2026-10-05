@@ -4,6 +4,10 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-reports)
+- `reports` crate: every report as one `ReportTable` — daily summary (RPT-01), X/Z shift reports (RPT-02, SHF-05, SHF-08), sales by product, category, brand, cashier, hour, weekday or date with filters and top N (RPT-03), profit and margin from the cost saved on each line (RPT-04), stock value, low stock with supplier and suggested order, near expiry, stock movement (RPT-05), tax by rate and component (RPT-06, TAX-09), supplier and customer aging (RPT-07), and discounts and overrides per cashier (RPT-08). Reads only other modules' `*_v_*` views; owns no tables. Rust only; `app` wiring and screens come in Phase C.
+- A fixture shop with one scripted day; every report's numbers are checked against hand-worked values. Contract tests check every report's cells against its column kinds, also on an empty database.
+
 ### Added (task B-inventory)
 - `inventory` crate: the stock ledger with append-only triggers, cached levels and batch stock updated in the same transaction, batches with first-expiry-first-out (FEFO) splitting, negative stock allowed or refused (INV-04), adjustments with configurable reasons (INV-02), reorder rules and the low-stock list (INV-03), near-expiry list and expired-batch check (INV-05), stock counts with expected quantities captured at the first scan (INV-06), history with a running balance (INV-07), `reverse` for voids, and `verify` (INV-10). Rust only; `app` wiring and screens come in Phase C.
 - Views `inventory_v_levels` (also lists products that have only a reorder rule), `inventory_v_ledger` and `inventory_v_batches`, with contract tests.
