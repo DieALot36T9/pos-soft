@@ -7,8 +7,24 @@ rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
+# Approved on the module page (docs/05 Modules/Module - printing.md).
 [dependencies]
 pos-core.workspace = true
+thiserror.workspace = true
+# Text shaping and line breaking. Only our bundled fonts, never the system's.
+cosmic-text = { version = "0.19", default-features = false, features = ["std", "swash"] }
+# Names the writing systems in the font fallback list (cosmic-text uses it too).
+unicode-script = "0.5"
+# The drawing surface.
+tiny-skia = { version = "0.12", default-features = false, features = ["std"] }
+qrcode = { version = "0.14", default-features = false }
+# Reading the shop logo, dithering it, and writing PNG previews.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+# ESC/POS commands: start, cut, drawer pulse.
+escpos = { version = "0.20", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+insta = "1.49"
 
 [lints]
 workspace = true

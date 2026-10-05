@@ -68,6 +68,11 @@ ignore = [
     # proc-macro-error is unmaintained. It comes only from Tauri's Linux window toolkit
     # (gtk-rs 0.18), which Tauri chooses, and it runs only while compiling.
     { id = "RUSTSEC-2024-0370", reason = "Build-time only, pulled in by Tauri's gtk-rs on Linux" },
+    # ttf-parser is unmaintained (no security problem is known). It comes only from
+    # fontdb 0.23 inside cosmic-text 0.19 (the newest), which `printing` uses to draw
+    # receipts. It reads only the four fonts bundled in crates/printing/fonts, never a
+    # file from outside. Remove when cosmic-text no longer needs it (Module - printing).
+    { id = "RUSTSEC-2026-0192", reason = "Reads only printing's own bundled fonts; no newer cosmic-text yet" },
 ]
 
 [sources]

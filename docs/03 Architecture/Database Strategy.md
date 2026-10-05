@@ -58,10 +58,10 @@ Each module page lists its indexes. General rules:
 - `VACUUM INTO '<file>'` from the reader connection. It produces a compact, consistent copy without stopping sales.
 - Then the copy is opened read-only and `PRAGMA quick_check` runs. On success, it's copied to the second folder if one is set.
 - Retention: the newest N, plus the last backup of each day for 30 days.
-- Triggers: timer (if anything changed since the last backup, tracked by `PRAGMA data_version` plus a counter), on close, before migrations, imports, restores and count postings, and manual.
+- Triggers: timer (if anything changed since the last backup, tracked by a change counter in `Db` that goes up on every write that changed rows: `db::change_marker` / `db::has_changed_since`), on close, before migrations, imports, restores and count postings, and manual.
 
 ## Restore
-1. `verify(file)`: `quick_check` and a schema version check (must not be newer than the app).
+1. `verify(file, all_migrations)`: `quick_check` and a schema version check (must not be newer than the app, and no edited migration).
 2. Back up the current database.
 3. Close connections, replace the database file (and delete stale `-wal`/`-shm`), restart the app.
 

@@ -1,0 +1,6 @@
+---
+source: crates/printing/tests/escpos_bytes.rs
+expression: hex(&bytes)
+---
+1B 40 1D 76 30 00 02 00 03 00 FF F0 AA A0 00 00
+1D 56 41 00
