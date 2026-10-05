@@ -7,6 +7,7 @@ mod aging;
 mod daily;
 mod error;
 mod line_totals;
+mod movement;
 mod overrides;
 mod sales_by;
 mod shift;
@@ -16,16 +17,18 @@ mod stock;
 mod summary;
 mod table;
 mod tax;
+mod tax_sums;
 mod types;
 
 pub use aging::{payables_aging, receivables_aging};
 pub use daily::daily_summary;
 pub use error::ReportsError;
+pub use movement::stock_movement;
 pub use overrides::discounts_overrides;
 pub use sales_by::{profit, sales_by};
 pub use shift::shift_report;
 pub use statement::{customer_statement, supplier_statement};
-pub use stock::{low_stock, near_expiry, stock_movement, stock_value};
+pub use stock::{low_stock, near_expiry, stock_value};
 pub use tax::tax_report;
 pub use types::{
     ACTION_CART_CANCEL, ACTION_DRAWER_NO_SALE, ACTION_SALE_VOID, DateRange, GroupBy,

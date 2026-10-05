@@ -18,10 +18,17 @@ chrono.workspace = true
 audit.workspace = true
 catalog.workspace = true
 customers.workspace = true
+db.workspace = true
 inventory.workspace = true
 purchasing.workspace = true
 sales.workspace = true
 shifts.workspace = true
+criterion.workspace = true
+tempfile.workspace = true
+
+[[bench]]
+name = "reports"
+harness = false
 
 [lints]
 workspace = true

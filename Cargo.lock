@@ -4024,13 +4024,16 @@ dependencies = [
  "audit",
  "catalog",
  "chrono",
+ "criterion",
  "customers",
+ "db",
  "inventory",
  "pos-core",
  "purchasing",
  "rusqlite",
  "sales",
  "shifts",
+ "tempfile",
  "thiserror 2.0.21",
 ]
 

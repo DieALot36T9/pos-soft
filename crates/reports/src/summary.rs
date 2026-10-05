@@ -10,7 +10,8 @@ use rusqlite::types::Value;
 
 use crate::sql::{Param, optional_text, query, query_one, text as text_param};
 use crate::table::{column, new_table, text};
-use crate::tax::{rate_totals, tax_by_rate_section};
+use crate::tax::tax_by_rate_section;
+use crate::tax_sums::rate_totals;
 use crate::{ACTION_CART_CANCEL, ReportsError, ShopContext};
 
 /// Which sales a summary covers.
@@ -65,10 +66,15 @@ impl Scope<'_> {
     /// A condition on alias `p` (`sales_v_payments`, which has no till column).
     fn payments(&self) -> &'static str {
         match self {
+            // The view works out its business date for every payment, so filtering on it
+            // reads the whole table. Finding the day's documents first uses the indexes.
             Scope::Day { .. } => {
-                "p.business_date = :date AND (:till IS NULL
-                   OR p.doc_id IN (SELECT id FROM sales_v_sales WHERE till_id = :till)
-                   OR p.doc_id IN (SELECT return_id FROM sales_v_return_lines WHERE till_id = :till))"
+                "((p.doc_type = 'sale' AND p.doc_id IN
+                    (SELECT s.id FROM sales_v_sales s
+                     WHERE s.business_date = :date AND (:till IS NULL OR s.till_id = :till)))
+                  OR (p.doc_type = 'return' AND p.doc_id IN
+                    (SELECT s.return_id FROM sales_v_return_lines s
+                     WHERE s.business_date = :date AND (:till IS NULL OR s.till_id = :till))))"
             }
             Scope::Shift { .. } => "p.shift_id = :shift",
         }

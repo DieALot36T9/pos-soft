@@ -64,8 +64,15 @@ pub fn migrations() -> ModuleMigrations {
     }
 }
 
-const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    name: "init",
-    sql: include_str!("../migrations/001_init.sql"),
-}];
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        name: "init",
+        sql: include_str!("../migrations/001_init.sql"),
+    },
+    Migration {
+        version: 2,
+        name: "report_index",
+        sql: include_str!("../migrations/002_report_index.sql"),
+    },
+];

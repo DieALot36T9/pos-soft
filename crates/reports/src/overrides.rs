@@ -42,6 +42,8 @@ pub fn discounts_overrides(
         (":no_sale", text_param(ACTION_DRAWER_NO_SALE)),
     ];
     let mut cashiers: BTreeMap<String, CashierCounts> = BTreeMap::new();
+    // Only lines with a manual discount or a price override are grouped. Grouping all of
+    // a year's lines (about 1.6 million) made the database sort them all (RPT-11).
     for (user, discounted, amount, overrides) in query(
         conn,
         "SELECT user_id,
@@ -49,6 +51,7 @@ pub fn discounts_overrides(
            SUM(manual_discount_minor + invoice_discount_minor), SUM(price_overridden)
          FROM sales_v_lines
          WHERE status = 'completed' AND business_date BETWEEN :from AND :to
+           AND (manual_discount_minor + invoice_discount_minor > 0 OR price_overridden = 1)
          GROUP BY user_id",
         &params,
         |row| Ok((row.get::<_, String>(0)?, row.get(1)?, Money(row.get(2)?), row.get(3)?)),

@@ -7,8 +7,8 @@ use pos_core::{BusinessDate, Cell, ColumnKind, Money, Qty, ReportParams, ReportT
 use rusqlite::Connection;
 
 use crate::sql::{query, text as text_param};
-use crate::table::{column, new_table, optional_text, range_params, text};
-use crate::{DateRange, GroupBy, ReportsError};
+use crate::table::{column, new_table, optional_text, text};
+use crate::{GroupBy, ReportsError};
 
 /// One product's stock and value.
 struct Stocked {
@@ -248,52 +248,6 @@ pub fn near_expiry(
     totals.push(Cell::Money(total));
     totals.push(Cell::Empty);
     table.totals = Some(totals);
-    Ok(table)
-}
-
-/// Stock movement for a period, per product: opening, received, sold, returned,
-/// adjusted and closing quantities (signed: − is stock going out).
-/// Received includes opening stock and goods sent back to suppliers; sold includes
-/// voided sales coming back; adjusted includes stock counts.
-pub fn stock_movement(conn: &Connection, range: DateRange) -> Result<ReportTable, ReportsError> {
-    let range = range.check()?;
-    let mut table = new_table(
-        "Stock movement",
-        range_params(range),
-        vec![
-            column("product", "Product", ColumnKind::Text),
-            column("opening", "Opening", ColumnKind::Qty),
-            column("received", "Received", ColumnKind::Qty),
-            column("sold", "Sold", ColumnKind::Qty),
-            column("returned", "Returned", ColumnKind::Qty),
-            column("adjusted", "Adjusted", ColumnKind::Qty),
-            column("closing", "Closing", ColumnKind::Qty),
-        ],
-    );
-    let in_period = "l.business_date >= :from";
-    let sql = format!(
-        "SELECT COALESCE(MAX(p.name), l.product_id),
-           SUM(CASE WHEN l.business_date < :from THEN l.qty_delta_milli ELSE 0 END),
-           SUM(CASE WHEN {in_period} AND l.kind IN ('receive', 'opening', 'supplier_return') THEN l.qty_delta_milli ELSE 0 END),
-           SUM(CASE WHEN {in_period} AND l.kind IN ('sale', 'sale_void') THEN l.qty_delta_milli ELSE 0 END),
-           SUM(CASE WHEN {in_period} AND l.kind = 'return' THEN l.qty_delta_milli ELSE 0 END),
-           SUM(CASE WHEN {in_period} AND l.kind IN ('adjust', 'count') THEN l.qty_delta_milli ELSE 0 END),
-           SUM(l.qty_delta_milli)
-         FROM inventory_v_ledger l LEFT JOIN catalog_v_products p ON p.id = l.product_id
-         WHERE l.business_date <= :to
-         GROUP BY l.product_id ORDER BY 1"
-    );
-    let params = [
-        (":from", text_param(&range.from.to_string())),
-        (":to", text_param(&range.to.to_string())),
-    ];
-    table.rows = query(conn, &sql, &params, |row| {
-        let mut cells = vec![Cell::Text(row.get(0)?)];
-        for index in 1..=6 {
-            cells.push(Cell::Qty(Qty(row.get(index)?)));
-        }
-        Ok(cells)
-    })?;
     Ok(table)
 }
 
