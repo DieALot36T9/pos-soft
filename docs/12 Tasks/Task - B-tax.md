@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: medium
 phase: B
 depends_on: [A0, A1]
-status: ready
+status: in review
 ---
 # Task B-tax: Build the `tax` module crate
 

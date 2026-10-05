@@ -4,6 +4,9 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-tax)
+- `tax`: tax rates with optional named components (TAX-02, TAX-03), `calc_line` for inclusive and exclusive prices (TAX-05), `split_components` (TAX-03), create, update, deactivate, get, get_many and list. Rates can't be deleted, only deactivated (TAX-10); the database refuses a DELETE too. View `tax_v_rates`. Tests for the TAX-05 table, examples E4–E7, proptest rules and contract tests. TypeScript types for the rate data in `ui/src/generated/`.
+
 ### Added (task B-shifts)
 - `shifts` crate: tables `shifts_shifts`, `shifts_movements` (append-only), `shifts_counts` and views `shifts_v_shifts`, `shifts_v_movements`. Functions `open`, `current`, `record`, `reverse_ref`, `expected_cash`, `close`, `summary`. Tests for SHF-01, SHF-02, SHF-03, SHF-06, SHF-07, SHF-08 and RET-04.
 
