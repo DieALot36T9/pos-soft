@@ -4,6 +4,14 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-hardware)
+- `hardware` crate: printer connections (Windows spooler, network, serial, CUPS, file and **Preview**), with a time limit on every device call. Network, serial and file use the `escpos` crate's drivers; the Windows spooler uses the `windows` crate.
+- The Preview printer reads the ESC/POS bytes back into pictures and notices drawer pulses, so `app` can show each receipt without a printer (HW-10).
+- Scale reading with profiles (generic continuous, CAS-type, Toledo-type), tested with recorded-format lines; "3 equal readings" when a scale has no stable flag (HW-05).
+- Listing installed printers and serial ports. Fakes that act like real devices: `MockPrinter`, `MockScale`, `FakeScale`.
+- TypeScript types for the hardware settings (`PrinterConfig`, `ScaleProfile`, `SerialSettings`, `Reading` and others).
+- `deny.toml` allows MPL-2.0 for the `serialport` crate only (Reuse Map).
+
 ### Added (task B-sales)
 - `sales` module: carts and held carts saved on every change, completing a sale from already-priced lines, gapless invoice numbers (`T1-000123`) and return numbers (`T1-R000045`) per till, payment methods with the system methods built in, payments with cash change (`settle_payments`), returns with exact refunds from the stored sale line (the last return refunds exactly what is left), voids, and the `sales_v_sales`, `sales_v_lines`, `sales_v_return_lines` and `sales_v_payments` views.
 - `complete()` refuses a sale whose lines, totals or payments don't add up, before it uses an invoice number.
