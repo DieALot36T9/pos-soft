@@ -113,11 +113,11 @@ Test names start with the requirement ID (`hw_02_…`, `hw_05_…`, `hw_08_…`,
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- Built in task B-hardware (Rust only; no `app` wiring or screens yet, those are C-M1 and C-M7).
+- Built in task B-hardware. **Connected in C-M1:** `app` keeps one `PreviewInbox` and one `FakeScale` (`app::devices::Devices`); "Test print" goes to the Preview printer, whose printouts the screen shows. Screens in `ui/src/modules/hardware/`: test print (58/80 mm), the Preview printer panel (pictures, "Drawer opened", "Print on another printer"), and, in dev builds, the fake scale panel, a scan test box and the scan simulator (`Ctrl+Shift+S`; sample codes in `components/sampleCodes.ts`). Tests: `HardwarePage.test.tsx` and `ui/e2e/hardware.spec.ts`. Real printer and scale settings, the drawer and reading a real scale come in C-M7.
 - **Real hardware not tried yet (M13):** the Windows spooler code is built and checked by clippy in the Windows CI job, and its "unknown printer" test runs there, but it has never printed to a real printer. Run the ignored "Microsoft Print to PDF" test and the M13 checklist on a Windows PC. Same for CUPS on the Mac and for real scales.
 - **Scale fixtures** in `tests/fixtures/` follow each vendor's published format. Replace them with recordings from real scales in M13 and keep the tests passing.
 - **Printer status** is basic: network = can connect; CUPS = `lpstat -p`; Windows = the printer exists; serial = the port exists (`Unknown`). Paper-out and cover-open (ESC/POS `DLE EOT`) are not read.
 - **Preview** reads only `GS v 0` pictures (what the `escpos` crate and the planned `printing` encoder send) and ignores the size mode byte. If `printing` ever sends `GS ( L` pictures, add them to `read_escpos_job`.
 - **Network printers:** a host name is looked up by the computer's own resolver, which has its own time limit. Printers are normally set up with a fixed IP address ([[Printer Setup]]).
-- **UI error text:** the UI shows one general "device isn't working" message for every hardware error. Messages per code (`timeout`, `not_connected`, `refused`, `no_weight`, `bad_settings`) belong to C-M1/C-M7.
+- **UI error text:** done in C-M1: `ui/src/shared/text/en/errors.ts` has a message per code (`hardware_timeout`, `hardware_not_connected`, `hardware_send_failed`, `hardware_refused`, `hardware_no_weight`, `hardware_bad_settings`); an unknown code falls back to the general message.
 - **Labels (HW-06)** and the system print dialog (HW-07) are not part of this crate: TSPL bytes go through any `RawPrinter`; the dialog is `app`'s job.

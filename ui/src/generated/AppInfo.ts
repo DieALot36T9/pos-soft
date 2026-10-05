@@ -3,4 +3,8 @@
 /**
  * The app's name and version, shown in the window and on support reports.
  */
-export type AppInfo = { name: string, version: string, };
+export type AppInfo = { name: string, version: string, 
+/**
+ * True when the dev-only tools (scan simulator, fake scale) are built in.
+ */
+dev_tools: boolean, };

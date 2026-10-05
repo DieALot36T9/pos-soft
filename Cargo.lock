@@ -75,10 +75,12 @@ dependencies = [
  "audit",
  "auth",
  "barcode",
+ "base64 0.22.1",
  "catalog",
  "customers",
  "db",
  "hardware",
+ "image",
  "inventory",
  "io",
  "pos-core",
@@ -94,6 +96,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-single-instance",
  "tax",
+ "tempfile",
  "ts-rs",
 ]
 

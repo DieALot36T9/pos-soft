@@ -15,7 +15,7 @@ tags: [testing]
 | Workflow integration | `crates/app/tests/` | `cargo nextest` | Multi-module use cases in one transaction, failure injection | Every push |
 | Golden images | `crates/printing/tests/` | PNG compare | Receipts, reports, labels pixel-identical to approved images | Every push |
 | UI unit | `ui/src/**/*.test.tsx` | Vitest + Testing Library | Components, keyboard handling, formatting, error mapping, **colour contrast of every token pair ≥ 7 : 1** | Every push |
-| UI e2e (mock) | `ui/e2e/` | Playwright + mock bridge | Full screen flows: checkout, payment, setup wizard, import | Every push |
+| UI e2e (mock) | `ui/e2e/` | Playwright + mock bridge (`pnpm e2e`, starts `pnpm dev:mock` itself, Chromium at 1366×768) | Full screen flows: printer and devices (C-M1), later checkout, payment, setup wizard, import | Every push (Linux) |
 | App smoke | CI Windows + Linux | tauri-driver | Packaged app starts, setup with fixtures, one sale completes | Every merge to main |
 | Performance | `xtask bench` | criterion-style timing on the reference database | NFR-P budgets | Nightly + before release |
 | Durability | `xtask powercut` | Kill a child process during writes, reopen, check | NFR-R1/R2 | Nightly + before release |

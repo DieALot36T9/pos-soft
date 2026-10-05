@@ -119,5 +119,8 @@ Backup (`pre-import`) → `io::read_table` → map rows to `catalog::NewProduct`
 ## Restore backup
 `db::verify(file)` → backup current (`pre-restore`) → `db::restore(file)` → audit is written **into the restored database** after restart (the event is stashed in a small file and replayed on next start) → restart.
 
+## Test print
+`workflows::test_print::run(printer, paper, fonts)`: sample receipt data (sample shop, a sample logo, a Code 128 barcode from `barcode::bitmap`, a QR code) → `printing::receipt` with the English `ReceiptLabels` (`app::receipt_words`) → `printing::rasterize` → `printing::escpos::encode` (cut, no drawer) → `printer.send`. Saves nothing, so there is no transaction. A printer error comes back as `AppError::Hardware` (HW-08). Until printer settings are saved (C-M2, C-M7) the printer is always the Preview printer, and the shop details are samples.
+
 ## First-run setup
 Each wizard step saves through `settings` (and `tax`, `auth`) in its own transaction, then `settings::complete_step`. The last step creates the first sequence rows and marks setup complete.

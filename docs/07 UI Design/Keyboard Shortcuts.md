@@ -45,5 +45,6 @@ One list (`ui/src/shared/keyboard/`) defines every shortcut, wired up with **rea
 | `Ctrl+S` | Save the current form |
 | `Ctrl+N` | New item in the current list |
 | `Ctrl+F` | Focus the list search |
+| `Ctrl+Shift+S` | Scan simulator (dev builds only, HW-10) |
 
 Function keys are used because they never conflict with scanner input (scanners type digits, letters and Enter only).
