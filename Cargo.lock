@@ -4021,7 +4021,17 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 name = "reports"
 version = "0.1.0"
 dependencies = [
+ "audit",
+ "catalog",
+ "chrono",
+ "customers",
+ "inventory",
  "pos-core",
+ "purchasing",
+ "rusqlite",
+ "sales",
+ "shifts",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
