@@ -57,6 +57,8 @@ exceptions = [
     { crate = "selectors", allow = ["MPL-2.0"] },        # tauri-utils → dom_query
     { crate = "dtoa-short", allow = ["MPL-2.0"] },       # tauri-utils → dom_query → cssparser
     { crate = "option-ext", allow = ["MPL-2.0"] },       # tauri → dirs
+    # The `hardware` module uses this for scales and serial printers (Module - hardware).
+    { crate = "serialport", allow = ["MPL-2.0"] },       # hardware, and escpos's serial driver
 ]
 
 [licenses.private]
@@ -68,6 +70,15 @@ ignore = [
     # proc-macro-error is unmaintained. It comes only from Tauri's Linux window toolkit
     # (gtk-rs 0.18), which Tauri chooses, and it runs only while compiling.
     { id = "RUSTSEC-2024-0370", reason = "Build-time only, pulled in by Tauri's gtk-rs on Linux" },
+    # atomic-polyfill is unmaintained. It comes only from `phonenumber` → postcard → heapless 0.7,
+    # which reads the built-in phone number rules. On our targets (x86-64, ARM64) it just uses
+    # the standard atomics; it only matters on chips without them. No safe upgrade exists yet.
+    { id = "RUSTSEC-2023-0089", reason = "Unmaintained only; pulled in by phonenumber via postcard/heapless 0.7" },
+    # ttf-parser is unmaintained (no security problem is known). It comes only from
+    # fontdb 0.23 inside cosmic-text 0.19 (the newest), which `printing` uses to draw
+    # receipts. It reads only the four fonts bundled in crates/printing/fonts, never a
+    # file from outside. Remove when cosmic-text no longer needs it (Module - printing).
+    { id = "RUSTSEC-2026-0192", reason = "Reads only printing's own bundled fonts; no newer cosmic-text yet" },
 ]
 
 [sources]

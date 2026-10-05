@@ -51,10 +51,16 @@ tags: [architecture, reuse]
 | Only one copy of the app may run | **tauri-plugin-single-instance** | **In use** (A1), in `app::run()` |
 | File open/save dialogs, files | **tauri-plugin-dialog**, **tauri-plugin-fs** | C tasks |
 | Remember window size/position | **tauri-plugin-window-state** | C-M2 |
-| ESC/POS encoding + network/USB/serial/file connections, cut, QR | **escpos** crate (MIT) | B-printing, B-hardware |
+| ESC/POS encoding + network/USB/serial/file connections, cut, QR | **escpos** crate (MIT) | **In use**: B-printing for the start and cut commands; B-hardware for the network, serial and file connections. Two commands are written by hand (see below) |
+| Text on receipts and labels: shaping, line breaking, drawing letters | **cosmic-text** (with `swash`) on a **tiny-skia** page | **In use** (B-printing). Only our bundled Noto Sans fonts, never the system's |
+| QR codes on receipts | **qrcode** | **In use** (B-printing) |
+| Shop logo to black and white (Floyd–Steinberg dithering), PNG previews | **image** | **In use** (B-printing) |
+| Byte snapshots in tests | **insta** | **In use** (B-printing), ESC/POS and TSPL bytes |
+| Serial ports (scales, serial printers, port list) | **serialport** (MPL-2.0, allowed for this crate only: see below) | **In use** (B-hardware) |
+| Patterns that find the weight in a scale's line | **regex** | **In use** (B-hardware) |
 | Barcode images / test decoding | **barcoders**, **rxing** | B-barcode |
 | Currency list (codes, decimals, symbols) | **iso_currency** | B-settings, C-M2 |
-| Phone number cleaning | **phonenumber** (libphonenumber port) | B-customers |
+| Phone number cleaning | **phonenumber** (libphonenumber port, Apache-2.0) | **In use** (B-customers), in `customers::normalize_phone` |
 | Log files with daily rotation and "keep 14" | **tracing-appender** (`Rotation::DAILY`, `max_log_files`) | C-M2 |
 | Keyboard shortcuts | **react-hotkeys-hook** (scopes, works in inputs), listed in one file | C-M6 |
 | Toast messages | **sonner** (shadcn/ui default) | C tasks |
@@ -62,12 +68,17 @@ tags: [architecture, reuse]
 | Tooltips, dialogs, menus | **Radix UI** via shadcn/ui | All screens |
 | Password, PIN and recovery-code hashing (argon2id) | **argon2** (RustCrypto) | **In use** (B-auth) |
 | Random recovery codes | **rand** (`rand::rng()`, a secure generator) | **In use** (B-auth) |
+| Reading CSV files (RFC 4180) | **csv** | **In use** (B-io) |
+| Reading Excel (.xlsx) files | **calamine** (MIT) | **In use** (B-io) |
+| Writing Excel (.xlsx) files with typed cells and number formats | **rust_xlsxwriter** (MIT/Apache-2.0) | **In use** (B-io) |
+| Temporary files in tests | **tempfile** | **In use** (B-io tests) |
 | Fake data for big test databases | **fake** crate | `xtask seed` |
-| Benchmarks | **criterion** | **In use** (B-auth: `cargo bench -p auth`). `xtask bench` later |
+| Benchmarks | **criterion** | **In use** (B-catalog: `cargo bench -p catalog`; B-auth: `cargo bench -p auth`). `xtask bench` later |
 | Test coverage | **cargo-llvm-cov** | CI |
 | CI caching / tool install | `Swatinem/rust-cache`, `taiki-e/install-action`, `tauri-apps/tauri-action` | CI |
 | Database backup | SQLite's built-in `VACUUM INTO` | [[Module - db]] |
-| Product search | SQLite's built-in **FTS5** | [[Module - catalog]] |
+| Product search | SQLite's built-in **FTS5** | **In use** (B-catalog), [[Module - catalog]] |
+| Reading and resizing product pictures (PNG, JPEG, WebP) | **image** crate (MIT/Apache-2.0), only the `png`, `jpeg` and `webp` features | **In use** (B-catalog), [[Module - catalog]] |
 
 ## Things we write ourselves (and why)
 | Thing | Why no library fits |
@@ -75,8 +86,13 @@ tags: [architecture, reuse]
 | Per-module migration runner (`db`) | `rusqlite_migration` and `refinery` keep **one** version counter for the whole database. Our modules must add migrations independently, so versions are tracked per module. Small (~180 lines) and tested |
 | Pricing engine | Pricing rules are business-specific. We follow Odoo/ERPNext rule patterns, but there's no reusable Rust library |
 | Receipt layout (document → picture) | There's no receipt-layout library; text drawing itself uses **cosmic-text** and **tiny-skia** |
+| ESC/POS picture strips (`GS v 0`) and the drawer pulse (`ESC p m t1 t2`) | The `escpos` crate prints pictures only from image files: it decodes them, shrinks them to 512 dots and converts them again, while our picture is already in the printer's format. Its `cash_drawer()` (0.20) leaves out `t1 t2`, so the printer would swallow the next two bytes. Both are a few bytes, tested byte for byte in `printing` |
+| TSPL label commands | No maintained Rust crate writes TSPL. It is five text commands (`SIZE`, `GAP`, `CLS`, `BITMAP`, `PRINT`) |
 | Scale protocol profiles | No Rust crate covers scale protocols; profiles follow each vendor's published protocol |
-| Windows print spooler "raw" connection | Added only if the `escpos` crate's Windows driver can't reach spooler-installed printers (checked in M13) |
+| CSV separator guess (comma, semicolon or tab) in `io` | The `csv` crate doesn't guess separators, and `csv-sniffer` has had no release for years. Ours counts the three characters in the header line (about 20 lines, tested) |
+| CSV formula guard in `io` | A few lines following the **OWASP "CSV Injection"** advice (leading apostrophe), plus the reverse on reading so exports round-trip. No maintained crate does both |
+| Windows print spooler "raw" connection | The `escpos` crate has no spooler driver (its Windows driver, `usbprint`, talks to USB printers directly and skips the spooler). So `hardware` calls winspool through the `windows` crate, in `printer/windows_spooler.rs` (about 150 lines) |
+| Preview printer's ESC/POS reader | No crate reads ESC/POS back into pictures. It only needs `GS v 0` pictures and the `ESC p` drawer pulse (about 60 lines, in `hardware`) |
 
 ## Open-source projects to learn from
 | Project | Licence | Use it for |
@@ -85,7 +101,9 @@ tags: [architecture, reuse]
 | ERPNext / POS Awesome | GPL-3.0 | Ideas: pricing rules, tax templates, POS closing |
 | Open Source Point of Sale (OSPOS) | MIT | Ideas: barcode labels, stock, reports. Code can be reused with attribution |
 
-**Licences we accept for Tauri's own dependencies:** a few crates that Tauri needs are under **MPL-2.0** (`cssparser`, `cssparser-macros`, `selectors`, `dtoa-short` through `tauri-utils`; `option-ext` through `dirs`). MPL-2.0 only asks that changes to those files stay open; we use them unchanged. `deny.toml` allows MPL-2.0 for exactly these crates, not for any other dependency. One advisory is ignored in `deny.toml`: `proc-macro-error` is unmaintained (RUSTSEC-2024-0370), but it only runs at build time, inside Tauri's Linux window toolkit (gtk-rs).
+**Licences we accept for Tauri's own dependencies:** a few crates that Tauri needs are under **MPL-2.0** (`cssparser`, `cssparser-macros`, `selectors`, `dtoa-short` through `tauri-utils`; `option-ext` through `dirs`). MPL-2.0 only asks that changes to those files stay open; we use them unchanged. `deny.toml` allows MPL-2.0 for exactly these crates, not for any other dependency. **serialport** (MPL-2.0) is allowed too, for the same reason: `hardware` uses it unchanged for scales and serial printers, and no permissively licensed serial port crate is as widely used and maintained. Three advisories are ignored in `deny.toml`, all "unmaintained" notices rather than security holes. `proc-macro-error` is unmaintained (RUSTSEC-2024-0370), but it only runs at build time, inside Tauri's Linux window toolkit (gtk-rs). `ttf-parser` is unmaintained (RUSTSEC-2026-0192), but it comes only through `cosmic-text` (whose newest release still uses it) and reads only the fonts bundled in `crates/printing/fonts`. `atomic-polyfill` is unmaintained (RUSTSEC-2023-0089); it comes from `phonenumber` → `postcard` → `heapless` 0.7, which reads the built-in phone rules. On our targets it only uses the standard atomics, and no safe upgrade exists yet.
+
+**Fonts:** Noto Sans and a two-letter cut of Noto Sans Bengali (for ৳) are bundled in `crates/printing/fonts` under the **SIL Open Font License 1.1** (`OFL.txt` there). It lets us bundle and change the fonts; we may not sell the fonts on their own.
 
 **Licence rule:** learn ideas from any project. **Copy code only from permissively licensed sources** (MIT, Apache-2.0, BSD, ISC, Zlib), with a comment saying where it came from. Never copy code from GPL, LGPL or AGPL projects. `cargo-deny` checks that our dependencies' licences are on the allowed list. *The product owner still has to choose this project's own licence. Until then, it's treated as closed source.*
 

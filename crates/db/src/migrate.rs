@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS db_migrations (
 );";
 
 /// The migrations already in the database: module → (version → checksum).
-type Applied = BTreeMap<String, BTreeMap<u32, String>>;
+pub(crate) type Applied = BTreeMap<String, BTreeMap<u32, String>>;
 
 /// Lists the migrations that `migrate` would run, as (module, version), in order.
 pub fn pending(db: &Db, all: &[ModuleMigrations]) -> Result<Vec<(String, u32)>, DbError> {
@@ -55,10 +55,12 @@ pub fn migrate(db: &Db, all: &[ModuleMigrations]) -> Result<(), DbError> {
 
     for module in all {
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let mut ran_any = false;
         for migration in module.migrations {
             if is_applied(&applied, module.module, migration.version) {
                 continue;
             }
+            ran_any = true;
             transaction.execute_batch(migration.sql)?;
             transaction.execute(
                 "INSERT INTO db_migrations (module, version, name, checksum, applied_at)
@@ -73,6 +75,9 @@ pub fn migrate(db: &Db, all: &[ModuleMigrations]) -> Result<(), DbError> {
             )?;
         }
         transaction.commit()?;
+        if ran_any {
+            db.note_change();
+        }
     }
     Ok(())
 }
@@ -104,7 +109,7 @@ fn check_lists(all: &[ModuleMigrations]) -> Result<(), DbError> {
 }
 
 /// Checks that every migration in the database is one this app knows, unchanged.
-fn check_applied(applied: &Applied, all: &[ModuleMigrations]) -> Result<(), DbError> {
+pub(crate) fn check_applied(applied: &Applied, all: &[ModuleMigrations]) -> Result<(), DbError> {
     for (module_name, versions) in applied {
         let known = all.iter().find(|module| module.module == module_name);
         for (version, stored_checksum) in versions {
@@ -127,7 +132,7 @@ fn check_applied(applied: &Applied, all: &[ModuleMigrations]) -> Result<(), DbEr
     Ok(())
 }
 
-fn read_applied(connection: &Connection) -> Result<Applied, DbError> {
+pub(crate) fn read_applied(connection: &Connection) -> Result<Applied, DbError> {
     let mut statement =
         connection.prepare("SELECT module, version, checksum FROM db_migrations")?;
     let mut rows = statement.query([])?;
