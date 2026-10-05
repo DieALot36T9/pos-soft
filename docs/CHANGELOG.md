@@ -4,6 +4,12 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-db)
+- `db`: backups with `VACUUM INTO` (`backup_to`, then a read-only `quick_check`), `verify` before a restore (refuses damaged files, newer or edited migrations), `open_read_only`, `quick_check` for the startup check, change tracking for the backup timer (`change_marker`, `has_changed_since`), `backup_file_name` and `prune_backups` (newest N plus the last of each day). BAK-01, BAK-03, BAK-05, BAK-06.
+- `db`: power-cut test: a child process that keeps committing is killed at random moments, and the last committed row must survive (NFR-R1).
+### Changed (task B-db)
+- `db` has no `db_meta` table: nothing needed it. `verify` no longer returns a sales count; `app` reads it through the sales module using `open_read_only`, so `db` still knows no module's tables.
+
 ### Added (task B-printing)
 - `printing` crate: a document model; layouts for sale, void and return receipts, X/Z reports, labels and shelf tags; drawing to a 1-bit picture with cosmic-text on a tiny-skia page; PNG previews; shop logo dithering; ESC/POS (picture strips, cut, drawer pulse) and TSPL bytes. Every printed word comes from `ReceiptLabels` (ADR-022). Requirements HW-02 to HW-04, HW-06, HW-10, CAT-12, CAT-13, SHF-08, RET-04, RET-06, TAX-08, SET-14.
 - Bundled fonts: Noto Sans Regular and Bold, plus a two-letter cut of Noto Sans Bengali for the taka sign ৳ (Noto Sans has none). SIL Open Font License.
