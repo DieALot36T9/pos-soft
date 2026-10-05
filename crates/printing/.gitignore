@@ -1,0 +1,4 @@
+# Pictures a failing golden test saves for comparison. Never committed.
+tests/golden/*.new.png
+# insta writes these while a snapshot waits for review.
+tests/snapshots/*.snap.new

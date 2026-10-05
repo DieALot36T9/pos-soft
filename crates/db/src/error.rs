@@ -1,4 +1,4 @@
-//! What can go wrong while opening or migrating the database.
+//! What can go wrong while opening, migrating, backing up or checking the database.
 
 use pos_core::AppError;
 
@@ -17,6 +17,12 @@ pub enum DbError {
     /// A module's migration list is wrong, for example versions out of order.
     #[error("migration list for {module} is wrong: {detail}")]
     BadMigrationList { module: String, detail: String },
+    /// A database or backup file failed `PRAGMA quick_check`, or isn't a database at all.
+    #[error("{file} failed the check: {detail}")]
+    CheckFailed { file: String, detail: String },
+    /// Reading, writing or deleting a file failed. Example: the backup folder is missing.
+    #[error("file error: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 impl From<DbError> for AppError {
