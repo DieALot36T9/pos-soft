@@ -12,6 +12,32 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semant
 - TypeScript types for the hardware settings (`PrinterConfig`, `ScaleProfile`, `SerialSettings`, `Reading` and others).
 - `deny.toml` allows MPL-2.0 for the `serialport` crate only (Reuse Map).
 
+### Added (task B-sales)
+- `sales` module: carts and held carts saved on every change, completing a sale from already-priced lines, gapless invoice numbers (`T1-000123`) and return numbers (`T1-R000045`) per till, payment methods with the system methods built in, payments with cash change (`settle_payments`), returns with exact refunds from the stored sale line (the last return refunds exactly what is left), voids, and the `sales_v_sales`, `sales_v_lines`, `sales_v_return_lines` and `sales_v_payments` views.
+- `complete()` refuses a sale whose lines, totals or payments don't add up, before it uses an invoice number.
+- Database triggers stop completed sales, their lines and payments, and returns from being changed or deleted (only the void fields of a sale can be set, once).
+- Sale headers also store tier and invoice discount totals; sale and return lines store their cost.
+- `sales_summary` gives the number of sales and the last invoice number of a database or backup, for the backup restore list (BAK-05).
+
+### Added (task B-pricing)
+- `pricing` crate: price lists, tiers and promotions (tables, migration `001_init`, view `pricing_v_promotions`) and their admin functions with save checks.
+- The pricing engine `price_cart`, a pure function: unit price (override, price list, retail), the single best promotion per product on the combined quantity (ADR-019), tier discount on lines without a promotion, manual line discounts and the invoice discount split. `load_context` reads what it needs. `manual_discount_bps` gives the largest manual discount % for the role limit check.
+- Tests for every PRC-06 example, PRC-01 to PRC-07, CHK-08, CHK-12, CHK-13, CHK-16 and CHK-17, contract tests for the API and view, and a property test that no line goes below zero.
+### Changed (task B-pricing)
+- Module - pricing page: `price_cart` returns a `Result`; a promotion's saving on several lines of one product is split in proportion to each line's base; scale sticker and overridden lines get no automatic discounts but still take manual and invoice discounts.
+
+### Added (task B-purchasing)
+- `purchasing` crate: suppliers (PUR-01), purchase orders with PO-numbers, statuses and low-stock suggestions (PUR-02), goods received against an order or directly (PUR-03), supplier returns (PUR-04), the append-only payables ledger with payments, adjustments and aging (PUR-05), and supplier statements (PUR-06). Rust only; `app` wiring and screens come in Phase C.
+
+### Added (task B-tax)
+- `tax`: tax rates with optional named components (TAX-02, TAX-03), `calc_line` for inclusive and exclusive prices (TAX-05), `split_components` (TAX-03), create, update, deactivate, get, get_many and list. Rates can't be deleted, only deactivated (TAX-10); the database refuses a DELETE too. View `tax_v_rates`. Tests for the TAX-05 table, examples E4–E7, proptest rules and contract tests. TypeScript types for the rate data in `ui/src/generated/`.
+
+### Added (task B-shifts)
+- `shifts` crate: tables `shifts_shifts`, `shifts_movements` (append-only), `shifts_counts` and views `shifts_v_shifts`, `shifts_v_movements`. Functions `open`, `current`, `record`, `reverse_ref`, `expected_cash`, `close`, `summary`. Tests for SHF-01, SHF-02, SHF-03, SHF-06, SHF-07, SHF-08 and RET-04.
+
+### Added (task B-audit)
+- `audit`: the append-only `audit_events` table with triggers that refuse UPDATE and DELETE, the `audit_v_events` view, `record` (refuses badly named actions, non-object details and secret-sounding keys) and `query` (newest first, filters by business date, user and action, pages of up to 500). USR-08.
+
 ### Added (task B-io)
 - `io`: reads .csv (BOM, comma/semicolon/tab, quoted newlines, must be UTF-8) and .xlsx (first or chosen sheet) into a table of text cells; writes .csv (UTF-8 BOM, formula guard) and .xlsx (real numbers with number formats); exports a report to .xlsx with the shop name, report name, date range and time made (RPT-09); matches file headers to fields (`auto_map`); reads money, quantities, yes/no and dates without ever rounding (IO-04); lists bad cells with row and column (`CellErr`). 50k rows read in about 1.3 s (IO-05). Uses `csv`, `calamine` and `rust_xlsxwriter` (added to the Reuse Map).
 
@@ -28,6 +54,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semant
 - The cash drawer pulse is written as the full `ESC p m t1 t2`, because the `escpos` crate's own command leaves out the two timing bytes (the printer would swallow the next two bytes it receives).
 ### Changed (task B-printing)
 - `deny.toml` ignores RUSTSEC-2026-0192 (`ttf-parser` unmaintained), which comes only through `cosmic-text` and reads only the bundled fonts.
+
+### Added (task B-catalog)
+- `catalog` crate: products, units, categories, brands, barcodes, variants, kits, images, FTS5 search, archive, price history and sequences (CAT-01 to CAT-11, CHK-01 to CHK-03, CHK-14, CHK-15). Rust only; screens come in C-M4.
+- Search keeps one FTS5 row per sellable product, rewritten in the same transaction as every product, barcode, category or brand change. A new table `catalog_search_rows` links each product to its search row.
+- Pictures are resized with the `image` crate (PNG, JPEG, WebP) to a 512 px JPEG and a 96 px thumbnail.
+- 50k-product benchmark: `search` ≤ 150 ms and `find_by_code` ≤ 2 ms (`tests/benchmark.rs`, plus a criterion benchmark). Measured: about 10 ms and 4 µs.
+
+### Added (task B-barcode)
+- `barcode` module: reads scale stickers with Odoo-style rules (CHK-08), checks GTIN check digits (CAT-04), makes internal EAN-13 codes and finds rules that clash with the internal prefix (CAT-11), and draws EAN-13, EAN-8, UPC-A and Code 128 as SVG or as a printer picture (CAT-12). Uses `barcoders`; tests read every picture back with `rxing`.
+- The barcode module page now says the pattern leaves out the check digit, and that functions with bad input return `Option`/`Result` instead of panicking.
 ### Changed (task A1: reuse before building, ADR-023)
 - Module crates are kept apart by **cargo-deny** (`deny.toml`, `wrappers = ["app"]`), which also checks licences, advisories and sources. CI runs `cargo deny check` and `scripts/check-module-bans.sh`, which proves a module depending on another module is refused. The hand-written xtask command for this is gone; `cargo xtask new-module` adds new modules to `deny.toml`.
 - Screen module folders are kept apart by **eslint-plugin-boundaries**, with a test that proves `pnpm lint` refuses a module importing another module.

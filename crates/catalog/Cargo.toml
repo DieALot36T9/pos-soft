@@ -8,7 +8,18 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+image.workspace = true
 pos-core.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+name = "search"
+harness = false
 
 [lints]
 workspace = true
