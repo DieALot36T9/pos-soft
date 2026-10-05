@@ -53,6 +53,46 @@ pub fn has_any_sale(conn: &Connection) -> Result<bool, SalesError> {
     Ok(found)
 }
 
+/// What the backup restore list shows about one database (BAK-05).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SalesSummary {
+    /// Every sale saved, voided ones included (they keep their number).
+    pub sale_count: u32,
+    /// The invoice number of the sale saved last. Example: "T1-000123".
+    pub last_invoice_no: Option<String>,
+}
+
+/// The number of sales and the last invoice number, for the backup restore list (BAK-05).
+/// `app` opens the backup with `db::open_read_only` and passes that connection here.
+/// A backup made before the sales tables existed has no sales.
+pub fn sales_summary(conn: &Connection) -> Result<SalesSummary, SalesError> {
+    let has_sales_table: bool = conn.query_row(
+        "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'sales_sales')",
+        [],
+        |row| row.get(0),
+    )?;
+    if !has_sales_table {
+        return Ok(SalesSummary {
+            sale_count: 0,
+            last_invoice_no: None,
+        });
+    }
+    let sale_count: u32 =
+        conn.query_row("SELECT count(*) FROM sales_sales", [], |row| row.get(0))?;
+    // rowid is the order sales were saved in (see `last_sale`).
+    let last_invoice_no: Option<String> = conn
+        .query_row(
+            "SELECT invoice_no FROM sales_sales ORDER BY rowid DESC LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .optional()?;
+    Ok(SalesSummary {
+        sale_count,
+        last_invoice_no,
+    })
+}
+
 /// For each line of a sale: the quantity sold minus what was already returned (RET-01).
 pub fn returnable_qty(conn: &Connection, sale_id: &Id) -> Result<HashMap<Id, Qty>, SalesError> {
     // Make sure the sale exists, so a wrong id isn't mistaken for "nothing to return".

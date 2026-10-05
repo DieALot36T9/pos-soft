@@ -9,6 +9,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semant
 - `complete()` refuses a sale whose lines, totals or payments don't add up, before it uses an invoice number.
 - Database triggers stop completed sales, their lines and payments, and returns from being changed or deleted (only the void fields of a sale can be set, once).
 - Sale headers also store tier and invoice discount totals; sale and return lines store their cost.
+- `sales_summary` gives the number of sales and the last invoice number of a database or backup, for the backup restore list (BAK-05).
 
 ### Added (task B-db)
 - `db`: backups with `VACUUM INTO` (`backup_to`, then a read-only `quick_check`), `verify` before a restore (refuses damaged files, newer or edited migrations), `open_read_only`, `quick_check` for the startup check, change tracking for the backup timer (`change_marker`, `has_changed_since`), `backup_file_name` and `prune_backups` (newest N plus the last of each day). BAK-01, BAK-03, BAK-05, BAK-06.

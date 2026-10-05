@@ -7,7 +7,7 @@ milestone: M6, M9
 
 **Purpose:** carts (in progress and held), completed sales with snapshots, payments, payment methods, invoice numbers, returns and voids.
 
-**Requirements:** [[Req - Checkout]], [[Req - Payments]], [[Req - Returns and Voids]], [[Req - Setup and Settings]] SET-15. **Design:** [[ADR-011 Snapshots on sale lines]], [[Workflows]], [[Money Tax and Rounding]].
+**Requirements:** [[Req - Checkout]], [[Req - Payments]], [[Req - Returns and Voids]], [[Req - Setup and Settings]] SET-15, [[Req - Backup and Logging]] BAK-05 (restore list). **Design:** [[ADR-011 Snapshots on sale lines]], [[Workflows]], [[Money Tax and Rounding]].
 **Depends on:** `core`, `rusqlite`, `serde` + `serde_json` (the tax parts JSON on sale lines), `thiserror`. Tests also use `proptest`.
 
 **Built in task B-sales.** No `app` wiring and no screens yet (those come in C-M6 and C-M9).
@@ -136,6 +136,7 @@ pub fn find_by_invoice(conn, &str) -> Result<Option<Sale>>;
 pub fn last_sale(conn, till: &Id) -> Result<Option<Sale>>;                            // the one saved last
 pub fn returnable_qty(conn, sale: &Id) -> Result<HashMap<Id /*line*/, Qty>>;
 pub fn void(tx, sale: &Id, by: &Id, approved_by: Option<&Id>, reason: &str, now) -> Result<()>;
+pub fn sales_summary(conn) -> Result<SalesSummary>;                                  // BAK-05: sale count + last invoice no
 pub fn has_any_sale(conn) -> Result<bool>;                                             // true once any sale or return exists
 // returns (returns.rs, return_read.rs)
 pub fn refund_amounts(conn, sale: &Id, &[ReturnQty]) -> Result<Vec<LineRefund>>;      // preview, saves nothing
@@ -148,7 +149,7 @@ pub fn system_payment_method(conn, PaymentKind) -> Result<PaymentMethod>;       
 pub fn save_payment_method(tx, PaymentMethodInput) -> Result<Id>;                   // id None = add
 pub fn migrations() -> ModuleMigrations;
 ```
-Main types: `Cart`, `CartLine`, `CartStatus`, `LineSource`, `Discount` (`Percent(Bps)` / `Amount(Money)`), `PriceOverride`, `NewCartLine`, `HeldCartRow`; `CompletedSale`, `LineSnapshot`, `SaleTotals`, `TaxMode`, `TaxPart`, `PromotionSnapshot`, `CustomerSnapshot`, `NewPayment`, `SaleRef`, `Sale`, `SaleLine`, `SaleStatus`, `VoidInfo`, `Payment`; `EnteredPayment`, `Settlement`; `ReturnQty`, `LineRefund`, `LineAmounts`, `NewReturn`, `NewReturnLine` (`FromSale` / `WithoutReceipt`), `ReturnedSaleLine`, `ReturnedProduct`, `ReturnRef`, `Return`, `ReturnLine`, `ReturnTotals`; `PaymentKind`, `PaymentMethod`, `PaymentMethodInput`; `SalesError`.
+Main types: `Cart`, `CartLine`, `CartStatus`, `LineSource`, `Discount` (`Percent(Bps)` / `Amount(Money)`), `PriceOverride`, `NewCartLine`, `HeldCartRow`; `CompletedSale`, `LineSnapshot`, `SaleTotals`, `TaxMode`, `TaxPart`, `PromotionSnapshot`, `CustomerSnapshot`, `NewPayment`, `SaleRef`, `Sale`, `SaleLine`, `SaleStatus`, `VoidInfo`, `Payment`; `EnteredPayment`, `Settlement`; `ReturnQty`, `LineRefund`, `LineAmounts`, `NewReturn`, `NewReturnLine` (`FromSale` / `WithoutReceipt`), `ReturnedSaleLine`, `ReturnedProduct`, `ReturnRef`, `Return`, `ReturnLine`, `ReturnTotals`; `SalesSummary`; `PaymentKind`, `PaymentMethod`, `PaymentMethodInput`; `SalesError`.
 
 The sales module **does not calculate prices or tax**. `complete` receives fully calculated snapshot lines from the workflow and checks that they're consistent before saving anything.
 
@@ -170,13 +171,15 @@ The sales module **does not calculate prices or tax**. `complete` receives fully
 
 **Voids** (RET-04): only a completed sale with no returns can be voided (`sale_has_returns`, `sale_already_voided`); a reason is required. The workflow checks `SaleVoid` and that `Sale::shift_id` is still open.
 
+**Backup restore list** (BAK-05): `app` opens a backup with `db::open_read_only` and calls `sales_summary` on it. It counts every sale, voided ones included (they keep their number), and gives the invoice number of the sale saved last. It only reads, and a backup made before the sales tables existed gives 0 sales and no invoice number.
+
 **Exchange** (RET-05): the return is recorded first (refund method `exchange_credit`). The new cart gets `set_exchange_return`; the sale stores `exchange_return_id`. The link is kept on the sale, because the return is saved first and is never changed afterwards.
 
 **Error codes** (`SalesError::Invalid` → `AppError::Validation`, `SalesError::Conflict` → `AppError::Conflict`):
 `qty_not_positive`, `qty_too_large`, `price_negative`, `discount_invalid`, `cart_empty`, `till_code_missing`, `payment_amount_invalid`, `payment_not_needed`, `payment_over_remaining`, `payment_not_enough`, `payment_reference_missing`, `payment_method_inactive`, `payment_method_name_missing`, `payment_kind_reserved`, `payment_kind_fixed`, `payment_cash_required`, `return_qty_too_large` (`max_milli`), `return_line_repeated`, `return_lines_mixed`, `return_empty`, `void_reason_missing` · conflicts: `cart_already_open`, `cart_not_open`, `cart_not_held`, `cart_in_progress`, `sale_already_voided`, `sale_has_returns`, `sale_voided`.
 
 ## Tests
-Every test names its requirement. `cargo nextest run -p sales` (80 tests).
+Every test names its requirement. `cargo nextest run -p sales` (84 tests).
 
 | Page promise | Tests |
 |---|---|
@@ -195,6 +198,7 @@ Every test names its requirement. `cargo nextest run -p sales` (80 tests).
 | Void (the workflow checks the shift; the module gives the shift id) | `voids::ret_04_void_keeps_the_number_and_contents` (checks `shift_id`), `ret_04_void_needs_a_reason_and_happens_once`, `returns::ret_04_a_sale_with_returns_cannot_be_voided_and_a_void_sale_cannot_be_returned` |
 | Exchange link | `sale_history::ret_05_exchange_sale_keeps_the_link_to_its_return` |
 | Payment methods | `payment_methods::set_15_*` (6), `pay_02_an_inactive_method_cannot_take_a_payment` |
+| Backup restore list (sale count, last invoice number) | `backup_summary::bak_05_a_database_without_sales_shows_none`, `bak_05_a_backup_made_before_the_sales_tables_existed_shows_none`, `bak_05_counts_every_sale_and_gives_the_last_invoice_number`, `bak_05_works_on_a_backup_opened_read_only` |
 | The views return the expected columns (contract, [[Module Rules]] R2) | `contract::sales_v_sales_has_the_sale_columns`, `sales_v_lines_has_the_line_and_header_columns`, `sales_v_return_lines_has_the_line_and_header_columns`, `sales_v_payments_has_the_payment_columns_and_the_document_date`, `views_show_sales_returns_and_voids_for_reports` |
 | Migrations and names ([[Module Rules]] R2, R4); errors ([[Errors and Logging]]) | `contract::migrations_belong_to_this_module`, `every_table_view_index_and_trigger_is_prefixed_with_sales`, `errors_turn_into_app_errors_with_stable_codes`, `error::*` (3) |
 
@@ -207,11 +211,11 @@ Test helpers live in `crates/sales/tests/support/mod.rs`: `test_db()` (in-memory
 |---|---|
 | **Rust folder** | `crates/sales/` |
 | **Screen folder** | `ui/src/modules/checkout/` (till screen, payment, held sales, returns) and `ui/src/modules/sales/` (sales journal, receipt viewer) |
-| **Requirements** | [[Req - Checkout]], [[Req - Payments]], [[Req - Returns and Voids]], SET-15 in [[Req - Setup and Settings]] |
+| **Requirements** | [[Req - Checkout]], [[Req - Payments]], [[Req - Returns and Voids]], SET-15 in [[Req - Setup and Settings]], BAK-05 in [[Req - Backup and Logging]] |
 | **You may change** | Files in the folders above, this page, and new migration files |
 | **Don't touch** | Other modules' folders and tables. If you need another module's data, take it as a function argument; `app` passes it in |
 | **Gets from `app`** | **Fully priced** lines from `app` (sales never calculates prices or tax), plus the shift, till (id and code) and user ids, the business date and "now" |
-| **Used by** (re-run their tests when the public API changes) | All checkout commands, returns, voids, closing a shift (`open_carts_on_shift`), settings (`has_any_sale`, payment methods), reports (`sales_v_*` views) |
+| **Used by** (re-run their tests when the public API changes) | All checkout commands, returns, voids, closing a shift (`open_carts_on_shift`), settings (`has_any_sale`, payment methods), backup restore list (`sales_summary`), reports (`sales_v_*` views) |
 | **Test it on its own** | `cargo nextest run -p sales` · screens: `pnpm test src/modules/<folder>` |
 
 **Watch out for**
@@ -239,3 +243,4 @@ Test helpers live in `crates/sales/tests/support/mod.rs`: `test_db()` (in-memory
 | Date | Change |
 |---|---|
 | 2026-10-04 | B-sales: first version. Header gets `tier_discount_minor` and `invoice_discount_minor`; lines and return lines get `cost_minor`; system payment methods added by the migration; `get_cart`, `set_exchange_return`, `settle_payments`, `refund_amounts`, `get_return`, `payment_method`, `system_payment_method` added; every cart change takes `now` |
+| 2026-10-05 | `last_sale` finds the sale saved last by `rowid` (ids made in the same millisecond don't sort by creation). `sales_summary` added for the backup restore list (BAK-05) |
