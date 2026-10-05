@@ -1,0 +1,8 @@
+---
+source: crates/printing/tests/escpos_bytes.rs
+expression: commands
+---
+SIZE 2 mm,1 mm\r\n
+GAP 2 mm,0 mm\r\n
+CLS\r\n
+BITMAP 0,0,2,8,0,
