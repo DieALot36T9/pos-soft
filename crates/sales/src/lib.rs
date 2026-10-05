@@ -46,7 +46,7 @@ pub use returns::{
 };
 pub use sale::{
     CompletedSale, CustomerSnapshot, LineSnapshot, NewPayment, Payment, PromotionSnapshot, Sale,
-    SaleLine, SaleRef, SaleStatus, SaleTotals, TaxMode, TaxPart, VoidInfo,
+    SaleLine, SaleRef, SaleStatus, SaleTotals, TaxPart, VoidInfo,
 };
 pub use sale_read::{
     SalesSummary, find_by_invoice, get_sale, has_any_sale, last_sale, returnable_qty, sales_summary,

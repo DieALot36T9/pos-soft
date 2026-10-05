@@ -2,36 +2,10 @@
 //! A sale copies every name, price, tax and cost it used (ADR-011), so reprints,
 //! returns and reports never depend on today's catalog.
 
-use pos_core::{Bps, BusinessDate, Id, Money, Qty, Timestamp};
+use pos_core::{Bps, BusinessDate, Id, Money, Qty, TaxMode, Timestamp};
 use serde::{Deserialize, Serialize};
 
 use crate::PaymentKind;
-
-/// Whether shelf prices include tax or have tax added on top (ADR-008).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TaxMode {
-    /// Prices include tax: gross = amount, net = gross − tax.
-    Inclusive,
-    /// Tax is added: net = amount, gross = net + tax.
-    Exclusive,
-}
-
-impl TaxMode {
-    pub(crate) fn as_str(self) -> &'static str {
-        match self {
-            TaxMode::Inclusive => "inclusive",
-            TaxMode::Exclusive => "exclusive",
-        }
-    }
-
-    pub(crate) fn parse(text: &str) -> Option<TaxMode> {
-        match text {
-            "inclusive" => Some(TaxMode::Inclusive),
-            "exclusive" => Some(TaxMode::Exclusive),
-            _ => None,
-        }
-    }
-}
 
 /// One part of a split tax, such as CGST in GST 18% = CGST 9% + SGST 9%.
 /// Stored in `tax_components_json` as `[{"name":"CGST","bps":900,"tax_minor":652}]`.

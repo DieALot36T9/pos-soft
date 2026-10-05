@@ -1,8 +1,8 @@
 //! The tax calculation: the TAX-05 table and examples E4–E7 from
 //! `docs/03 Architecture/Money Tax and Rounding.md`. Each row is one test.
 
-use pos_core::{Bps, Id, Money};
-use tax::{LineTax, RateComponent, RateWithComponents, TaxMode, calc_line, split_components};
+use pos_core::{Bps, Id, Money, TaxMode};
+use tax::{LineTax, RateComponent, RateWithComponents, calc_line, split_components};
 
 fn line(net: i64, tax: i64, gross: i64) -> LineTax {
     LineTax {

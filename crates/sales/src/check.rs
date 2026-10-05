@@ -2,11 +2,9 @@
 //! The workflow does the pricing; these checks catch a workflow bug before it
 //! becomes a wrong receipt. Never loosen them.
 
-use pos_core::{Money, mul_qty};
+use pos_core::{Money, TaxMode, mul_qty};
 
-use crate::{
-    CompletedSale, LineSnapshot, NewPayment, PaymentKind, PaymentMethod, SalesError, TaxMode,
-};
+use crate::{CompletedSale, LineSnapshot, NewPayment, PaymentKind, PaymentMethod, SalesError};
 
 /// Checks the whole sale and returns each line's cost, in line order.
 pub(crate) fn check_sale(

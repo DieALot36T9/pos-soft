@@ -1,9 +1,9 @@
 //! Property tests (proptest): the tax rules hold for any amount and any rate.
 //! Rules from `docs/03 Architecture/Money Tax and Rounding.md`, "Property tests".
 
-use pos_core::{Bps, Id, Money};
+use pos_core::{Bps, Id, Money, TaxMode};
 use proptest::prelude::*;
-use tax::{RateComponent, RateWithComponents, TaxMode, calc_line, split_components};
+use tax::{RateComponent, RateWithComponents, calc_line, split_components};
 
 // Up to ±10 billion in minor units: far more than any one sale line.
 const LARGEST_AMOUNT: i64 = 1_000_000_000_000;

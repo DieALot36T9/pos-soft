@@ -4,17 +4,6 @@ use pos_core::{Bps, Id, Money};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-/// Whether shelf prices already include tax (rule TAX-04). Chosen once for the whole shop.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "snake_case")]
-#[ts(export)]
-pub enum TaxMode {
-    /// The shelf price is what the customer pays. Tax is taken out of it.
-    Inclusive,
-    /// Tax is added on top of the shelf price.
-    Exclusive,
-}
-
 /// The tax result for one sale line. Always `net + tax == gross`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export)]

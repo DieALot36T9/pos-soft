@@ -6,11 +6,11 @@
 // Test helpers may stop at the first failure, just like the tests themselves.
 #![allow(clippy::unwrap_used)]
 
-use pos_core::{Bps, BusinessDate, Id, Money, Qty, Timestamp, mul_qty, round_half_away};
+use pos_core::{Bps, BusinessDate, Id, Money, Qty, TaxMode, Timestamp, mul_qty, round_half_away};
 use rusqlite::Connection;
 use sales::{
     CompletedSale, LineSnapshot, LineSource, NewCartLine, NewPayment, PaymentKind, SaleRef,
-    SaleTotals, TaxMode,
+    SaleTotals,
 };
 
 /// A new in-memory database with the sales migrations, like `app` builds it.
