@@ -2,6 +2,7 @@
 //! each with the same settings (Database Strategy, "Connection settings").
 
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
 use pos_core::{AppError, Id};
@@ -30,7 +31,10 @@ const CONNECTION_SETTINGS: &[&str] = &[
 /// Reports and lists use the reader, which sees a consistent snapshot.
 pub struct Db {
     pub(crate) writer: Mutex<Connection>,
-    reader: Mutex<Connection>,
+    pub(crate) reader: Mutex<Connection>,
+    /// Goes up by one each time a write saves changed rows, or migrations run.
+    /// The backup timer compares it to skip backups when nothing changed (BAK-01).
+    pub(crate) changes: AtomicU64,
 }
 
 impl Db {
@@ -61,7 +65,13 @@ impl Db {
         Db {
             writer: Mutex::new(writer),
             reader: Mutex::new(reader),
+            changes: AtomicU64::new(0),
         }
+    }
+
+    /// Notes that the data changed, for the backup timer.
+    pub(crate) fn note_change(&self) {
+        self.changes.fetch_add(1, Ordering::SeqCst);
     }
 
     /// Runs `work` in one write transaction (BEGIN IMMEDIATE … COMMIT).
@@ -74,8 +84,14 @@ impl Db {
         let transaction = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(sqlite_to_app)?;
+        let rows_changed_before = transaction.total_changes();
         let value = work(&transaction)?;
+        // A write that only read (for example a cart read) is not a change.
+        let changed = transaction.total_changes() != rows_changed_before;
         transaction.commit().map_err(sqlite_to_app)?;
+        if changed {
+            self.note_change();
+        }
         Ok(value)
     }
 
