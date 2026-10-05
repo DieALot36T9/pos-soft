@@ -4,8 +4,13 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task B-settings)
+- `settings` crate: 17 typed settings (shop, currency, rounding, tax, till, receipt, hardware, scale rules, internal barcode, backup, logging, checkout, inventory, loyalty, credit, denominations, language), each with defaults and `validate()`. `get`, `set` (returns the old value for the audit log), setup-step progress (`setup_status`, `complete_step`) and `snapshot`. Tables `settings_values` and `settings_setup_steps` (SET-01 to SET-17).
+- The ISO 4217 currency list for the setup wizard comes from the **iso_currency** crate (`currency_choices`, `currency_format_for`). Suggested notes and coins for BDT, INR, USD, EUR and GBP.
+- TypeScript types for every setting in `ui/src/generated/`.
+
 ### Changed (shared `TaxMode`)
-- `TaxMode` now lives in `core` (`pos_core::TaxMode`, with `as_str` and `parse`). `tax` and `sales` each had their own copy, and `settings` was adding a third; two of them wrote the same `ui/src/generated/TaxMode.ts`. Now there is one type for the one shop-wide choice (ADR-008).
+- `TaxMode` now lives in `core` (`pos_core::TaxMode`, with `as_str` and `parse`). `settings` uses it for `TaxSettings::mode`. `tax` and `sales` each had their own copy, and `settings` was adding a third; two of them wrote the same `ui/src/generated/TaxMode.ts`. Now there is one type for the one shop-wide choice (ADR-008).
 
 ### Added (task B-customers)
 - `customers` crate: customer records with phone numbers cleaned to E.164 by the **phonenumber** crate (CUS-01), search by any part of the phone or the start of name words (CUS-02), the points ledger with earn/redeem/reverse/adjust rules (CUS-04), the credit ledger with debt, payments, store credit used before new debt, statements and oldest unpaid debt for aging (CUS-05, CUS-06), voids that write opposite rows once, and the points maths (E16, PAY-05). Both ledgers are append-only (triggers). Views: `customers_v_customers`, `customers_v_credit_ledger`, `customers_v_points_ledger`.

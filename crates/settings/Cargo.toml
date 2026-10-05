@@ -8,7 +8,13 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+iso_currency.workspace = true
 pos-core.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+ts-rs.workspace = true
 
 [lints]
 workspace = true

@@ -16,6 +16,7 @@ chrono = { version = "0.4.45", default-features = false, features = ["clock", "s
 criterion = { version = "0.8.2", default-features = false, features = ["cargo_bench_support"] }
 csv = "1.4"
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
+iso_currency = { version = "0.7.1", features = ["iterator"] }
 num-format = "0.4.4"
 phonenumber = "0.3.10"
 proptest = "1.11"
