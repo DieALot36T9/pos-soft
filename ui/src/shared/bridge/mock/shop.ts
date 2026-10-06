@@ -32,6 +32,7 @@ import {
 import { connectPrinter, resetPrinter } from "./printer";
 import { connectStockToShop, resetStock, stockHandlers } from "./stock";
 import { connectTill, resetTill, tillHandlers } from "./till";
+import { customerHandlers, resetCustomers } from "./customers";
 
 // A pretend shop for the fake bridge. Rust does the real checks; this stand-in
 // checks only what the screens and their tests need, with the same error codes.
@@ -63,6 +64,7 @@ export function resetFakeShop(startWith: "fresh" | "set_up" = "fresh", signedIn 
   resetCatalog(startWith === "set_up");
   resetStock(startWith === "set_up");
   resetTill();
+  resetCustomers(startWith === "set_up");
   resetPrinter();
   if (startWith === "set_up") {
     completed = new Set(wizardOrder.filter((step) => step !== "hardware"));
@@ -134,7 +136,10 @@ function step(name: SetupStep, save: () => void): SetupStatus {
 
 // The catalog reads the shop's tax rates and money format.
 connectStockToShop(() => snapshot.currency);
-connectTill(() => snapshot.currency);
+connectTill(
+  () => snapshot.currency,
+  () => snapshot,
+);
 connectPrinter(() => snapshot.hardware);
 
 connectCatalog({
@@ -148,6 +153,7 @@ export const shopHandlers = {
   ...catalogHandlers,
   ...stockHandlers,
   ...tillHandlers,
+  ...customerHandlers,
   startup_status: (): StartupView => ({
     damaged: false,
     setup: setupStatus(),
@@ -344,6 +350,12 @@ function applyChange(change: SettingsChange) {
         refuse("scale", "scale_port_missing");
       }
       snapshot.hardware = change.value;
+      break;
+    case "loyalty":
+      snapshot.loyalty = change.value;
+      break;
+    case "credit":
+      snapshot.credit = change.value;
       break;
     default:
       break;

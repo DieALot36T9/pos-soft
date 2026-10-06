@@ -229,6 +229,14 @@ export function requirePermission(permission: Permission) {
   }
 }
 
+// Uses up an approval token, like Rust's `take_approval`: true when it was for this
+// permission and hasn't expired. The token is gone afterwards either way (USR-05).
+export function takeFakeApproval(permission: Permission, approval: unknown): boolean {
+  const found = approvals.find((each) => each.token === approval);
+  approvals = approvals.filter((each) => each.token !== approval);
+  return found?.permission === permission && found.until > Date.now();
+}
+
 // Like Rust's `require_or_approval`: a fitting approval token lets it run once.
 export function requireOrApproval(permission: Permission, approval: unknown) {
   if (currentSession()?.permissions.includes(permission)) {

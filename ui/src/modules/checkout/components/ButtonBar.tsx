@@ -1,5 +1,10 @@
 import {
+  BadgePercent,
   Hash,
+  PenLine,
+  Percent,
+  Tags,
+  User,
   ListRestart,
   Lock,
   PauseCircle,
@@ -19,11 +24,18 @@ import { ActionButton } from "../../../shared/ui/ActionButton";
 type ButtonBarProps = {
   hasLines: boolean;
   hasSelection: boolean;
+  // True when at least one price list is switched on (CHK-17).
+  hasPriceLists: boolean;
   heldCount: number;
   // Shows "Old receipt" only to users who may reprint any receipt (PAY-10).
   canReprintAny: boolean;
   onSearch: () => void;
+  onCustomer: () => void;
   onQty: () => void;
+  onDiscount: () => void;
+  onInvoiceDiscount: () => void;
+  onPrice: () => void;
+  onPriceList: () => void;
   onHold: () => void;
   onHeld: () => void;
   onRemove: () => void;
@@ -36,7 +48,7 @@ type ButtonBarProps = {
 };
 
 // The buttons under the cart, each with its icon, word, colour and key (Checkout Screen).
-// Discounts, price changes, customers and returns come in later milestones.
+// Returns come in a later milestone (C-M9).
 export function ButtonBar(props: ButtonBarProps) {
   const { t } = useTranslation("checkout");
   const noItems = props.hasLines ? undefined : t("pay.empty");
@@ -51,6 +63,15 @@ export function ButtonBar(props: ButtonBarProps) {
         tip={t("buttons.search.tip")}
         shortcut={shortcuts.checkoutSearch.label}
         onClick={props.onSearch}
+      />
+      <ActionButton
+        colour="blue"
+        icon={User}
+        size="till"
+        label={t("buttons.customer.label")}
+        tip={t("buttons.customer.tip")}
+        shortcut={shortcuts.checkoutCustomer.label}
+        onClick={props.onCustomer}
       />
       <ActionButton
         colour="grey"
@@ -81,6 +102,45 @@ export function ButtonBar(props: ButtonBarProps) {
         shortcut={shortcuts.checkoutHeld.label}
         disabledReason={props.heldCount === 0 ? t("buttons.held.none") : undefined}
         onClick={props.onHeld}
+      />
+      <ActionButton
+        colour="purple"
+        icon={Percent}
+        size="till"
+        label={t("buttons.discount.label")}
+        tip={t("buttons.discount.tip")}
+        shortcut={shortcuts.checkoutDiscount.label}
+        disabledReason={noSelection}
+        onClick={props.onDiscount}
+      />
+      <ActionButton
+        colour="purple"
+        icon={BadgePercent}
+        size="till"
+        label={t("buttons.invoiceDiscount.label")}
+        tip={t("buttons.invoiceDiscount.tip")}
+        shortcut={shortcuts.checkoutInvoiceDiscount.label}
+        disabledReason={noItems}
+        onClick={props.onInvoiceDiscount}
+      />
+      <ActionButton
+        colour="purple"
+        icon={PenLine}
+        size="till"
+        label={t("buttons.price.label")}
+        tip={t("buttons.price.tip")}
+        shortcut={shortcuts.checkoutPrice.label}
+        disabledReason={noSelection}
+        onClick={props.onPrice}
+      />
+      <ActionButton
+        colour="purple"
+        icon={Tags}
+        size="till"
+        label={t("buttons.priceList.label")}
+        tip={t("buttons.priceList.tip")}
+        disabledReason={props.hasPriceLists ? undefined : t("buttons.priceList.none")}
+        onClick={props.onPriceList}
       />
       <ActionButton
         colour="red"

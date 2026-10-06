@@ -3,12 +3,17 @@ import type { CartTotals } from "../../../generated/CartTotals";
 
 // The fake till's totals: 15% VAT inside the prices, rounded to whole units for cash.
 // Rust's pricing and tax modules do the real work; this only feeds the screens.
-export function fakeTillPricing(lines: CartLineView[]): {
+export function fakeTillPricing(
+  lines: CartLineView[],
+  invoiceDiscount = 0,
+): {
   totals: CartTotals;
   tax_label: string;
   tax_mode: "inclusive";
 } {
-  const gross = lines.reduce((sum, line) => sum + line.amount, 0);
+  const gross = lines.reduce((sum, line) => sum + line.amount, 0) - invoiceDiscount;
+  const subtotal = lines.reduce((sum, line) => sum + line.base, 0);
+  const discounts = subtotal - gross;
   const tax = lines.reduce((sum, line) => sum + Math.round((line.amount * 1500) / 11500), 0);
   const total = Math.round(gross / 100) * 100;
   const items = lines.reduce(
@@ -18,8 +23,8 @@ export function fakeTillPricing(lines: CartLineView[]): {
   return {
     totals: {
       item_count: items,
-      subtotal: gross,
-      discounts: 0,
+      subtotal,
+      discounts,
       net: gross - tax,
       tax,
       gross,

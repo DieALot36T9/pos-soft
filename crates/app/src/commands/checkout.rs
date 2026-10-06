@@ -57,7 +57,7 @@ pub struct ScaleView {
 
 pub fn checkout_state(state: &AppState) -> Result<CheckoutView, AppError> {
     let user = session::require(state, Permission::CheckoutSell)?;
-    checkout::load(state, &user.id)
+    checkout::load(state, &user.id, cart_pricing::own_limit(&user))
 }
 
 pub fn checkout_scan(state: &AppState, input: &str) -> Result<ScanResult, AppError> {

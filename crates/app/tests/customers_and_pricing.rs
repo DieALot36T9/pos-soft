@@ -272,6 +272,13 @@ fn chk_17_switching_the_price_list_reprices_and_needs_permission() {
     assert_eq!(audit_count(&state, "pricing.change"), 2);
 
     as_cashier(&state);
+    let view = till::checkout_state(&state).expect("state");
+    assert_eq!(
+        view.price_lists.len(),
+        1,
+        "the till offers the switched-on list"
+    );
+    assert_eq!(view.max_discount, Bps(0), "the cashier role's limit");
     till::checkout_scan(&state, "ITEM-1").expect("scan");
     needs(
         till::checkout_set_price_list(&state, Some(&list), None),

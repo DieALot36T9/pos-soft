@@ -183,7 +183,7 @@ fn biggest_discount(
 
 /// The biggest discount the user may give alone: unlimited for an admin, the role's
 /// limit with `DiscountApply`, otherwise none.
-fn own_limit(user: &SessionUser) -> Bps {
+pub(crate) fn own_limit(user: &SessionUser) -> Bps {
     if user.is_admin {
         Bps(u32::MAX)
     } else if user.permissions.contains(Permission::DiscountApply) {

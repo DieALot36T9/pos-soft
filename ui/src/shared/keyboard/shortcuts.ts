@@ -11,9 +11,14 @@ export const shortcuts = {
   back: { label: "Esc", keys: "escape" },
   // Checkout (Keyboard Shortcuts, "Checkout"). Function keys never clash with scanners.
   checkoutSearch: { label: "F2", keys: "f2" },
+  checkoutCustomer: { label: "F3", keys: "f3" },
   checkoutQty: { label: "F4", keys: "f4" },
   checkoutHold: { label: "F5", keys: "f5" },
   checkoutHeld: { label: "F6", keys: "f6" },
+  // F7 discounts the selected line, Shift+F7 the whole sale; F8 types a price (CHK-12, CHK-13).
+  checkoutDiscount: { label: "F7", keys: "f7" },
+  checkoutInvoiceDiscount: { label: "Shift+F7", keys: "shift+f7" },
+  checkoutPrice: { label: "F8", keys: "f8" },
   checkoutCancel: { label: "F9", keys: "f9" },
   checkoutPay: { label: "F10", keys: "f10" },
   checkoutShift: { label: "F11", keys: "f11" },

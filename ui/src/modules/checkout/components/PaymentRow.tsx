@@ -46,6 +46,10 @@ type PaymentRowProps = {
   // ↑/↓ move to the next row (Keyboard Shortcuts, "Payment dialog").
   onArrow: (step: 1 | -1) => void;
   inputId: string;
+  // What the customer's account allows on this row (credit room, points), with a button
+  // that fills in the most points can pay.
+  note?: { text: string; tip: string; use?: { label: string; tip: string; amount: number } };
+  onUse?: (amount: number) => void;
 };
 
 // One payment method in the payment dialog: its colour and icon, the amount, and a
@@ -98,6 +102,22 @@ export function PaymentRow(props: PaymentRowProps) {
             onChange={(event) => props.onReference(event.target.value)}
             className="min-h-10 flex-1 rounded-ui border border-border px-3"
           />
+        </Tip>
+      ) : null}
+      {props.note ? (
+        <Tip tip={props.note.tip}>
+          <span className="text-text-muted">{props.note.text}</span>
+        </Tip>
+      ) : null}
+      {props.note?.use && props.onUse ? (
+        <Tip tip={props.note.use.tip}>
+          <button
+            type="button"
+            onClick={() => props.onUse?.(props.note?.use?.amount ?? 0)}
+            className="min-h-10 rounded-ui border border-purple bg-purple-soft px-3 font-semibold text-purple"
+          >
+            {props.note.use.label}
+          </button>
         </Tip>
       ) : null}
     </div>
