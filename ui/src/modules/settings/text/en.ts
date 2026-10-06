@@ -13,6 +13,7 @@ export const en = {
     receipt: "Receipt",
     devices: "Printer and scale",
     payments: "Payment methods",
+    loyalty: "Loyalty and credit",
     backup: "Backups",
     logs: "Logs",
   },
@@ -201,6 +202,41 @@ export const en = {
     },
     note: "Log files are kept for 14 days in the app's logs folder.",
     switched: "Saved. The change works right away.",
+  },
+  loyalty: {
+    heading: "Loyalty points",
+    enabled: {
+      label: "Customers collect points",
+      tip: "When ticked, customers on a sale earn points and may pay with them.",
+    },
+    spendUnit: {
+      label: "Spend for points",
+      tip: "How much a customer spends to earn points. Example: 100.00",
+    },
+    pointsPerUnit: {
+      label: "Points for that spend",
+      tip: "Points earned for each full spend above. Example: 1",
+    },
+    pointValue: {
+      label: "Value of one point",
+      tip: "What one point pays at the till. Example: 0.10",
+    },
+    minRedeem: {
+      label: "Fewest points to pay with",
+      tip: "A customer needs at least this many points to pay with them. Example: 100",
+    },
+    numberInvalid: "Type whole numbers for the points. Example: 1",
+  },
+  credit: {
+    heading: "Selling on credit (baki)",
+    enabled: {
+      label: "Customers may buy on credit",
+      tip: "When ticked, the till offers Customer credit for customers on the sale, up to their limit.",
+    },
+    defaultLimit: {
+      label: "Credit limit for new customers",
+      tip: "The limit a customer added at the till gets. 0 means no credit until an admin sets one.",
+    },
   },
 };
 

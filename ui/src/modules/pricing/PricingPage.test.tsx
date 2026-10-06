@@ -87,6 +87,8 @@ describe("PricingPage (fake bridge)", () => {
     await userEvent.click(within(row).getByRole("button", { name: /Switch this promotion off/ }));
     expect(await within(row).findByText("Off")).toBeVisible();
     expect(customerHandlers.promotion_list()[0]?.targets).toHaveLength(1);
+    await userEvent.click(within(row).getByRole("button", { name: "Change this promotion." }));
+    expect(await screen.findByText("Product: Milk 1L")).toBeVisible();
   });
 
   it("prc_04: a promotion with nothing to cover is refused", async () => {

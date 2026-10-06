@@ -250,6 +250,10 @@ export const errors = {
   payment_more_than_debt: "That is more than the customer owes. Type at most what they owe.",
   payment_method_not_for_debt: "This way of paying can't pay off a customer's debt.",
   already_reversed: "This was already reversed.",
+  loyalty_spend_unit_not_positive: "The spend for points must be above zero. Example: 100.00",
+  loyalty_points_not_positive: "Points for that spend must be at least 1.",
+  loyalty_point_value_not_positive: "A point must be worth more than zero. Example: 0.10",
+  loyalty_min_redeem_negative: "The fewest points to pay with can't be below zero.",
   internal: "Something went wrong (ref {{ref}}). Copy the details and tell the shop owner.",
   unknown: "Something went wrong. Try again.",
 };

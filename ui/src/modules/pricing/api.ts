@@ -3,6 +3,7 @@ import type { PriceListItem } from "../../generated/PriceListItem";
 import type { PriceListItemRow } from "../../generated/PriceListItemRow";
 import type { PriceListSave } from "../../generated/PriceListSave";
 import type { ProductChoices } from "../../generated/ProductChoices";
+import type { ProductDetails } from "../../generated/ProductDetails";
 import type { Promotion } from "../../generated/Promotion";
 import type { PromotionSave } from "../../generated/PromotionSave";
 import type { SearchHit } from "../../generated/SearchHit";
@@ -38,5 +39,8 @@ export const setPromotionActive = (id: string, active: boolean) =>
 // Products matching a name, SKU or barcode, to add to a list or promotion.
 export const findProducts = (text: string) =>
   call<SearchHit[]>("product_search", { text, limit: 10 });
+// One product's name, to show a saved promotion's products by name.
+export const productName = (id: string) =>
+  call<ProductDetails>("product_get", { id }).then((details) => details.product.name);
 // The shop's money format, and the categories and brands a promotion can cover.
 export const loadChoices = () => call<ProductChoices>("product_choices");

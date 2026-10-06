@@ -9,6 +9,7 @@ import { getSettings } from "../api";
 import { BackupSection } from "../components/BackupSection";
 import { DevicesSection } from "../components/DevicesSection";
 import { LogsSection } from "../components/LogsSection";
+import { LoyaltyCreditSection } from "../components/LoyaltyCreditSection";
 import { MoneySection } from "../components/MoneySection";
 import { PaymentMethodsSection } from "../components/PaymentMethodsSection";
 import { ReceiptSection } from "../components/ReceiptSection";
@@ -24,6 +25,7 @@ const sections = [
   "receipt",
   "devices",
   "payments",
+  "loyalty",
   "backup",
   "logs",
 ] as const;
@@ -87,6 +89,7 @@ export function SettingsPage() {
             {section === "receipt" ? <ReceiptSection {...props} /> : null}
             {section === "devices" ? <DevicesSection {...props} /> : null}
             {section === "payments" ? <PaymentMethodsSection /> : null}
+            {section === "loyalty" && props ? <LoyaltyCreditSection {...props} /> : null}
             {section === "backup" ? <BackupSection {...props} /> : null}
             {section === "logs" && saved ? <LogsSection saved={saved} /> : null}
           </div>

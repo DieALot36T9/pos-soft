@@ -20,7 +20,7 @@ import { CheckBox } from "../../../shared/ui/CheckBox";
 import { Field } from "../../../shared/ui/Field";
 import { IconButton } from "../../../shared/ui/IconButton";
 import { SelectField } from "../../../shared/ui/SelectField";
-import { listPromotions, listTiers, savePromotion, setPromotionActive } from "../api";
+import { listPromotions, listTiers, productName, savePromotion, setPromotionActive } from "../api";
 import { FormButtons } from "./PriceListsPanel";
 import { ProductPicker } from "./ProductPicker";
 
@@ -55,6 +55,8 @@ export function PromotionsPanel({ choices }: { choices: ProductChoices }) {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [editing, setEditing] = useState<Promotion | null>(null);
+  // Counts saves, so the "add" form starts empty again after each one.
+  const [saves, setSaves] = useState(0);
   const [problem, setProblem] = useState<string | null>(null);
   const fail = (error: unknown) => setProblem(errorMessage(error, tErrors));
   const money = (minor: number) => formatMoney(minor, choices.currency);
@@ -163,12 +165,13 @@ export function PromotionsPanel({ choices }: { choices: ProductChoices }) {
         </table>
       )}
       <PromotionForm
-        key={editing?.id ?? "new"}
+        key={editing?.id ?? `new-${String(saves)}`}
         promotion={editing}
         choices={choices}
         tiers={tiers}
         onSaved={() => {
           setEditing(null);
+          setSaves((old) => old + 1);
           load();
         }}
         onCancel={() => setEditing(null)}
@@ -217,6 +220,17 @@ function PromotionForm({ promotion, choices, tiers, onSaved, onCancel }: Promoti
   const [brandId, setBrandId] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
   const save = useSave();
+  // A saved promotion keeps only product ids: look their names up once.
+  useEffect(() => {
+    for (const target of promotion?.targets ?? []) {
+      if (target.type === "product") {
+        productName(target.id)
+          .then((found) => setNames((old) => ({ ...old, [target.id]: found })))
+          .catch(() => undefined);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per promotion opened.
+  }, []);
   const setText = (key: keyof typeof texts) => (value: string) =>
     setTexts((old) => ({ ...old, [key]: value }));
 
