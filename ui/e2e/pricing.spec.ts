@@ -51,6 +51,9 @@ test("chk_11/chk_12/chk_13: customer, discount and a typed price at the till", a
   await expect(page.getByRole("row").filter({ hasText: "Milk 1L" })).toContainText("Price typed");
 
   await page.keyboard.press("F10");
+  // Wait until the dialog has the amount due from Rust before pressing Enter.
+  const payment = page.getByRole("dialog", { name: "Payment" });
+  await expect(payment.getByRole("textbox", { name: "Cash" })).toHaveValue("86.00");
   await page.keyboard.press("Enter");
   await expect(page.getByText(/Sale complete · Invoice T1-000001/)).toBeVisible();
   await expect(page.getByText("No customer")).toBeVisible();

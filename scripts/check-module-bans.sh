@@ -25,6 +25,10 @@ tar -C "$REPO_ROOT" --exclude=./target --exclude=./node_modules --exclude=./ui \
 add_dependency() {
   local crate="$1" section="$2" dependency="$3"
   local manifest="$COPY/crates/$crate/Cargo.toml"
+  # Already there (reports uses sales in its tests): adding it again would be a duplicate key.
+  if grep -q "^$dependency\.workspace = true" "$manifest"; then
+    return
+  fi
   if grep -q "^\[$section\]" "$manifest"; then
     awk -v header="[$section]" -v line="$dependency.workspace = true" \
       '{ print } $0 == header { print line }' "$manifest" >"$manifest.new"
