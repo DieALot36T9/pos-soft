@@ -10,6 +10,7 @@ pub mod dev;
 pub mod hardware;
 pub mod inventory;
 pub mod payment_methods;
+pub mod receipts;
 pub mod settings;
 pub mod setup;
 pub mod shifts;
@@ -28,8 +29,11 @@ use pos_core::{AppError, Permission};
 /// - `recovery_*` work only while the database is damaged (BAK-06).
 /// - `settings_get`, `settings_save` and `tax_rate_*` also work without sign-in
 ///   while setup is open, because the wizard uses them.
-/// - "Test print" goes to the Preview printer and reaches no device yet; when printer
-///   settings are used (C-M7), `hardware_test_print` needs `SettingsManage`.
+/// - `hardware_test_print` uses the saved printer, so it needs `SettingsManage`; it
+///   also works without sign-in while setup is open (the wizard's hardware step).
+/// - `print_retry`, `print_system_pictures` and `print_dismiss` need someone signed in
+///   (any role), and work only for a printout that failed (`print_not_waiting`).
+/// - `shift_x_report` prints only the user's own open shift (`shift_not_yours`).
 /// - `login_tiles`, `login` and `recover_admin` work only once setup is complete.
 /// - `lock`, `unlock`, `unlock_by_admin`, `request_override` and `change_own_secret`
 ///   need someone signed in (any role); `unlock*` only while the till is locked.
@@ -43,7 +47,7 @@ use pos_core::{AppError, Permission};
 ///   is part of posting (Workflows, "Post stock count").
 pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("app_info", None),
-    ("hardware_test_print", None),
+    ("hardware_test_print", Some(Permission::SettingsManage)),
     ("preview_take_printouts", None),
     ("print_window", None),
     ("startup_status", None),
@@ -146,6 +150,12 @@ pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("shift_no_sale", Some(Permission::ShiftNoSaleDrawer)),
     ("shift_close", Some(Permission::ShiftOpenCloseOwn)),
     ("shift_force_close", Some(Permission::ShiftForceClose)),
+    ("shift_x_report", Some(Permission::ShiftOpenCloseOwn)),
+    ("receipt_reprint_last", Some(Permission::ReceiptReprintLast)),
+    ("receipt_reprint", Some(Permission::ReceiptReprintAny)),
+    ("print_retry", None),
+    ("print_system_pictures", None),
+    ("print_dismiss", None),
     ("payment_method_list", Some(Permission::SettingsManage)),
     ("payment_method_save", Some(Permission::SettingsManage)),
 ];
@@ -197,7 +207,7 @@ mod tests {
     #[test]
     fn every_command_has_a_permission_decision() {
         let all = names(COMMANDS);
-        assert_eq!(all.len(), 106);
+        assert_eq!(all.len(), 112);
         let mut unique = all.clone();
         unique.sort_unstable();
         unique.dedup();
@@ -243,13 +253,14 @@ mod tests {
 
     #[test]
     fn hw_10_printing_without_a_device_needs_no_login() {
-        for name in [
-            "hardware_test_print",
-            "preview_take_printouts",
-            "print_window",
-        ] {
+        for name in ["preview_take_printouts", "print_window"] {
             assert!(COMMANDS.contains(&(name, None)), "{name}");
         }
+    }
+
+    #[test]
+    fn hw_02_test_print_reaches_the_saved_printer_so_needs_settings_manage() {
+        assert!(COMMANDS.contains(&("hardware_test_print", Some(Permission::SettingsManage))));
     }
 
     #[test]

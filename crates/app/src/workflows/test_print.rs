@@ -107,6 +107,7 @@ fn sample_sale(paper: printing::PaperWidth) -> Result<ReceiptData, AppError> {
         }],
         change: Money(24500),
         void_reason: None,
+        copy: false,
         invoice_barcode: Some(barcode),
         qr_data: Some(format!("TEST PRINT {SAMPLE_INVOICE}")),
     })

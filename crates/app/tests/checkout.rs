@@ -437,7 +437,7 @@ fn chk_14_a_kit_is_one_line_and_takes_its_parts_out_of_stock() {
     app::commands::catalog::kit_save(&state, &kit_id, &parts).expect("parts");
     let (view, _) = added(till::checkout_add_product(&state, &kit_id, None).expect("kit added"));
     assert_eq!(view.lines.len(), 1);
-    let done = till::checkout_complete(&state, &[cash(&state, 40_000)]).expect("sold");
+    let done = till::checkout_complete(&state, devices(), &[cash(&state, 40_000)]).expect("sold");
     let sale = state
         .db
         .read(|conn| Ok(sales::get_sale(conn, &done.sale_id)?))

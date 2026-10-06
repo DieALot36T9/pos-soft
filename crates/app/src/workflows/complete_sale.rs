@@ -1,6 +1,7 @@
 //! Taking payment and completing a sale (Req - Payments, Workflows "Complete sale").
 //! The payment dialog asks `preview` after every change, so it never does money maths.
-//! `complete` saves the sale, its stock movements and its shift payments in one transaction.
+//! `complete` saves the sale, its stock movements and its shift payments in one transaction;
+//! `complete_and_print` then prints the receipt and opens the drawer.
 
 use std::collections::HashMap;
 
@@ -12,10 +13,12 @@ use settings::{Denominations, InventorySettings};
 use shifts::{MovementKind, ShiftMovement};
 use ts_rs::TS;
 
+use crate::devices::Devices;
 use crate::state::AppState;
 use crate::workflows::cart_view::{self, CartView, PricedCart, keeps_stock};
 use crate::workflows::checkout::{Selling, current_cart, selling, takes_payment_now};
 use crate::workflows::payment_amounts::{amount_due, quick_cash};
+use crate::workflows::receipts::{self, PrintResult};
 use crate::workflows::sale_snapshot::completed_sale;
 
 /// One row of the payment dialog as typed. For cash, `amount` is what the customer
@@ -61,9 +64,12 @@ pub struct SaleDone {
     pub total: Money,
     pub paid: Money,
     pub change: Money,
-    /// True when cash was taken: the drawer opens (C-M7).
+    /// True when cash was taken: the drawer opens (HW-04).
     pub cash_taken: bool,
     pub cart: CartView,
+    /// How the receipt printed, after the sale was saved (PAY-09). None only inside
+    /// `complete`, before printing.
+    pub receipt: Option<PrintResult>,
 }
 
 /// The amounts for the payments typed so far. Saves nothing.
@@ -142,8 +148,28 @@ pub fn complete(
             change: settled.change,
             cash_taken,
             cart: cart_view::cart_view(tx, clock, fresh)?,
+            receipt: None,
         })
     })
+}
+
+/// Completes the sale, then prints its receipt and opens the drawer when cash was
+/// taken (HW-04). A printer problem never undoes the saved sale (HW-08, PAY-09).
+pub fn complete_and_print(
+    state: &AppState,
+    devices: &Devices,
+    user: &Id,
+    entries: &[PaymentEntry],
+) -> Result<SaleDone, AppError> {
+    let mut done = complete(state, user, entries)?;
+    done.receipt = Some(receipts::print_receipt(
+        state,
+        devices,
+        &done.sale_id,
+        false,
+        done.cash_taken,
+    ));
+    Ok(done)
 }
 
 /// The typed payments with their method's kind. Blank rows are skipped. Only methods

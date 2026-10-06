@@ -17,6 +17,15 @@ const QR_DOTS: u32 = 160;
 /// Lays out a sale receipt, or a void receipt when `void_reason` is set.
 pub fn receipt(d: &ReceiptData, l: &ReceiptLayout, labels: &ReceiptLabels) -> Doc {
     let mut blocks = shop_header(l);
+    if d.copy {
+        blocks.push(feed(8));
+        blocks.push(text(
+            &labels.copy_heading,
+            TextSize::Huge,
+            true,
+            Align::Center,
+        ));
+    }
     if let Some(reason) = &d.void_reason {
         blocks.push(feed(8));
         blocks.push(text(

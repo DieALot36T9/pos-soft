@@ -25,6 +25,7 @@ pub fn english() -> ReceiptLabels {
         tax_amount: "Tax".into(),
         prices_include_tax: "Prices include {tax}".into(),
         void_heading: "VOID".into(),
+        copy_heading: "COPY".into(),
         reason: "Reason".into(),
         return_heading: "RETURN".into(),
         return_no: "Return".into(),

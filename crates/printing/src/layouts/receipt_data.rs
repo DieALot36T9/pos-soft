@@ -114,6 +114,8 @@ pub struct ReceiptData {
     pub change: Money,
     /// Set for a void receipt (rule RET-04): prints the void heading and this reason.
     pub void_reason: Option<String>,
+    /// True for a reprint (rule PAY-10): prints the copy heading at the top.
+    pub copy: bool,
     /// The invoice number as a barcode picture, from the `barcode` crate.
     pub invoice_barcode: Option<Bitmap1>,
     /// Text for a QR code at the bottom, if any. Example: a link to an e-receipt.

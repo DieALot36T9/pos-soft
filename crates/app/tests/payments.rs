@@ -87,7 +87,7 @@ fn pay_01_cash_gives_change_and_quick_notes() {
         (preview.remaining, preview.change),
         (Money(0), Money(3_000))
     );
-    let done = till::checkout_complete(&state, &[cash(&state, 50_000)]).expect("sold");
+    let done = till::checkout_complete(&state, devices(), &[cash(&state, 50_000)]).expect("sold");
     assert_eq!(done.invoice_no, "T1-000001");
     assert_eq!((done.total, done.change), (Money(47_000), Money(3_000)));
     assert!(done.cash_taken);
@@ -116,12 +116,13 @@ fn pay_02_a_method_can_require_a_reference() {
     assert_eq!(
         code_of(till::checkout_complete(
             &state,
+            devices(),
             &[paying(&card, 10_000, None)]
         )),
         "payment_reference_missing"
     );
-    let done =
-        till::checkout_complete(&state, &[paying(&card, 10_000, Some("TX-77"))]).expect("sold");
+    let done = till::checkout_complete(&state, devices(), &[paying(&card, 10_000, Some("TX-77"))])
+        .expect("sold");
     assert!(!done.cash_taken);
     let sale = state
         .db
@@ -148,12 +149,14 @@ fn pay_03_split_payments_and_only_cash_goes_over() {
     assert_eq!(
         code_of(till::checkout_complete(
             &state,
+            devices(),
             &[paying(&wallet, 40_000, None)]
         )),
         "payment_not_enough"
     );
     let done = till::checkout_complete(
         &state,
+        devices(),
         &[paying(&wallet, 40_000, None), cash(&state, 70_000)],
     )
     .expect("sold");
@@ -183,6 +186,7 @@ fn pay_04_pay_05_credit_and_points_need_a_customer() {
     assert_eq!(
         code_of(till::checkout_complete(
             &state,
+            devices(),
             &[paying(&credit, 10_000, None)]
         )),
         "payment_needs_customer"
@@ -205,7 +209,7 @@ fn pay_06_cash_only_rounding() {
     let by_card =
         till::checkout_payment_preview(&state, &[paying(&card, 137_750, None)]).expect("card");
     assert_eq!((by_card.rounding, by_card.remaining), (Money(0), Money(0)));
-    let done = till::checkout_complete(&state, &[cash(&state, 140_000)]).expect("cash");
+    let done = till::checkout_complete(&state, devices(), &[cash(&state, 140_000)]).expect("cash");
     assert_eq!((done.total, done.change), (Money(137_800), Money(2_200)));
     let sale = state
         .db
@@ -217,7 +221,8 @@ fn pay_06_cash_only_rounding() {
     );
 
     till::checkout_scan(&state, "ITEM-1").expect("scan");
-    let done = till::checkout_complete(&state, &[paying(&card, 137_750, None)]).expect("card");
+    let done =
+        till::checkout_complete(&state, devices(), &[paying(&card, 137_750, None)]).expect("card");
     assert_eq!(done.total, Money(137_750));
 }
 
@@ -225,7 +230,7 @@ fn pay_06_cash_only_rounding() {
 fn pay_07_completion_saves_everything_or_nothing() {
     let (_folder, state, item) = shop_selling(10_000);
     till::checkout_scan(&state, "3*ITEM-1").expect("scan");
-    let done = till::checkout_complete(&state, &[cash(&state, 30_000)]).expect("sold");
+    let done = till::checkout_complete(&state, devices(), &[cash(&state, 30_000)]).expect("sold");
     let on_hand = |state: &AppState| {
         state
             .db
@@ -258,7 +263,11 @@ fn pay_07_completion_saves_everything_or_nothing() {
         .cart
         .expect("cart");
     assert_eq!(
-        code_of(till::checkout_complete(&state, &[cash(&state, 10_000)])),
+        code_of(till::checkout_complete(
+            &state,
+            devices(),
+            &[cash(&state, 10_000)]
+        )),
         "not_enough_stock"
     );
     assert_eq!(sale_count(&state), 1, "nothing saved");
@@ -273,7 +282,7 @@ fn pay_07_completion_saves_everything_or_nothing() {
     out.qty_delta = Qty(5_000);
     out.reason_code = "opening".into();
     app::commands::inventory::stock_adjust(&state, &out).expect("back in");
-    let done = till::checkout_complete(&state, &[cash(&state, 10_000)]).expect("sold");
+    let done = till::checkout_complete(&state, devices(), &[cash(&state, 10_000)]).expect("sold");
     assert_eq!(
         done.invoice_no, "T1-000002",
         "the failed try used no number"
@@ -285,7 +294,8 @@ fn pay_08_invoice_numbers_are_gapless_on_the_till() {
     let (_folder, state, _item) = shop_selling(1_000);
     for number in 1..=25 {
         till::checkout_scan(&state, "ITEM-1").expect("scan");
-        let done = till::checkout_complete(&state, &[cash(&state, 1_000)]).expect("sold");
+        let done =
+            till::checkout_complete(&state, devices(), &[cash(&state, 1_000)]).expect("sold");
         assert_eq!(done.invoice_no, format!("T1-{number:06}"));
     }
 }
@@ -293,7 +303,10 @@ fn pay_08_invoice_numbers_are_gapless_on_the_till() {
 #[test]
 fn chk_05_an_empty_cart_cannot_be_completed() {
     let (_folder, state, _item) = shop_selling(1_000);
-    assert_eq!(code_of(till::checkout_complete(&state, &[])), "cart_empty");
+    assert_eq!(
+        code_of(till::checkout_complete(&state, devices(), &[])),
+        "cart_empty"
+    );
 }
 
 #[test]

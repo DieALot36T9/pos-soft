@@ -39,6 +39,7 @@ pub fn english_labels() -> ReceiptLabels {
         tax_amount: "Tax".into(),
         prices_include_tax: "Prices include {tax}".into(),
         void_heading: "VOID".into(),
+        copy_heading: "COPY".into(),
         reason: "Reason".into(),
         return_heading: "RETURN".into(),
         return_no: "Return".into(),
@@ -188,6 +189,7 @@ pub fn sample_sale() -> ReceiptData {
         }],
         change: Money(19500),
         void_reason: None,
+        copy: false,
         invoice_barcode: Some(fake_barcode(300, 60)),
         qr_data: Some("https://example.com/r/T1-000123".into()),
     }
