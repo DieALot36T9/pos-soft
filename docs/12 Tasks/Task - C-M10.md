@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: medium
 phase: C
 depends_on: [C-M9, B-purchasing]
-status: waiting
+status: ready
 ---
 # Task C-M10: Purchasing
 

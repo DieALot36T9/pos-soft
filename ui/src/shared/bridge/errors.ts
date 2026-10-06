@@ -26,6 +26,10 @@ export function errorMessage(error: unknown, t: TFunction<"errors">): string {
   switch (error.kind) {
     case "validation":
     case "conflict":
+      // RET-01: Rust sends the most left to return in thousandths; people read units.
+      if (error.code === "return_qty_too_large") {
+        return t("return_qty_too_large", { max: Number(error.params.max_milli) / 1000 });
+      }
       return isKnownCode(error.code) ? t(error.code, { replace: error.params }) : t("unknown");
     case "not_found":
       // CHK-02: an unknown scanned code is named back to the cashier.

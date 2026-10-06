@@ -10,7 +10,7 @@ milestone: M6, M9
 **Requirements:** [[Req - Checkout]], [[Req - Payments]], [[Req - Returns and Voids]], [[Req - Setup and Settings]] SET-15, [[Req - Backup and Logging]] BAK-05 (restore list). **Design:** [[ADR-011 Snapshots on sale lines]], [[Workflows]], [[Money Tax and Rounding]].
 **Depends on:** `core`, `rusqlite`, `serde` + `serde_json` (the tax parts JSON on sale lines), `thiserror`. Tests also use `proptest`.
 
-**Built in task B-sales.** Wired into `app` with the checkout screens in C-M6 (`ui/src/modules/checkout/`); returns and voids come in C-M9.
+**Built in task B-sales.** Wired into `app` with the checkout screens in C-M6 (`ui/src/modules/checkout/`); returns, exchanges and voids in C-M9 (`app` workflows `returns`, `voids`; the till's "Return, exchange or void" dialog).
 
 ## Tables
 The full SQL is in `crates/sales/migrations/001_init.sql`. In short:
@@ -198,6 +198,7 @@ Every test names its requirement. `cargo nextest run -p sales` (84 tests).
 | Returns: numbers, rounding, without a receipt | `returns::ret_06_return_numbers_count_per_till_with_an_r`, `ret_01_refunds_must_add_up_to_the_return_total`, `ret_03_return_without_a_receipt`, `ret_06_returns_can_never_be_edited_or_deleted` |
 | Void (the workflow checks the shift; the module gives the shift id) | `voids::ret_04_void_keeps_the_number_and_contents` (checks `shift_id`), `ret_04_void_needs_a_reason_and_happens_once`, `returns::ret_04_a_sale_with_returns_cannot_be_voided_and_a_void_sale_cannot_be_returned` |
 | Exchange link | `sale_history::ret_05_exchange_sale_keeps_the_link_to_its_return` |
+| Through the app (C-M9) | `app` `tests/returns_and_voids.rs` (RET-01 to RET-07) and `tests/returns_property.rs` (random returns add up to the sale exactly; a void reverses it) |
 | Payment methods | `payment_methods::set_15_*` (6), `pay_02_an_inactive_method_cannot_take_a_payment` |
 | Backup restore list (sale count, last invoice number) | `backup_summary::bak_05_a_database_without_sales_shows_none`, `bak_05_a_backup_made_before_the_sales_tables_existed_shows_none`, `bak_05_counts_every_sale_and_gives_the_last_invoice_number`, `bak_05_works_on_a_backup_opened_read_only` |
 | The views return the expected columns (contract, [[Module Rules]] R2) | `contract::sales_v_sales_has_the_sale_columns`, `sales_v_lines_has_the_line_and_header_columns`, `sales_v_return_lines_has_the_line_and_header_columns`, `sales_v_payments_has_the_payment_columns_and_the_document_date`, `views_show_sales_returns_and_voids_for_reports` |
@@ -234,10 +235,11 @@ Test helpers live in `crates/sales/tests/support/mod.rs`: `test_db()` (in-memory
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- **No `serde`/`ts-rs` derives on the public types (decided in C-M6).** `app` maps them into its own screen types (`CartView`, `HeldCartView`, `PaymentMethodView`, `PaymentMethodRow`, `SaleDone`), because the screen needs priced amounts that `sales` never calculates. Add derives here only if a screen ever needs a type exactly as stored (for example `Sale` for the receipt viewer, C-M9).
+- **No `serde`/`ts-rs` derives on the public types (decided in C-M6).** `app` maps them into its own screen types (`CartView`, `HeldCartView`, `PaymentMethodView`, `PaymentMethodRow`, `SaleDone`), because the screen needs priced amounts that `sales` never calculates. Add derives here only if a screen ever needs a type exactly as stored. C-M9 also maps: `ReturnSale`, `ReturnPreview`, `ReturnDone`, `VoidDone`. The receipt viewer (sales journal, C-M11) may want `Sale` as stored.
 - **Payment method colour** ([[Design System]], "Payment method colours": the admin can change it): there is no column for it yet. The screens colour each method by its kind (cash green, card blue, wallet teal, other grey). Add a column in a new migration if shops ask for their own colours.
 - **Stale shift on an open cart (decided in C-M6):** force close holds the owner's cart (or drops it when empty), and closing a shift drops the cashier's empty cart. If a cart with items is still found on an older shift, `app` holds it, so `resume` moves it to the new shift. No `move_to_shift` was needed.
-- **Voiding an exchange sale** leaves its return's exchange credit unspent. C-M9 decides what the void workflow does with it (for example, refund it in cash).
+- **Voiding an exchange sale (decided in C-M9):** its return's exchange credit goes back in cash: `app` writes a cash `refund` row on the shift pointing at the return. Nothing changes here: the return stays as saved.
+- **Exchange credit beyond the new sale (C-M9):** the sale's `exchange_credit` payment is at most its total; `app` gives the rest back in cash on the shift (pointing at the return). So for one exchange, the return's `exchange_credit` refund = the sale's `exchange_credit` payment + that cash on the shift. Reports that net exchange credit should read the shift's refund rows too (C-M11).
 
 ## Change log (significant API/table changes)
 | Date | Change |

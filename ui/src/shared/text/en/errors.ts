@@ -254,6 +254,20 @@ export const errors = {
   loyalty_points_not_positive: "Points for that spend must be at least 1.",
   loyalty_point_value_not_positive: "A point must be worth more than zero. Example: 0.10",
   loyalty_min_redeem_negative: "The fewest points to pay with can't be below zero.",
+  // Returns, exchanges and voids (C-M9)
+  return_empty: "Type how many come back on at least one line.",
+  return_qty_too_large: "Only {{max}} can still come back on this line.",
+  return_line_repeated: "Each line can be returned only once in one return.",
+  return_lines_mixed: "Return either from the receipt or without one, not both at once.",
+  return_reason_missing: "Type why the goods came back. Example: wrong size",
+  refund_method_not_allowed: "Refund in cash, by card or wallet, or as store credit.",
+  sale_voided: "This sale was voided, so nothing can be returned from it.",
+  sale_already_voided: "This sale is already voided.",
+  sale_has_returns: "Some of this sale came back already. Use a return instead of a void.",
+  sale_shift_closed: "The shift of this sale is closed. Use a return instead of a void.",
+  void_reason_missing: "Type why the sale is voided. Example: rang up twice",
+  exchange_in_progress:
+    "An exchange is open on this sale. Finish it, or give the credit back in cash first.",
   internal: "Something went wrong (ref {{ref}}). Copy the details and tell the shop owner.",
   unknown: "Something went wrong. Try again.",
 };

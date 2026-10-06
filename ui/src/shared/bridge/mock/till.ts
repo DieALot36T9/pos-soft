@@ -5,6 +5,8 @@ import type { CashMoveInput } from "../../../generated/CashMoveInput";
 import type { CheckoutView } from "../../../generated/CheckoutView";
 import type { CountLine } from "../../../generated/CountLine";
 import type { CurrencyFormat } from "../../../generated/CurrencyFormat";
+import type { ExchangeCashOut } from "../../../generated/ExchangeCashOut";
+import type { ExchangeView } from "../../../generated/ExchangeView";
 import type { PrintResult } from "../../../generated/PrintResult";
 import type { HeldCartView } from "../../../generated/HeldCartView";
 import type { ManualDiscount } from "../../../generated/ManualDiscount";
@@ -13,6 +15,10 @@ import type { PaymentMethodRow } from "../../../generated/PaymentMethodRow";
 import type { PaymentMethodSave } from "../../../generated/PaymentMethodSave";
 import type { PaymentPreview } from "../../../generated/PaymentPreview";
 import type { ResumedCart } from "../../../generated/ResumedCart";
+import type { ReturnDone } from "../../../generated/ReturnDone";
+import type { ReturnInput } from "../../../generated/ReturnInput";
+import type { ReturnPreview } from "../../../generated/ReturnPreview";
+import type { ReturnSale } from "../../../generated/ReturnSale";
 import type { SaleDone } from "../../../generated/SaleDone";
 import type { SaleHit } from "../../../generated/SaleHit";
 import type { ScaleView } from "../../../generated/ScaleView";
@@ -21,6 +27,7 @@ import type { ShiftClosed } from "../../../generated/ShiftClosed";
 import type { ShiftState } from "../../../generated/ShiftState";
 import type { SettingsSnapshot } from "../../../generated/SettingsSnapshot";
 import type { ShiftView } from "../../../generated/ShiftView";
+import type { VoidDone } from "../../../generated/VoidDone";
 import type { WeightInput } from "../../../generated/WeightInput";
 import { fakeCatalog, searchFakeCatalog } from "./catalog";
 import {
@@ -65,8 +72,26 @@ let shift: (ShiftView & { cash: number }) | null = null;
 let lines: FakeLine[] = [];
 let held: FakeHeld[] = [];
 let invoices = 0;
-// Every sale's invoice number and id, oldest first, for reprints (PAY-10).
-let sales: { id: string; invoice_no: string }[] = [];
+// Every sale, oldest first, for reprints (PAY-10), returns and voids (RET-01, RET-04).
+type FakeSale = {
+  id: string;
+  invoice_no: string;
+  at: number;
+  shift_id: string;
+  customer: { id: string; name: string } | null;
+  lines: { id: string; product_id: string; name: string; qty: number; amount: number }[];
+  payments: { method_id: string; amount: number }[];
+  total: number;
+  cash: number;
+  exchange_credit: number;
+  // Quantity returned so far, by line.
+  returned: Record<string, number>;
+  voided: boolean;
+};
+let sales: FakeSale[] = [];
+let returnsMade = 0;
+// The return whose credit pays for the cart (RET-05).
+let exchange: ExchangeView | null = null;
 let nextId = 1;
 let methods: PaymentMethodRow[] = [];
 // The cart's customer, price list and whole-cart discount (C-M8).
@@ -115,6 +140,8 @@ export function resetTill() {
   held = [];
   invoices = 0;
   sales = [];
+  returnsMade = 0;
+  exchange = null;
   nextId = 1;
   freshCart();
   methods = [
@@ -274,6 +301,7 @@ function cartView(from: FakeLine[] = lines): CartView {
     invoice_discount: forThisCart ? invoiceDiscount : null,
     lines: priced,
     ...fakeTillPricing(priced, invoiceOff),
+    exchange: forThisCart ? exchange : null,
   };
 }
 
@@ -380,6 +408,12 @@ function saleHits(text: string): SaleHit[] {
 function preview(payments: PaymentEntry[]): PaymentPreview {
   mySelling();
   const totals = cartView().totals;
+  // An exchange's credit pays first; credit beyond the sale goes back in cash (RET-05).
+  const credit = Math.min(exchange?.credit ?? 0, totals.gross);
+  const cashBack = exchange ? Math.round((exchange.credit - credit) / 100) * 100 : 0;
+  if (credit > 0) {
+    payments = [{ method_id: EXCHANGE_METHOD, amount: credit, reference: null }, ...payments];
+  }
   const cashKinds = payments.filter(
     (each) => methods.find((one) => one.id === each.method_id)?.kind === "cash",
   );
@@ -410,6 +444,8 @@ function preview(payments: PaymentEntry[]): PaymentPreview {
     quick_cash: restInCash > 0 ? quick : [],
     points_offer: pointsOffer(due),
     credit_available: creditAvailable(),
+    exchange_credit: credit,
+    exchange_cash_back: cashBack,
   };
 }
 
@@ -485,16 +521,39 @@ function complete(payments: PaymentEntry[], approval: unknown = null): SaleDone 
   }
   checkCustomerPayments(payments, answer.due, approval);
   invoices += 1;
+  const nonCash =
+    answer.exchange_credit +
+    payments
+      .filter((each) => methods.find((one) => one.id === each.method_id)?.kind !== "cash")
+      .reduce((sum, each) => sum + each.amount, 0);
   if (shift) {
-    shift.cash +=
-      answer.due -
-      payments
-        .filter((each) => methods.find((one) => one.id === each.method_id)?.kind !== "cash")
-        .reduce((sum, each) => sum + each.amount, 0);
+    shift.cash += answer.due - nonCash - answer.exchange_cash_back;
   }
+  const soldLines = cartView().lines.map((line) => ({
+    id: fakeId("01FAKESALELINE"),
+    product_id: line.product_id,
+    name: line.name,
+    qty: line.qty,
+    amount: line.amount,
+  }));
   lines = [];
-  const sale = { id: fakeId("01FAKESALE"), invoice_no: `T1-${String(invoices).padStart(6, "0")}` };
+  const sale: FakeSale = {
+    id: fakeId("01FAKESALE"),
+    invoice_no: `T1-${String(invoices).padStart(6, "0")}`,
+    at: Date.now(),
+    shift_id: shift?.shift_id ?? "",
+    customer: fakeCartCustomer(customerId),
+    lines: soldLines,
+    payments: payments.map((each) => ({ method_id: each.method_id, amount: each.amount })),
+    total: answer.due,
+    cash: answer.due - nonCash,
+    exchange_credit: answer.exchange_credit,
+    returned: {},
+    voided: false,
+  };
   sales.push(sale);
+  const exchangeCashBack = answer.exchange_cash_back;
+  exchange = null;
   let earned = 0;
   if (customerId !== null) {
     const loyalty = settings().loyalty;
@@ -509,8 +568,9 @@ function complete(payments: PaymentEntry[], approval: unknown = null): SaleDone 
     fakeCustomerSale(customerId, { ...sale, total: answer.due }, used, credit, earned);
   }
   freshCart();
-  const cashTaken = answer.change > 0 || answer.cash_to_pay > 0;
+  const cashTaken = answer.change > 0 || answer.cash_to_pay > 0 || exchangeCashBack > 0;
   return {
+    exchange_cash_back: exchangeCashBack,
     sale_id: sale.id,
     invoice_no: sale.invoice_no,
     total: answer.due,
@@ -530,6 +590,174 @@ function reprint(sale: { id: string } | undefined): PrintResult {
   }
   recordFakeEvent("receipt.reprint", currentSession()?.user_id ?? null);
   return fakePrint({ kind: "receipt", sale_id: sale.id }, pictures.receiptCopy, false);
+}
+
+const EXCHANGE_METHOD = "00000000000000000000000004";
+
+function findSale(invoice: string): FakeSale {
+  return (
+    sales.find((each) => each.invoice_no === invoice.trim()) ??
+    fail({ kind: "not_found", entity: "sale", key: invoice.trim() })
+  );
+}
+
+// What can still come back from a sale and whether it can be voided (RET-01, RET-04).
+function returnSale(sale: FakeSale): ReturnSale {
+  const anyReturned = Object.values(sale.returned).some((qty) => qty > 0);
+  const firstPaid = sale.payments.find((each) =>
+    ["cash", "card", "wallet", "other"].includes(
+      methods.find((one) => one.id === each.method_id)?.kind ?? "",
+    ),
+  );
+  return {
+    sale_id: sale.id,
+    invoice_no: sale.invoice_no,
+    completed_at: sale.at,
+    customer: sale.customer,
+    voided: sale.voided,
+    lines: sale.lines.map((line) => {
+      const returned = sale.returned[line.id] ?? 0;
+      const unit = product(line.product_id);
+      return {
+        sale_line_id: line.id,
+        product_id: line.product_id,
+        name: line.name,
+        unit_symbol: unit.unit_symbol,
+        unit_decimals: unit.unit_decimals,
+        sold: line.qty,
+        returned,
+        returnable: line.qty - returned,
+        amount: line.amount,
+      };
+    }),
+    payments: sale.payments.map((each) => {
+      const found = methods.find((one) => one.id === each.method_id);
+      return {
+        method_id: each.method_id,
+        name: found?.name ?? "",
+        kind: found?.kind ?? "other",
+        amount: each.amount,
+      };
+    }),
+    total: sale.total,
+    refund_method_id: firstPaid?.method_id ?? methods[0]?.id ?? "",
+    earlier_returns: [],
+    void_blocked: sale.voided
+      ? "sale_already_voided"
+      : anyReturned
+        ? "sale_has_returns"
+        : shift?.shift_id === sale.shift_id
+          ? null
+          : "sale_shift_closed",
+    currency: currency(),
+  };
+}
+
+// The refund the fake way: each line's share of what was paid for it; the last of a
+// line gets what is left. Cash refunds round to whole units, like sales.
+function refundOf(input: ReturnInput): ReturnPreview {
+  if (input.lines.length === 0) {
+    refuse("return_empty");
+  }
+  const sale = input.sale_id ? sales.find((each) => each.id === input.sale_id) : undefined;
+  if (sale?.voided) {
+    clash("sale_voided");
+  }
+  const refundLines = input.lines.map((wanted) => {
+    if (sale) {
+      const line =
+        sale.lines.find((each) => each.id === wanted.sale_line_id) ??
+        fail({ kind: "not_found", entity: "sale_line", key: String(wanted.sale_line_id) });
+      const left = line.qty - (sale.returned[line.id] ?? 0);
+      if (wanted.qty > left) {
+        refuse("return_qty_too_large", { max_milli: String(left) });
+      }
+      const gross = Math.round((line.amount * wanted.qty) / line.qty);
+      return { name: line.name, qty: wanted.qty, gross, restock: wanted.restock };
+    }
+    const each = product(String(wanted.product_id));
+    const price = wanted.unit_price ?? each.sale_price;
+    const gross = Math.round((price * wanted.qty) / 1000);
+    return { name: each.name, qty: wanted.qty, gross, restock: wanted.restock };
+  });
+  const gross = refundLines.reduce((sum, line) => sum + line.gross, 0);
+  const chosen =
+    methods.find((each) => each.id === input.refund_method_id) ?? refuse("payment_method_inactive");
+  if (chosen.kind === "points") {
+    refuse("refund_method_not_allowed");
+  }
+  if (chosen.kind === "credit" && !sale?.customer) {
+    refuse("payment_needs_customer");
+  }
+  const total = chosen.kind === "cash" ? Math.round(gross / 100) * 100 : gross;
+  const tax = Math.round((gross * 15) / 115);
+  return {
+    lines: refundLines.map((line) => {
+      const lineTax = Math.round((line.gross * 15) / 115);
+      return { ...line, net: line.gross - lineTax, tax: lineTax };
+    }),
+    net: gross - tax,
+    tax,
+    gross,
+    rounding: total - gross,
+    total,
+    refunds:
+      total > 0
+        ? [{ method_id: chosen.id, name: chosen.name, kind: chosen.kind, amount: total }]
+        : [],
+    points_taken_back: 0,
+  };
+}
+
+// Saves the fake return: the quantities, the drawer and the return receipt.
+function saveReturn(input: ReturnInput, approval: unknown, asExchange: boolean): ReturnDone {
+  requireOrApproval(input.sale_id ? "return_with_receipt" : "return_without_receipt", approval);
+  mySelling();
+  if (!input.reason?.trim()) {
+    refuse("return_reason_missing");
+  }
+  const refund = refundOf(
+    // An exchange ignores the chosen method: the refund becomes credit, without rounding.
+    asExchange ? { ...input, refund_method_id: methods[0]?.id ?? input.refund_method_id } : input,
+  );
+  const sale = sales.find((each) => each.id === input.sale_id);
+  for (const wanted of input.lines) {
+    if (sale && wanted.sale_line_id) {
+      sale.returned[wanted.sale_line_id] = (sale.returned[wanted.sale_line_id] ?? 0) + wanted.qty;
+    }
+  }
+  returnsMade += 1;
+  const id = fakeId("01FAKERETURN");
+  const number = `T1-R${String(returnsMade).padStart(6, "0")}`;
+  const total = asExchange ? refund.gross : refund.total;
+  const cashBack = !asExchange && refund.refunds[0]?.kind === "cash" ? total : 0;
+  if (shift) {
+    shift.cash -= cashBack;
+  }
+  recordFakeEvent("return.complete", currentSession()?.user_id ?? null);
+  if (asExchange) {
+    exchange = { return_id: id, return_no: number, credit: total };
+    customerId = sale?.customer?.id ?? null;
+  }
+  return {
+    return_id: id,
+    return_no: number,
+    total,
+    refunds: asExchange
+      ? [
+          {
+            method_id: EXCHANGE_METHOD,
+            name: "Exchange credit",
+            kind: "exchange_credit",
+            amount: total,
+          },
+        ]
+      : refund.refunds,
+    cash_back: cashBack,
+    points_taken_back: 0,
+    cart: asExchange ? cartView() : null,
+    receipt: fakePrint({ kind: "return", return_id: id }, pictures.returnReceipt, cashBack > 0),
+  };
 }
 
 function closeShift(counts: CountLine[], forced: boolean): ShiftClosed {
@@ -609,6 +837,9 @@ export const tillHandlers = {
   },
   checkout_hold: (args?: Args): CartView => {
     requirePermission("checkout_hold_resume");
+    if (exchange) {
+      clash("exchange_in_progress");
+    }
     if (lines.length === 0) {
       refuse("cart_empty");
     }
@@ -646,6 +877,9 @@ export const tillHandlers = {
   },
   checkout_cancel: (): CartView => {
     requirePermission("checkout_cancel_cart");
+    if (exchange) {
+      clash("exchange_in_progress");
+    }
     if (lines.length > 0) {
       recordFakeEvent("cart.cancel", currentSession()?.user_id ?? null);
     }
@@ -776,6 +1010,9 @@ export const tillHandlers = {
     if (lines.length > 0) {
       clash("shift_has_open_carts");
     }
+    if (exchange) {
+      clash("exchange_in_progress");
+    }
     return closeShift(args?.counts as CountLine[], false);
   },
   shift_force_close: (args?: Args): ShiftClosed => {
@@ -791,6 +1028,64 @@ export const tillHandlers = {
       lines = [];
     }
     return closeShift(args?.counts as CountLine[], true);
+  },
+  return_lookup: (args?: Args): ReturnSale => {
+    requirePermission("checkout_sell");
+    return returnSale(findSale(String(args?.invoiceNo)));
+  },
+  return_preview: (args?: Args): ReturnPreview => {
+    requirePermission("checkout_sell");
+    return refundOf(args?.input as ReturnInput);
+  },
+  return_complete: (args?: Args): ReturnDone =>
+    saveReturn(args?.input as ReturnInput, args?.approval, false),
+  exchange_start: (args?: Args): ReturnDone => {
+    requirePermission("checkout_sell");
+    if (lines.length > 0) {
+      clash("cart_in_progress");
+    }
+    if (exchange) {
+      clash("exchange_in_progress");
+    }
+    return saveReturn(args?.input as ReturnInput, args?.approval, true);
+  },
+  exchange_cash_out: (): ExchangeCashOut => {
+    requirePermission("checkout_sell");
+    mySelling();
+    const cashBack = exchange ? Math.round(exchange.credit / 100) * 100 : 0;
+    if (exchange) {
+      recordFakeEvent("exchange.cash_out", currentSession()?.user_id ?? null);
+    }
+    exchange = null;
+    if (shift) {
+      shift.cash -= cashBack;
+    }
+    return { cash_back: cashBack, cart: cartView(), drawer: cashBack > 0 ? fakeDrawer() : null };
+  },
+  sale_void: (args?: Args): VoidDone => {
+    requireOrApproval("sale_void", args?.approval);
+    const sale =
+      sales.find((each) => each.id === args?.saleId) ??
+      fail({ kind: "not_found", entity: "sale", key: String(args?.saleId) });
+    if (!((args?.reason as string | undefined) ?? "").trim()) {
+      refuse("void_reason_missing");
+    }
+    const blocked = returnSale(sale).void_blocked;
+    if (blocked) {
+      clash(blocked);
+    }
+    sale.voided = true;
+    const cashBack = sale.cash + sale.exchange_credit;
+    if (shift) {
+      shift.cash -= cashBack;
+    }
+    recordFakeEvent("sale.void", currentSession()?.user_id ?? null);
+    return {
+      sale_id: sale.id,
+      invoice_no: sale.invoice_no,
+      cash_back: cashBack,
+      receipt: fakePrint({ kind: "receipt", sale_id: sale.id }, pictures.voidReceipt, cashBack > 0),
+    };
   },
   payment_method_list: (): PaymentMethodRow[] => {
     requirePermission("settings_manage");

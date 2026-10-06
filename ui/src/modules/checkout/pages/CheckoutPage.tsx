@@ -11,6 +11,7 @@ import { PrintProblem } from "../../../shared/print/PrintProblem";
 import { Alert } from "../../../shared/ui/Alert";
 import {
   cancelCart,
+  cashOutExchange,
   holdCart,
   overridePrice,
   reprintInvoice,
@@ -27,6 +28,7 @@ import { CartTable } from "../components/CartTable";
 import { CustomerBar } from "../components/CustomerBar";
 import { CustomerDialog } from "../components/CustomerDialog";
 import { DiscountDialog } from "../components/DiscountDialog";
+import { ExchangeBar } from "../components/ExchangeBar";
 import { HeldListDialog } from "../components/HeldListDialog";
 import { HoldDialog } from "../components/HoldDialog";
 import { NoShiftPanel } from "../components/NoShiftPanel";
@@ -34,7 +36,9 @@ import { PaymentDialog } from "../components/PaymentDialog";
 import { PriceDialog } from "../components/PriceDialog";
 import { PriceListDialog } from "../components/PriceListDialog";
 import { QtyDialog } from "../components/QtyDialog";
+import { RefundDoneBar, type RefundDone } from "../components/RefundDoneBar";
 import { ReprintDialog } from "../components/ReprintDialog";
+import { ReturnDialog } from "../components/ReturnDialog";
 import { SaleDoneBar } from "../components/SaleDoneBar";
 import { ScanBox } from "../components/ScanBox";
 import { TillHeader } from "../components/TillHeader";
@@ -53,7 +57,8 @@ type DialogName =
   | "discount"
   | "invoiceDiscount"
   | "price"
-  | "priceList";
+  | "priceList"
+  | "return";
 
 type CheckoutPageProps = {
   session: SessionView;
@@ -78,6 +83,8 @@ export function CheckoutPage(props: CheckoutPageProps) {
   const [printFailed, setPrintFailed] = useState<PrintResult | null>(null);
   // After a reprint that worked: which receipt ("" for the last one).
   const [reprinted, setReprinted] = useState<string | null>(null);
+  // After a return, void or exchange cash-out: what was done and the cash to give back.
+  const [refundDone, setRefundDone] = useState<RefundDone | null>(null);
   const scanRef = useRef<HTMLInputElement | null>(null);
   // Discounts above the limit, typed prices and price lists may need an admin (USR-05).
   const { withApproval, dialog: approvalDialog } = useApproval();
@@ -146,6 +153,7 @@ export function CheckoutPage(props: CheckoutPageProps) {
   useHotkeys(shortcuts.checkoutHeld.keys, open("held", (view?.held_count ?? 0) > 0), options, deps);
   useHotkeys(shortcuts.checkoutCancel.keys, open("cancel", hasLines), options, deps);
   useHotkeys(shortcuts.checkoutPay.keys, open("payment", hasLines), options, deps);
+  useHotkeys(shortcuts.checkoutReturn.keys, open("return", true), options, deps);
   // Del removes the selected line, unless the scan box has text to edit.
   useHotkeys(
     shortcuts.checkoutRemove.keys,
@@ -173,6 +181,22 @@ export function CheckoutPage(props: CheckoutPageProps) {
     { ...options, enabled: !busy },
     deps,
   );
+
+  // The exchange credit goes back in cash: the customer takes nothing new (RET-05).
+  const cashOut = () => {
+    till.clearProblem();
+    cashOutExchange()
+      .then((out) => {
+        till.showCart(out.cart);
+        setRefundDone({
+          title: t("refundDone.exchangeCashOut"),
+          cashBack: out.cash_back,
+          pointsTakenBack: 0,
+        });
+        showPrint(out.drawer, null);
+      })
+      .catch(till.fail);
+  };
 
   const afterHeld = (heldCount: number) =>
     till.setView((old) => (old ? { ...old, held_count: heldCount } : old));
@@ -213,12 +237,19 @@ export function CheckoutPage(props: CheckoutPageProps) {
               onKey={() => {
                 till.clearProblem();
                 till.setRestored(false);
+                setRefundDone(null);
               }}
             />
             {till.problem ? <Alert kind="problem">{till.problem}</Alert> : null}
             <CustomerBar cart={cart} currency={view.currency} />
+            {cart.exchange ? (
+              <ExchangeBar exchange={cart.exchange} currency={view.currency} onCashOut={cashOut} />
+            ) : null}
             {till.restored ? <Alert kind="info">{t("restored")}</Alert> : null}
-            {till.lastSale ? <SaleDoneBar done={till.lastSale} currency={view.currency} /> : null}
+            {refundDone ? <RefundDoneBar done={refundDone} currency={view.currency} /> : null}
+            {till.lastSale && !refundDone ? (
+              <SaleDoneBar done={till.lastSale} currency={view.currency} />
+            ) : null}
             {printFailed ? (
               <PrintProblem
                 key={JSON.stringify(printFailed.printable)}
@@ -273,6 +304,7 @@ export function CheckoutPage(props: CheckoutPageProps) {
         onCancel={open("cancel", hasLines)}
         onReprint={() => reprint(null)}
         onOldReceipt={open("reprint", true)}
+        onReturn={open("return", cart !== null)}
         onShift={props.onShiftMenu}
         onLock={props.onLock}
         onBackOffice={props.onBackOffice}
@@ -391,7 +423,37 @@ export function CheckoutPage(props: CheckoutPageProps) {
           onClose={close}
           onDone={(done) => {
             close();
+            setRefundDone(null);
             till.saleDone(done);
+            showPrint(done.receipt, null);
+          }}
+        />
+      ) : null}
+      {dialog === "return" ? (
+        <ReturnDialog
+          methods={view.payment_methods}
+          currency={view.currency}
+          cartHasLines={hasLines}
+          onClose={close}
+          onReturned={(done) => {
+            close();
+            if (done.cart) {
+              till.showCart(done.cart);
+            }
+            setRefundDone({
+              title: t("refundDone.returned", { number: done.return_no }),
+              cashBack: done.cash_back,
+              pointsTakenBack: done.points_taken_back,
+            });
+            showPrint(done.receipt, null);
+          }}
+          onVoided={(done) => {
+            close();
+            setRefundDone({
+              title: t("refundDone.voided", { number: done.invoice_no }),
+              cashBack: done.cash_back,
+              pointsTakenBack: 0,
+            });
             showPrint(done.receipt, null);
           }}
         />
