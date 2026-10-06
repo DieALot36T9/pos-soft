@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use hardware::{FakeScale, PreviewInbox, PrinterConfig, RawPrinter, printer_from};
+use hardware::{FakeScale, PreviewInbox, PrinterConfig, RawPrinter, Scale, printer_from};
 use printing::{Fonts, load_fonts};
 
 /// Shared by every command. Tauri keeps one in its state.
@@ -33,5 +33,16 @@ impl Devices {
     /// always the Preview printer, so no device is needed (rule HW-10).
     pub fn receipt_printer(&self) -> Box<dyn RawPrinter> {
         printer_from(&PrinterConfig::Preview, &self.preview)
+    }
+
+    /// The scale checkout reads. Until scale settings are used (C-M7), the only scale
+    /// is the fake one, and only when the dev tools are built in. Without one, the
+    /// weight dialog asks for the weight to be typed (CHK-06).
+    pub fn scale(&self) -> Option<&dyn Scale> {
+        if crate::dev_tools::ON {
+            Some(&self.fake_scale)
+        } else {
+            None
+        }
     }
 }

@@ -179,3 +179,81 @@ pub fn audit_count(state: &AppState, action: &str) -> i64 {
         })
         .expect("read")
 }
+
+/// A product for the till: price and unit as given, cost 60% of the price, one barcode.
+/// `scale_code` is the item code inside scale stickers (CHK-08).
+pub fn till_product(
+    state: &AppState,
+    name: &str,
+    code: &str,
+    price_minor: i64,
+    unit: &str,
+    weighed: bool,
+    scale_code: Option<&str>,
+) -> Id {
+    let input = app::workflows::products::ProductInput {
+        id: None,
+        kind: catalog::ProductKind::Standard,
+        name: name.into(),
+        sku: String::new(),
+        category_id: None,
+        brand_id: None,
+        unit_id: Id::parse(unit).expect("unit id"),
+        sale_price: Money(price_minor),
+        cost_price: Money(price_minor * 6 / 10),
+        tax_rate_id: None,
+        is_weighed: weighed,
+        scale_item_code: scale_code.map(str::to_string),
+        track_stock: true,
+        track_expiry: false,
+        preferred_supplier_id: None,
+        description: None,
+        barcodes: if code.is_empty() {
+            Vec::new()
+        } else {
+            vec![code.into()]
+        },
+        reorder: None,
+    };
+    app::commands::catalog::product_save(state, input).expect("product saved")
+}
+
+/// Puts stock in with the "opening" reason, as the stock screen would.
+pub fn stock_in(state: &AppState, product: &Id, qty: pos_core::Qty) {
+    let input = app::workflows::stock::AdjustInput {
+        product_id: product.clone(),
+        qty_delta: qty,
+        reason_code: "opening".into(),
+        note: None,
+        batch: app::workflows::stock::AdjustBatch::Auto,
+    };
+    app::commands::inventory::stock_adjust(state, &input).expect("stock in");
+}
+
+/// Opens a shift for the signed-in user with this float and no count.
+pub fn open_shift(state: &AppState, float_minor: i64) {
+    app::commands::shifts::shift_open(state, Money(float_minor), &[]).expect("shift open");
+}
+
+/// The id of the system cash payment method.
+pub fn cash_method(state: &AppState) -> Id {
+    state
+        .db
+        .read(|conn| {
+            Ok(sales::system_payment_method(
+                conn,
+                sales::PaymentKind::Cash,
+            )?)
+        })
+        .expect("cash method")
+        .id
+}
+
+/// Cash handed over at the payment dialog.
+pub fn cash(state: &AppState, amount_minor: i64) -> app::workflows::complete_sale::PaymentEntry {
+    app::workflows::complete_sale::PaymentEntry {
+        method_id: cash_method(state),
+        amount: Money(amount_minor),
+        reference: None,
+    }
+}

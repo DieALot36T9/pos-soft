@@ -183,7 +183,18 @@ pub fn login(state: &AppState, user: &Id, secret: String) -> Result<LoginResult,
 }
 
 /// Signs the current user out, and audits it. Also "Switch user" on the lock screen.
+/// While the till is locked, "Switch user" is refused if the locked user has a cart
+/// with items: it must be finished, held or cancelled first (USR-03).
 pub fn logout(state: &AppState) -> Result<(), AppError> {
+    let locked_user = match state.session()?.as_ref() {
+        Some(session) if session.locked => Some(session.user.id.clone()),
+        _ => None,
+    };
+    if let Some(user) = locked_user
+        && has_cart_with_items(state, &user)?
+    {
+        return Err(conflict("cart_open_on_lock"));
+    }
     let Some(session) = state.session()?.take() else {
         return Ok(());
     };
@@ -528,6 +539,17 @@ fn user_id_by_username(tx: &Transaction, username: &str) -> Result<Option<Id>, A
         .into_iter()
         .find(|tile| tile.username.to_lowercase() == wanted)
         .map(|tile| tile.id))
+}
+
+/// True when the user has an open cart with items on this till.
+fn has_cart_with_items(state: &AppState, user: &Id) -> Result<bool, AppError> {
+    state.db.read(|conn| {
+        let till: settings::TillSettings = settings::get(conn)?;
+        let Some(till_id) = till.till_id else {
+            return Ok(false);
+        };
+        Ok(sales::current_cart(conn, &till_id, user)?.is_some_and(|cart| !cart.lines.is_empty()))
+    })
 }
 
 /// A random 128-bit approval token, as 32 hex digits.

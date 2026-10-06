@@ -101,10 +101,12 @@ fn command_handler() -> CommandHandler {
 }
 
 /// Every command, plus the dev-only ones.
+// The list is one macro call: Tauri builds a single handler from it, so it can't be split.
+#[allow(clippy::too_many_lines)]
 fn with_dev_commands() -> CommandHandler {
     use commands::{
-        audit, auth, backup, catalog, dev, hardware, inventory, settings, setup, startup, system,
-        tax, users,
+        audit, auth, backup, catalog, checkout, dev, hardware, inventory, payment_methods,
+        settings, setup, shifts, startup, system, tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -190,6 +192,29 @@ fn with_dev_commands() -> CommandHandler {
         inventory::cmd::count_variances,
         inventory::cmd::count_post,
         inventory::cmd::count_cancel,
+        checkout::cmd::checkout_state,
+        checkout::cmd::checkout_scan,
+        checkout::cmd::checkout_search,
+        checkout::cmd::checkout_add_product,
+        checkout::cmd::checkout_read_scale,
+        checkout::cmd::checkout_add_weighed,
+        checkout::cmd::checkout_set_qty,
+        checkout::cmd::checkout_remove_line,
+        checkout::cmd::checkout_hold,
+        checkout::cmd::checkout_held_list,
+        checkout::cmd::checkout_resume,
+        checkout::cmd::checkout_cancel,
+        checkout::cmd::checkout_payment_preview,
+        checkout::cmd::checkout_complete,
+        shifts::cmd::shift_current,
+        shifts::cmd::shift_count_total,
+        shifts::cmd::shift_open,
+        shifts::cmd::shift_cash_move,
+        shifts::cmd::shift_no_sale,
+        shifts::cmd::shift_close,
+        shifts::cmd::shift_force_close,
+        payment_methods::cmd::payment_method_list,
+        payment_methods::cmd::payment_method_save,
         dev::dev_fake_scale_get,
         dev::dev_fake_scale_set,
         dev::dev_fake_scale_read,
@@ -197,10 +222,12 @@ fn with_dev_commands() -> CommandHandler {
 }
 
 /// Every command, without the dev-only ones.
+// The list is one macro call: Tauri builds a single handler from it, so it can't be split.
+#[allow(clippy::too_many_lines)]
 fn without_dev_commands() -> CommandHandler {
     use commands::{
-        audit, auth, backup, catalog, hardware, inventory, settings, setup, startup, system, tax,
-        users,
+        audit, auth, backup, catalog, checkout, hardware, inventory, payment_methods, settings,
+        setup, shifts, startup, system, tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -286,6 +313,29 @@ fn without_dev_commands() -> CommandHandler {
         inventory::cmd::count_variances,
         inventory::cmd::count_post,
         inventory::cmd::count_cancel,
+        checkout::cmd::checkout_state,
+        checkout::cmd::checkout_scan,
+        checkout::cmd::checkout_search,
+        checkout::cmd::checkout_add_product,
+        checkout::cmd::checkout_read_scale,
+        checkout::cmd::checkout_add_weighed,
+        checkout::cmd::checkout_set_qty,
+        checkout::cmd::checkout_remove_line,
+        checkout::cmd::checkout_hold,
+        checkout::cmd::checkout_held_list,
+        checkout::cmd::checkout_resume,
+        checkout::cmd::checkout_cancel,
+        checkout::cmd::checkout_payment_preview,
+        checkout::cmd::checkout_complete,
+        shifts::cmd::shift_current,
+        shifts::cmd::shift_count_total,
+        shifts::cmd::shift_open,
+        shifts::cmd::shift_cash_move,
+        shifts::cmd::shift_no_sale,
+        shifts::cmd::shift_close,
+        shifts::cmd::shift_force_close,
+        payment_methods::cmd::payment_method_list,
+        payment_methods::cmd::payment_method_save,
     ])
 }
 

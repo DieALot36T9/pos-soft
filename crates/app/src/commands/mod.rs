@@ -5,11 +5,14 @@ pub mod audit;
 pub mod auth;
 pub mod backup;
 pub mod catalog;
+pub mod checkout;
 pub mod dev;
 pub mod hardware;
 pub mod inventory;
+pub mod payment_methods;
 pub mod settings;
 pub mod setup;
+pub mod shifts;
 pub mod startup;
 pub mod system;
 pub mod tax;
@@ -32,6 +35,10 @@ use pos_core::{AppError, Permission};
 ///   need someone signed in (any role); `unlock*` only while the till is locked.
 /// - `backup_restore` also takes an admin's approval token (`require_or_approval`, USR-05).
 /// - `product_save` also needs `CatalogPriceEdit` when it changes a sale or cost price.
+/// - `checkout_add_weighed` with a typed weight also needs `CheckoutManualWeight`.
+/// - `shift_current` and `shift_count_total` need someone signed in (any role).
+/// - `shift_cash_move`, `shift_no_sale` and `shift_force_close` also take an admin's
+///   approval token (`require_or_approval`, USR-05).
 /// - `count_post` makes a `pre-count-post` backup first, without `BackupRun`: the backup
 ///   is part of posting (Workflows, "Post stock count").
 pub const COMMANDS: &[(&str, Option<Permission>)] = &[
@@ -118,6 +125,29 @@ pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("count_variances", Some(Permission::StockCountManage)),
     ("count_post", Some(Permission::StockCountManage)),
     ("count_cancel", Some(Permission::StockCountManage)),
+    ("checkout_state", Some(Permission::CheckoutSell)),
+    ("checkout_scan", Some(Permission::CheckoutSell)),
+    ("checkout_search", Some(Permission::CheckoutSell)),
+    ("checkout_add_product", Some(Permission::CheckoutSell)),
+    ("checkout_read_scale", Some(Permission::CheckoutSell)),
+    ("checkout_add_weighed", Some(Permission::CheckoutSell)),
+    ("checkout_set_qty", Some(Permission::CheckoutSell)),
+    ("checkout_remove_line", Some(Permission::CheckoutSell)),
+    ("checkout_hold", Some(Permission::CheckoutHoldResume)),
+    ("checkout_held_list", Some(Permission::CheckoutHoldResume)),
+    ("checkout_resume", Some(Permission::CheckoutHoldResume)),
+    ("checkout_cancel", Some(Permission::CheckoutCancelCart)),
+    ("checkout_payment_preview", Some(Permission::CheckoutSell)),
+    ("checkout_complete", Some(Permission::CheckoutSell)),
+    ("shift_current", None),
+    ("shift_count_total", None),
+    ("shift_open", Some(Permission::ShiftOpenCloseOwn)),
+    ("shift_cash_move", Some(Permission::ShiftCashInOut)),
+    ("shift_no_sale", Some(Permission::ShiftNoSaleDrawer)),
+    ("shift_close", Some(Permission::ShiftOpenCloseOwn)),
+    ("shift_force_close", Some(Permission::ShiftForceClose)),
+    ("payment_method_list", Some(Permission::SettingsManage)),
+    ("payment_method_save", Some(Permission::SettingsManage)),
 ];
 
 /// The dev-only commands (fake scale panel). Registered only when `dev_tools::ON` is true.
@@ -167,7 +197,7 @@ mod tests {
     #[test]
     fn every_command_has_a_permission_decision() {
         let all = names(COMMANDS);
-        assert_eq!(all.len(), 83);
+        assert_eq!(all.len(), 106);
         let mut unique = all.clone();
         unique.sort_unstable();
         unique.dedup();
