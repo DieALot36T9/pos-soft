@@ -3,13 +3,25 @@
 
 pub mod audit_view;
 pub mod backup;
+pub mod cart_lines;
+pub mod cart_view;
 pub mod catalog_lists;
+pub mod checkout;
+pub mod complete_sale;
 pub mod folders;
+pub mod held_carts;
+pub mod payment_amounts;
+pub mod payment_methods;
 pub mod products;
+pub mod sale_snapshot;
+pub mod scan_input;
 pub mod settings_change;
 pub mod setup;
+pub mod shifts;
 pub mod stock;
 pub mod stock_counts;
 pub mod tax_rates;
 pub mod test_print;
+pub mod till;
 pub mod users;
+pub mod weights;

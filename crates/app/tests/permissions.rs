@@ -5,16 +5,22 @@
 
 mod common;
 
+use app::commands::checkout::{self as till_commands, WeightInput};
 use app::commands::{
     COMMANDS, audit as audit_commands, backup as backup_commands, catalog as catalog_commands,
     inventory as stock_commands, settings as settings_commands, tax as tax_commands,
     users as user_commands,
 };
+use app::commands::{payment_methods as payment_commands, shifts as shift_commands};
+use app::devices::Devices;
 use app::session;
 use app::state::AppState;
 use app::workflows::catalog_lists::{BrandInput, CategoryInput, UnitInput};
+use app::workflows::checkout::MethodKind;
+use app::workflows::payment_methods::PaymentMethodSave;
 use app::workflows::products::{ProductInput, VariantAttribute};
 use app::workflows::settings_change::SettingsChange;
+use app::workflows::shifts::{CashMoveInput, CashMoveKind, CountLine};
 use app::workflows::stock::{AdjustBatch, AdjustInput, HistoryQuery, StockFilter};
 use app::workflows::stock_counts::{CountInput, CountLineInput};
 use app::workflows::users::{RoleInput, UserInput};
@@ -107,6 +113,8 @@ fn calls() -> Vec<(&'static str, Call)> {
     ];
     calls.extend(catalog_calls());
     calls.extend(stock_calls());
+    calls.extend(till_calls());
+    calls.extend(shift_calls());
     calls
 }
 
@@ -332,6 +340,189 @@ fn catalog_calls() -> Vec<(&'static str, Call)> {
     ]
 }
 
+/// The signed-in user's id, also while locked. None when nobody is signed in.
+fn me(state: &AppState) -> Option<Id> {
+    session::current(state)
+        .ok()
+        .flatten()
+        .map(|view| view.user_id)
+}
+
+/// Makes sure the signed-in user has the till's open shift, without permission checks,
+/// so each till command below meets only its own check.
+fn ensure_shift(state: &AppState) {
+    let Some(user) = me(state) else {
+        return;
+    };
+    let shift = state
+        .db
+        .read(app::workflows::till::till_shift)
+        .expect("shift");
+    match shift {
+        Some(open) if open.user_id == user => {}
+        Some(_) => {
+            app::workflows::shifts::force_close(state, &user, None, &[], None).expect("closed");
+            app::workflows::shifts::open(state, &user, Money(0), &[]).expect("opened");
+        }
+        None => {
+            app::workflows::shifts::open(state, &user, Money(0), &[]).expect("opened");
+        }
+    }
+}
+
+/// A line in the user's cart: scans the bread first.
+fn a_line(state: &AppState) -> Result<Id, AppError> {
+    ensure_shift(state);
+    till_commands::checkout_scan(state, "BREAD-1")?;
+    let cart = till_commands::checkout_state(state)?.cart.expect("cart");
+    Ok(cart.lines[0].line_id.clone())
+}
+
+fn product_by_code(state: &AppState, code: &str) -> Id {
+    state
+        .db
+        .read(|conn| Ok(catalog::find_by_code(conn, code)?))
+        .expect("find")
+        .expect("product")
+        .id
+}
+
+/// The checkout commands (C-M6).
+fn till_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("checkout_state", |state, _| {
+            ensure_shift(state);
+            ok(till_commands::checkout_state(state))
+        }),
+        ("checkout_scan", |state, _| {
+            ensure_shift(state);
+            ok(till_commands::checkout_scan(state, "BREAD-1"))
+        }),
+        ("checkout_search", |state, _| {
+            ok(till_commands::checkout_search(state, "bread"))
+        }),
+        ("checkout_add_product", |state, _| {
+            ensure_shift(state);
+            let bread = product_by_code(state, "BREAD-1");
+            ok(till_commands::checkout_add_product(state, &bread, None))
+        }),
+        ("checkout_read_scale", |state, _| {
+            let potato = product_by_code(state, "POTATO-1");
+            ok(till_commands::checkout_read_scale(
+                state,
+                &Devices::new(None),
+                &potato,
+            ))
+        }),
+        ("checkout_add_weighed", |state, _| {
+            ensure_shift(state);
+            let potato = product_by_code(state, "POTATO-1");
+            let typed = WeightInput::Manual { text: "1.5".into() };
+            ok(till_commands::checkout_add_weighed(
+                state,
+                &Devices::new(None),
+                &potato,
+                &typed,
+            ))
+        }),
+        ("checkout_set_qty", |state, _| {
+            let line = a_line(state)?;
+            ok(till_commands::checkout_set_qty(state, &line, Qty(2000)))
+        }),
+        ("checkout_remove_line", |state, _| {
+            let line = a_line(state)?;
+            ok(till_commands::checkout_remove_line(state, &line))
+        }),
+        ("checkout_hold", |state, _| {
+            ensure_shift(state);
+            till_commands::checkout_hold(state, None).ok();
+            a_line(state).ok();
+            ok(till_commands::checkout_hold(state, Some("later")))
+        }),
+        ("checkout_held_list", |state, _| {
+            ok(till_commands::checkout_held_list(state))
+        }),
+        ("checkout_resume", |state, _| {
+            ensure_shift(state);
+            a_line(state).ok();
+            till_commands::checkout_hold(state, None)?;
+            let held = till_commands::checkout_held_list(state)?;
+            ok(till_commands::checkout_resume(state, &held[0].cart_id))
+        }),
+        ("checkout_cancel", |state, _| {
+            ensure_shift(state);
+            ok(till_commands::checkout_cancel(state))
+        }),
+        ("checkout_payment_preview", |state, _| {
+            ensure_shift(state);
+            ok(till_commands::checkout_payment_preview(state, &[]))
+        }),
+        ("checkout_complete", |state, _| {
+            ensure_shift(state);
+            till_commands::checkout_cancel(state).ok();
+            a_line(state).ok();
+            ok(till_commands::checkout_complete(
+                state,
+                &[cash(state, 5_000)],
+            ))
+        }),
+    ]
+}
+
+/// The payment method and shift commands (C-M6).
+fn shift_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("payment_method_list", |state, _| {
+            ok(payment_commands::payment_method_list(state))
+        }),
+        ("payment_method_save", |state, _| {
+            let input = PaymentMethodSave {
+                id: None,
+                name: "Card".into(),
+                kind: MethodKind::Card,
+                requires_reference: false,
+                active: true,
+                sort: 1,
+            };
+            ok(payment_commands::payment_method_save(state, &input))
+        }),
+        ("shift_open", |state, _| {
+            if let Some(user) = me(state)
+                && let Ok(Some(_)) = state.db.read(app::workflows::till::till_shift)
+            {
+                app::workflows::shifts::force_close(state, &user, None, &[], None).expect("closed");
+            }
+            ok(shift_commands::shift_open(state, Money(0), &[]))
+        }),
+        ("shift_cash_move", |state, _| {
+            ensure_shift(state);
+            let input = CashMoveInput {
+                kind: CashMoveKind::CashIn,
+                amount: Money(1_000),
+                reason: "Change".into(),
+            };
+            ok(shift_commands::shift_cash_move(state, &input, None))
+        }),
+        ("shift_no_sale", |state, _| {
+            ensure_shift(state);
+            ok(shift_commands::shift_no_sale(state, "Change", None))
+        }),
+        ("shift_close", |state, _| {
+            ensure_shift(state);
+            till_commands::checkout_cancel(state).ok();
+            let counted = CountLine {
+                denomination: Money(10_000),
+                count: 1,
+            };
+            ok(shift_commands::shift_close(state, &[counted], None))
+        }),
+        ("shift_force_close", |state, _| {
+            ensure_shift(state);
+            ok(shift_commands::shift_force_close(state, &[], None, None))
+        }),
+    ]
+}
+
 /// A new product with no prices, so only `CatalogManage` is needed to save it.
 fn new_product(name: &str) -> ProductInput {
     ProductInput {
@@ -401,7 +592,12 @@ fn cashier_has(permission: Permission) -> bool {
 }
 
 /// Commands that take an admin's approval answer `OverrideRequired` instead.
-const TAKES_APPROVAL: &[&str] = &["backup_restore"];
+const TAKES_APPROVAL: &[&str] = &[
+    "backup_restore",
+    "shift_cash_move",
+    "shift_no_sale",
+    "shift_force_close",
+];
 
 fn shop() -> (tempfile::TempDir, AppState, String) {
     let folder = tempfile::tempdir().expect("folder");
@@ -409,6 +605,24 @@ fn shop() -> (tempfile::TempDir, AppState, String) {
     finish_setup(&state);
     add_cashier(&state);
     catalog_commands::product_save(&state, new_product("Milk")).expect("a product");
+    till_product(
+        &state,
+        "Bread",
+        "BREAD-1",
+        5_000,
+        catalog::UNIT_PIECE,
+        false,
+        None,
+    );
+    till_product(
+        &state,
+        "Potato",
+        "POTATO-1",
+        6_000,
+        catalog::UNIT_KG,
+        true,
+        None,
+    );
     stock_commands::count_create(&state, &count_input()).expect("a count");
     let file = backup_commands::backup_now(&state).expect("backed up").file;
     (folder, state, file)

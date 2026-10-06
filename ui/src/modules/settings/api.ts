@@ -1,4 +1,6 @@
 import type { CurrencyFormat } from "../../generated/CurrencyFormat";
+import type { PaymentMethodRow } from "../../generated/PaymentMethodRow";
+import type { PaymentMethodSave } from "../../generated/PaymentMethodSave";
 import type { RateWithComponents } from "../../generated/RateWithComponents";
 import type { SettingsChange } from "../../generated/SettingsChange";
 import type { SettingsSnapshot } from "../../generated/SettingsSnapshot";
@@ -17,3 +19,8 @@ export const moneyPreview = (format: CurrencyFormat) => call<string>("money_prev
 // The active tax rates, for the default rate list.
 export const listRates = () =>
   call<RateWithComponents[]>("tax_rate_list", { includeInactive: false });
+// Every payment method, in list order (SET-15).
+export const listPaymentMethods = () => call<PaymentMethodRow[]>("payment_method_list");
+// Adds or changes a payment method; audited.
+export const savePaymentMethod = (input: PaymentMethodSave) =>
+  call<string>("payment_method_save", { input });

@@ -30,6 +30,7 @@ import {
   resetPeople,
 } from "./people";
 import { connectStockToShop, resetStock, stockHandlers } from "./stock";
+import { connectTill, resetTill, tillHandlers } from "./till";
 
 // A pretend shop for the fake bridge. Rust does the real checks; this stand-in
 // checks only what the screens and their tests need, with the same error codes.
@@ -60,6 +61,7 @@ export function resetFakeShop(startWith: "fresh" | "set_up" = "fresh", signedIn 
   resetPeople(startWith === "set_up", signedIn);
   resetCatalog(startWith === "set_up");
   resetStock(startWith === "set_up");
+  resetTill();
   if (startWith === "set_up") {
     completed = new Set(wizardOrder.filter((step) => step !== "hardware"));
     snapshot.shop_profile.name = "Rahim Store";
@@ -130,6 +132,7 @@ function step(name: SetupStep, save: () => void): SetupStatus {
 
 // The catalog reads the shop's tax rates and money format.
 connectStockToShop(() => snapshot.currency);
+connectTill(() => snapshot.currency);
 
 connectCatalog({
   rates: () => rates,
@@ -141,6 +144,7 @@ export const shopHandlers = {
   ...peopleHandlers,
   ...catalogHandlers,
   ...stockHandlers,
+  ...tillHandlers,
   startup_status: (): StartupView => ({
     damaged: false,
     setup: setupStatus(),

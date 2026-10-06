@@ -9,7 +9,8 @@ import { RecoveryPage } from "../modules/backup/pages/RecoveryPage";
 import { SetupWizard } from "../modules/setup/pages/SetupWizard";
 import { Alert } from "../shared/ui/Alert";
 import { OfficeFrame } from "./OfficeFrame";
-import { getAppInfo, getStartup } from "./api";
+import { getAppInfo, getStartup, shiftState } from "./api";
+import { TillFrame } from "./TillFrame";
 
 // The app window. Which screen shows depends on Rust's startup answer: the recovery
 // screen (damaged data, BAK-06), the setup wizard (SET-01), the login tiles (USR-01),
@@ -20,6 +21,10 @@ export function AppFrame() {
   const [startup, setStartup] = useState<StartupView | null>(null);
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [problem, setProblem] = useState(false);
+  // Till mode (Checkout) or the back office. After login, a cashier with an open
+  // shift on this till goes straight to Checkout (USR-01).
+  const [till, setTill] = useState(false);
+  const [justLoggedIn, setJustLoggedIn] = useState(false);
 
   const reload = () => {
     getStartup()
@@ -57,12 +62,31 @@ export function AppFrame() {
         </div>
       ) : startup.session === null ? (
         <div className="p-6">
-          <LoginPage onLoggedIn={(session) => setStartup({ ...startup, session })} />
+          <LoginPage
+            onLoggedIn={(session) => {
+              setStartup({ ...startup, session });
+              setJustLoggedIn(true);
+              shiftState()
+                .then((state) => setTill(state.shift?.mine === true))
+                .catch(() => setTill(false));
+            }}
+          />
         </div>
       ) : startup.session.locked ? (
         <div className="p-6">
           <LockScreen session={startup.session} onUnlocked={reload} onLoggedOut={reload} />
         </div>
+      ) : till ? (
+        <TillFrame
+          session={startup.session}
+          justLoggedIn={justLoggedIn}
+          idleLockMinutes={startup.idle_lock_min}
+          onLocked={(session) => setStartup({ ...startup, session })}
+          onBackOffice={() => {
+            setTill(false);
+            setJustLoggedIn(false);
+          }}
+        />
       ) : (
         <OfficeFrame
           session={startup.session}
@@ -71,6 +95,7 @@ export function AppFrame() {
           idleLockMinutes={startup.idle_lock_min}
           onLocked={(session) => setStartup({ ...startup, session })}
           onSignedOut={reload}
+          onOpenTill={() => setTill(true)}
         />
       )}
     </div>

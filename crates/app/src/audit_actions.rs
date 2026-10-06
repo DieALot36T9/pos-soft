@@ -8,6 +8,16 @@ pub const CART_CANCEL: &str = "cart.cancel";
 pub const SALE_VOID: &str = "sale.void";
 /// The drawer was opened without a sale (SHF-04).
 pub const DRAWER_NO_SALE: &str = "drawer.no_sale";
+/// A shift was opened on the till with its float (SHF-01).
+pub const SHIFT_OPEN: &str = "shift.open";
+/// A cashier closed their shift with the cash count (SHF-06).
+pub const SHIFT_CLOSE: &str = "shift.close";
+/// An admin closed a shift left open (SHF-07).
+pub const SHIFT_FORCE_CLOSE: &str = "shift.force_close";
+/// Cash was put into or taken out of the drawer: cash in, paid-out or cash drop (SHF-03).
+pub const SHIFT_CASH_MOVE: &str = "shift.cash_move";
+/// A payment method was added or changed (SET-15).
+pub const PAYMENT_METHOD_CHANGE: &str = "payment_method.change";
 /// A setting was changed after setup; details hold the old and new values (SET-13).
 pub const SETTINGS_CHANGE: &str = "settings.change";
 /// A tax rate was added, changed or deactivated after setup (TAX-02, TAX-10).
@@ -70,6 +80,11 @@ pub const ALL: &[&str] = &[
     CART_CANCEL,
     SALE_VOID,
     DRAWER_NO_SALE,
+    SHIFT_OPEN,
+    SHIFT_CLOSE,
+    SHIFT_FORCE_CLOSE,
+    SHIFT_CASH_MOVE,
+    PAYMENT_METHOD_CHANGE,
     SETTINGS_CHANGE,
     TAX_RATE_CHANGE,
     BACKUP_MANUAL,

@@ -581,7 +581,7 @@ fn price_history(conn: &Connection, id: &Id) -> Result<Vec<PriceHistoryView>, Ap
 }
 
 /// The picture as a data address the screen can show, or `None` if the file is gone.
-fn image_address(file: &Path) -> Option<String> {
+pub(crate) fn image_address(file: &Path) -> Option<String> {
     let bytes = std::fs::read(file).ok()?;
     let encoded = base64::engine::general_purpose::STANDARD.encode(bytes);
     Some(format!("data:image/jpeg;base64,{encoded}"))

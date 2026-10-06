@@ -34,7 +34,7 @@ A0 → A1, each alone → all B tasks in parallel → C tasks one after another,
 | [[Task - C-M3]] | Login, roles, admin approval and audit | C-M2, B-auth, B-audit | in order |
 | [[Task - C-M4]] | Products | C-M3, B-catalog, B-barcode | in order |
 | [[Task - C-M5]] | Stock | C-M4, B-inventory | in order |
-| [[Task - C-M6]] | Shifts and checkout | C-M5, B-sales, B-shifts, B-pricing, B-tax | in order |
+| [[Task - C-M6]] | Shifts and checkout | C-M5, B-sales, B-shifts, B-pricing, B-tax | ✅ done |
 | [[Task - C-M7]] | Receipts and devices at the till | C-M6, B-reports | in order |
 | [[Task - C-M8]] | Prices, promotions and customers | C-M7, B-pricing, B-customers | in order |
 | [[Task - C-M9]] | Returns and voids | C-M8 | in order |
