@@ -3,6 +3,8 @@
 use chrono::NaiveDate;
 use pos_core::{Id, Money, Qty, Timestamp};
 use rusqlite::{Connection, OptionalExtension, Row, Transaction, named_params};
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::sql::{
     check_line, clean_text, date_text, next_number, read_id, read_optional_date,
@@ -11,7 +13,9 @@ use crate::sql::{
 use crate::{PurchasingCtx, PurchasingError};
 
 /// Where a purchase order is in its life.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export)]
 pub enum OrderStatus {
     Draft,
     Sent,
@@ -32,7 +36,7 @@ impl OrderStatus {
         }
     }
 
-    fn parse(text: &str) -> rusqlite::Result<OrderStatus> {
+    pub(crate) fn parse(text: &str) -> rusqlite::Result<OrderStatus> {
         match text {
             "draft" => Ok(OrderStatus::Draft),
             "sent" => Ok(OrderStatus::Sent),
@@ -49,7 +53,8 @@ impl OrderStatus {
 }
 
 /// One line the user wants to order. Name and SKU are copied from the catalog by `app`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct NewOrderLine {
     pub product_id: Id,
     pub product_name: String,
@@ -60,7 +65,8 @@ pub struct NewOrderLine {
 }
 
 /// A purchase order as the user fills it in.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct NewOrder {
     pub supplier_id: Id,
     pub expected_date: Option<NaiveDate>,
@@ -69,14 +75,16 @@ pub struct NewOrder {
 }
 
 /// The id and number of a saved order. Example number: "PO-000001".
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct OrderRef {
     pub id: Id,
     pub number: String,
 }
 
 /// A saved order line, with how much has arrived so far.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct OrderLine {
     pub id: Id,
     pub product_id: Id,
@@ -88,7 +96,8 @@ pub struct OrderLine {
 }
 
 /// A saved purchase order with its lines.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Order {
     pub id: Id,
     pub number: String,
@@ -103,7 +112,8 @@ pub struct Order {
 }
 
 /// One order line for the receiving screen. `remaining` is never below zero.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct OrderLineRemaining {
     pub order_line_id: Id,
     pub product_id: Id,

@@ -3,13 +3,16 @@
 use chrono::NaiveDate;
 use pos_core::{Id, Money, Timestamp};
 use rusqlite::{Connection, named_params};
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::ledger::LedgerKind;
 use crate::sql::{date_text, read_date, read_id, read_optional_date, read_optional_id};
 use crate::{PurchasingError, get_supplier};
 
 /// One ledger row on a statement, with the running balance after it.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, rename = "SupplierStatementLine")]
 pub struct StatementLine {
     pub id: Id,
     pub at: Timestamp,
@@ -28,7 +31,8 @@ pub struct StatementLine {
 }
 
 /// A supplier statement from `from` to `to`, both days included (by business date).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, rename = "SupplierStatement")]
 pub struct Statement {
     pub supplier_id: Id,
     pub supplier_name: String,

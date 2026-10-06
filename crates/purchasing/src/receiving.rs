@@ -5,6 +5,8 @@
 use chrono::{Days, NaiveDate};
 use pos_core::{Id, Money, Qty};
 use rusqlite::{Transaction, named_params};
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::ledger::{LedgerEntry, LedgerKind, append};
 use crate::orders::{OrderStatus, add_received, order_header, refresh_status};
@@ -44,7 +46,8 @@ pub struct NewGrn {
 }
 
 /// What `record_grn` saved, with the warnings the screen should show.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct GrnRef {
     pub id: Id,
     /// Example: "GRN-000001".

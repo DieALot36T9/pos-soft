@@ -11,7 +11,10 @@ publish.workspace = true
 pos-core.workspace = true
 chrono.workspace = true
 rusqlite.workspace = true
+# The screens' types go to TypeScript (ADR-014).
+serde.workspace = true
 thiserror.workspace = true
+ts-rs.workspace = true
 
 [lints]
 workspace = true

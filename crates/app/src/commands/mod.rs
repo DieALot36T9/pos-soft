@@ -12,6 +12,7 @@ pub mod hardware;
 pub mod inventory;
 pub mod payment_methods;
 pub mod pricing;
+pub mod purchasing;
 pub mod receipts;
 pub mod returns;
 pub mod settings;
@@ -209,6 +210,31 @@ pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("exchange_start", Some(Permission::ReturnWithReceipt)),
     ("exchange_cash_out", Some(Permission::CheckoutSell)),
     ("sale_void", Some(Permission::SaleVoid)),
+    ("supplier_list", Some(Permission::PurchasingManage)),
+    ("supplier_get", Some(Permission::PurchasingManage)),
+    ("supplier_save", Some(Permission::PurchasingManage)),
+    ("supplier_archive", Some(Permission::PurchasingManage)),
+    ("po_list", Some(Permission::PurchasingManage)),
+    ("po_get", Some(Permission::PurchasingManage)),
+    ("po_save", Some(Permission::PurchasingManage)),
+    ("po_suggest", Some(Permission::PurchasingManage)),
+    ("po_mark_sent", Some(Permission::PurchasingManage)),
+    ("po_export", Some(Permission::PurchasingManage)),
+    ("po_cancel", Some(Permission::PurchasingManage)),
+    ("grn_start", Some(Permission::PurchasingManage)),
+    ("grn_preview", Some(Permission::PurchasingManage)),
+    ("grn_save", Some(Permission::PurchasingManage)),
+    ("grn_list", Some(Permission::PurchasingManage)),
+    ("grn_get", Some(Permission::PurchasingManage)),
+    ("supplier_return_save", Some(Permission::PurchasingManage)),
+    ("supplier_return_list", Some(Permission::PurchasingManage)),
+    ("payables_aging", Some(Permission::PurchasingManage)),
+    ("supplier_statement", Some(Permission::PurchasingManage)),
+    (
+        "supplier_statement_export",
+        Some(Permission::PurchasingManage),
+    ),
+    ("supplier_payment", Some(Permission::PurchasingPay)),
 ];
 
 /// The dev-only commands (fake scale panel). Registered only when `dev_tools::ON` is true.
@@ -258,7 +284,7 @@ mod tests {
     #[test]
     fn every_command_has_a_permission_decision() {
         let all = names(COMMANDS);
-        assert_eq!(all.len(), 142);
+        assert_eq!(all.len(), 164);
         let mut unique = all.clone();
         unique.sort_unstable();
         unique.dedup();

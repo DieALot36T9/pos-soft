@@ -13,8 +13,8 @@ use app::commands::{
 };
 use app::commands::{
     customers as customer_commands, payment_methods as payment_commands,
-    pricing as pricing_commands, receipts as receipt_commands, returns as return_commands,
-    shifts as shift_commands,
+    pricing as pricing_commands, purchasing as purchasing_commands, receipts as receipt_commands,
+    returns as return_commands, shifts as shift_commands,
 };
 use app::devices::Devices;
 use app::session;
@@ -25,6 +25,8 @@ use app::workflows::customer_records::{CustomerPaymentInput, CustomerSave};
 use app::workflows::payment_methods::PaymentMethodSave;
 use app::workflows::pricing_admin::{PriceListSave, PromotionSave, TierSave};
 use app::workflows::products::{ProductInput, VariantAttribute};
+use app::workflows::purchasing_admin::{OrderSave, SupplierPaymentInput, SupplierSave};
+use app::workflows::receiving::{GrnInput, SupplierReturnInput};
 use app::workflows::returns::{ReturnInput, ReturnLineInput};
 use app::workflows::settings_change::SettingsChange;
 use app::workflows::shifts::{CashMoveInput, CashMoveKind, CountLine};
@@ -127,6 +129,8 @@ fn calls() -> Vec<(&'static str, Call)> {
     calls.extend(pricing_calls());
     calls.extend(customer_calls());
     calls.extend(return_calls());
+    calls.extend(purchasing_calls());
+    calls.extend(receiving_calls());
     calls
 }
 
@@ -940,6 +944,146 @@ fn with_unknown_receipt(state: &AppState) -> ReturnInput {
         reason: Some("Wrong size".into()),
         refund_method_id: cash_method(state),
         reference: None,
+    }
+}
+
+/// The supplier and purchase order commands (C-M10). Each call meets its permission check first; with the
+/// permission, unknown ids are refused as not found, which is fine here.
+fn purchasing_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("supplier_list", |state, _| {
+            ok(purchasing_commands::supplier_list(state, true))
+        }),
+        ("supplier_get", |state, _| {
+            ok(purchasing_commands::supplier_get(state, &Id::new()))
+        }),
+        ("supplier_save", |state, _| {
+            let input = SupplierSave {
+                id: None,
+                input: purchasing::SupplierInput {
+                    name: "Rahim Traders".into(),
+                    ..purchasing::SupplierInput::default()
+                },
+            };
+            ok(purchasing_commands::supplier_save(state, &input))
+        }),
+        ("supplier_archive", |state, _| {
+            ok(purchasing_commands::supplier_archive(state, &Id::new()))
+        }),
+        ("po_list", |state, _| {
+            ok(purchasing_commands::po_list(state, None))
+        }),
+        ("po_get", |state, _| {
+            ok(purchasing_commands::po_get(state, &Id::new()))
+        }),
+        ("po_save", |state, _| {
+            let input = OrderSave {
+                id: None,
+                supplier_id: Id::new(),
+                expected_date: None,
+                notes: None,
+                lines: Vec::new(),
+            };
+            ok(purchasing_commands::po_save(state, &input))
+        }),
+        ("po_suggest", |state, _| {
+            ok(purchasing_commands::po_suggest(state, &Id::new()))
+        }),
+        ("po_mark_sent", |state, _| {
+            ok(purchasing_commands::po_mark_sent(state, &Id::new()))
+        }),
+        ("po_export", |state, file| {
+            ok(purchasing_commands::po_export(
+                state,
+                &Id::new(),
+                &format!("{file}.xlsx"),
+            ))
+        }),
+        ("po_cancel", |state, _| {
+            ok(purchasing_commands::po_cancel(state, &Id::new()))
+        }),
+    ]
+}
+
+/// The receiving, supplier return and payables commands (C-M10).
+fn receiving_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("grn_start", |state, _| {
+            ok(purchasing_commands::grn_start(state, &Id::new()))
+        }),
+        ("grn_preview", |state, _| {
+            ok(purchasing_commands::grn_preview(state, &empty_grn()))
+        }),
+        ("grn_save", |state, _| {
+            ok(purchasing_commands::grn_save(state, &empty_grn()))
+        }),
+        ("grn_list", |state, _| {
+            ok(purchasing_commands::grn_list(state))
+        }),
+        ("grn_get", |state, _| {
+            ok(purchasing_commands::grn_get(state, &Id::new()))
+        }),
+        ("supplier_return_save", |state, _| {
+            let input = SupplierReturnInput {
+                supplier_id: Id::new(),
+                grn_id: None,
+                reason: None,
+                lines: Vec::new(),
+            };
+            ok(purchasing_commands::supplier_return_save(state, &input))
+        }),
+        ("supplier_return_list", |state, _| {
+            ok(purchasing_commands::supplier_return_list(state))
+        }),
+        ("payables_aging", |state, _| {
+            ok(purchasing_commands::payables_aging(state))
+        }),
+        ("supplier_statement", |state, _| {
+            let day = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).expect("date");
+            ok(purchasing_commands::supplier_statement(
+                state,
+                &Id::new(),
+                day,
+                day,
+            ))
+        }),
+        ("supplier_statement_export", |state, file| {
+            let day = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).expect("date");
+            let file = format!("{file}.xlsx");
+            ok(purchasing_commands::supplier_statement_export(
+                state,
+                &Id::new(),
+                day,
+                day,
+                &file,
+            ))
+        }),
+        ("supplier_payment", |state, _| {
+            let input = SupplierPaymentInput {
+                supplier_id: Id::new(),
+                amount: Money(1_000),
+                method_id: cash_method(state),
+                reference: None,
+                from_drawer: false,
+            };
+            ok(purchasing_commands::supplier_payment(
+                state,
+                devices(),
+                &input,
+            ))
+        }),
+    ]
+}
+
+/// A delivery with no lines from a supplier that doesn't exist.
+fn empty_grn() -> GrnInput {
+    GrnInput {
+        supplier_id: Id::new(),
+        order_id: None,
+        supplier_invoice_no: None,
+        invoice_total: Money(0),
+        notes: None,
+        lines: Vec::new(),
     }
 }
 

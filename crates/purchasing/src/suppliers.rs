@@ -2,12 +2,15 @@
 
 use pos_core::{Id, Timestamp};
 use rusqlite::{Connection, Row, Transaction, named_params};
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::PurchasingError;
 use crate::sql::{clean_text, read_id, read_optional_timestamp};
 
 /// What the user types for a supplier. Only the name is required.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct SupplierInput {
     pub name: String,
     pub contact_person: Option<String>,
@@ -21,7 +24,8 @@ pub struct SupplierInput {
 }
 
 /// A saved supplier.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Supplier {
     pub id: Id,
     pub name: String,
