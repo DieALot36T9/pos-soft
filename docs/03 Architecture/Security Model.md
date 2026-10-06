@@ -27,6 +27,7 @@ tags: [architecture, security]
 - `commands::COMMANDS` lists **every command** with the permission it requires, so a new command can't be added without deciding its permission. `crates/app/tests/permissions.rs` calls every guarded command for real: signed out, as a cashier (refused exactly where the Cashier role lacks the permission), as an admin, and on a locked till.
 - Setup commands need no sign-in (nobody exists yet), but work only until setup is complete. Settings and tax rate commands also work without sign-in during setup, because the wizard uses them; afterwards they need `SettingsManage` / `TaxManage`. The recovery commands work only while the database is damaged.
 - `product_save` checks `CatalogManage`, and also `CatalogPriceEdit` when the sale or cost price changes (or a new product has a price), so a stock keeper can edit products without changing prices (C-M4).
+- Stock (C-M5): reading needs `StockView`; `stock_adjust` and `stock_verify` need `StockAdjust`; `count_list`, `count_get` and `count_line` need `StockCountEnter`; `count_create`, `count_variances`, `count_post` and `count_cancel` need `StockCountManage`. `count_post` makes its `pre-count-post` backup without `BackupRun`, because the backup is part of posting.
 - Override tokens: created by `request_override` after `auth::verify_override(admin_username, password, permission)`, random 128-bit, **single use**, tied to one permission and the user who asked, expire after 60 s, kept in memory only and dropped at logout or lock.
 
 ## Audit

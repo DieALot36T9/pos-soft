@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: medium
 phase: C
 depends_on: [C-M4, B-inventory]
-status: waiting
+status: done
 ---
 # Task C-M5: Stock
 

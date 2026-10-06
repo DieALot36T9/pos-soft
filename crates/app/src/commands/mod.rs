@@ -7,6 +7,7 @@ pub mod backup;
 pub mod catalog;
 pub mod dev;
 pub mod hardware;
+pub mod inventory;
 pub mod settings;
 pub mod setup;
 pub mod startup;
@@ -31,6 +32,8 @@ use pos_core::{AppError, Permission};
 ///   need someone signed in (any role); `unlock*` only while the till is locked.
 /// - `backup_restore` also takes an admin's approval token (`require_or_approval`, USR-05).
 /// - `product_save` also needs `CatalogPriceEdit` when it changes a sale or cost price.
+/// - `count_post` makes a `pre-count-post` backup first, without `BackupRun`: the backup
+///   is part of posting (Workflows, "Post stock count").
 pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("app_info", None),
     ("hardware_test_print", None),
@@ -98,6 +101,23 @@ pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("brand_list", Some(Permission::StockView)),
     ("brand_save", Some(Permission::CatalogManage)),
     ("brand_archive", Some(Permission::CatalogManage)),
+    ("stock_levels", Some(Permission::StockView)),
+    ("stock_product", Some(Permission::StockView)),
+    ("stock_lookup", Some(Permission::StockView)),
+    ("stock_history", Some(Permission::StockView)),
+    ("stock_reasons", Some(Permission::StockView)),
+    ("stock_adjust", Some(Permission::StockAdjust)),
+    ("low_stock", Some(Permission::StockView)),
+    ("near_expiry", Some(Permission::StockView)),
+    ("stock_alerts", Some(Permission::StockView)),
+    ("stock_verify", Some(Permission::StockAdjust)),
+    ("count_list", Some(Permission::StockCountEnter)),
+    ("count_get", Some(Permission::StockCountEnter)),
+    ("count_create", Some(Permission::StockCountManage)),
+    ("count_line", Some(Permission::StockCountEnter)),
+    ("count_variances", Some(Permission::StockCountManage)),
+    ("count_post", Some(Permission::StockCountManage)),
+    ("count_cancel", Some(Permission::StockCountManage)),
 ];
 
 /// The dev-only commands (fake scale panel). Registered only when `dev_tools::ON` is true.
@@ -147,7 +167,7 @@ mod tests {
     #[test]
     fn every_command_has_a_permission_decision() {
         let all = names(COMMANDS);
-        assert_eq!(all.len(), 66);
+        assert_eq!(all.len(), 83);
         let mut unique = all.clone();
         unique.sort_unstable();
         unique.dedup();

@@ -4,12 +4,14 @@
 use pos_core::{Id, Qty, Timestamp};
 use rusqlite::{Connection, OptionalExtension, Row, Transaction, named_params};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::convert::{add_qty, bad_column, id_at, optional_id_at};
 use crate::{InventoryError, Page, batches, levels};
 
 /// Whether a count covers every product or only some.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "snake_case")]
 pub enum CountScope {
     /// Every product. Products never counted are set to 0 when posting.
@@ -19,7 +21,8 @@ pub enum CountScope {
 }
 
 /// Where a count is in its life.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "snake_case")]
 pub enum CountStatus {
     Open,

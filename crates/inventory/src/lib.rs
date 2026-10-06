@@ -18,7 +18,7 @@ mod record;
 mod types;
 mod verify;
 
-pub use batches::{BatchRow, batches_of, create_batch, near_expiry};
+pub use batches::{BatchRow, batches_of, create_batch, get_batch, near_expiry};
 pub use count_post::{VarianceRow, count_variances, post_count};
 pub use counts::{
     CountEntry, CountRef, CountRow, CountScope, CountStatus, NewCount, cancel_count, create_count,

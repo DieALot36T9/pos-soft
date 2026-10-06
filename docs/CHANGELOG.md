@@ -4,6 +4,18 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task C-M5: stock)
+- **Stock screen** (INV-01, INV-03, INV-04, INV-05, INV-08): every product that keeps stock with on hand, reorder level and value at cost; search, category and "Low stock / Below zero / Expiring soon" filters; Low, Below 0 and Expiring marks; the total stock value. "Verify stock data" (INV-10) lists levels that don't match their history and changes nothing.
+- **Product stock page** (INV-05, INV-07): on hand, reorder rule, batches first expiry first (Expired, Soon, Good), and the history with a running balance, filtered by kind and dates, with the reason, note, batch, user and the count number.
+- **Adjust stock** (INV-02): stock in or out, a quantity, a reason that fits the way (Other needs a note), and the batch (first expiry first, a chosen batch, or a new batch with its expiry date). Audited as `stock.adjust`. With "allow negative stock" off, it shows how much is available.
+- **Stock counts** (INV-06): start a full or part count (SC-000001 …), count by scanning with a quantity (scans add up, "Take back" for a wrong scan, the batch for products with batches), review expected, counted, difference and value, then post after a `pre-count-post` backup. A full count asks before setting uncounted products to 0. Cancel leaves stock alone. Each step is audited.
+- **Stock alerts on the dashboard** (INV-03, INV-05) for users with "See stock": products below their reorder level, batches near expiry or expired, products below zero.
+- 17 commands (`stock_*`, `low_stock`, `near_expiry`, `count_*`), each in `tests/permissions.rs`; `crates/app/tests/stock.rs` with the randomized "levels equal ledger" check; screen tests and `ui/e2e/stock.spec.ts`.
+- `inventory::get_batch` and TypeScript types for `MoveKind`, `CountScope`, `CountStatus`, `ReasonDirection` and `Reason` (with contract tests).
+
+### Changed (task C-M5)
+- The fake bridge's Milk 1L has a reorder rule and demo stock, so the dashboard shows alerts in `pnpm dev:mock`.
+
 ### Added (task C-M4: products)
 - **Products screen** (CAT-01, CAT-08): list with search by name or SKU, category (with sub-categories) and brand filters, archived products on request, prices in the shop's money format, 50 a page.
 - **Product page** with tabs (CAT-01 to CAT-11): General (kind, name, SKU, category, brand, unit, weighing, scale item code, notes), Prices and tax (sale, cost, tax rate with the shop default, price history with who changed it), Barcodes (add by scanning or typing, remove, "Make shop barcode" from the internal prefix), Stock (track stock and expiry, reorder level and quantity, preferred supplier), Variants (attributes → every combination), Kit parts (find products, quantities), Picture. `Ctrl+S` saves, `Esc` goes back. Archive, bring back, and delete for good (only if never used).

@@ -69,6 +69,18 @@ pub fn batches_of(connection: &Connection, product: &Id) -> Result<Vec<BatchRow>
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
+/// One batch, even an empty one. Example: the batch a history row points at.
+pub fn get_batch(connection: &Connection, id: &Id) -> Result<BatchRow, InventoryError> {
+    let sql = format!("SELECT {BATCH_COLUMNS} FROM inventory_batches WHERE id = :id");
+    connection
+        .query_row(&sql, named_params! { ":id": id.as_str() }, batch_from)
+        .optional()?
+        .ok_or_else(|| InventoryError::NotFound {
+            entity: "batch",
+            key: id.to_string(),
+        })
+}
+
 /// Batches with stock that expire within `days` days of `today`, soonest first.
 /// Already expired batches are included, at the top. Example: today 2 March, 30 days →
 /// everything expiring on or before 1 April.

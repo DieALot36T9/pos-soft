@@ -11,6 +11,7 @@ import { en as auth } from "../modules/auth/text/en";
 import { en as backup } from "../modules/backup/text/en";
 import { en as catalog } from "../modules/catalog/text/en";
 import { en as hardware } from "../modules/hardware/text/en";
+import { en as inventory } from "../modules/inventory/text/en";
 import { en as settings } from "../modules/settings/text/en";
 import { en as setup } from "../modules/setup/text/en";
 import { en as tax } from "../modules/tax/text/en";
@@ -36,6 +37,7 @@ export const resources = {
     users,
     audit,
     catalog,
+    inventory,
   },
 };
 

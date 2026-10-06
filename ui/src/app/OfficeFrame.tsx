@@ -1,4 +1,6 @@
 import {
+  Boxes,
+  ClipboardList,
   DatabaseBackup,
   FolderTree,
   History,
@@ -30,6 +32,8 @@ import { CategoriesPage } from "../modules/catalog/pages/CategoriesPage";
 import { ProductsPage } from "../modules/catalog/pages/ProductsPage";
 import { UnitsPage } from "../modules/catalog/pages/UnitsPage";
 import { HardwarePage } from "../modules/hardware/pages/HardwarePage";
+import { StockCountsPage } from "../modules/inventory/pages/StockCountsPage";
+import { StockLevelsPage } from "../modules/inventory/pages/StockLevelsPage";
 import { SettingsPage } from "../modules/settings/pages/SettingsPage";
 import { TaxRatesPage } from "../modules/tax/pages/TaxRatesPage";
 import { RolesPage } from "../modules/users/pages/RolesPage";
@@ -45,6 +49,8 @@ import { lockTill, logOut } from "./api";
 type Page =
   | "home"
   | "products"
+  | "stock"
+  | "counts"
   | "categories"
   | "brands"
   | "units"
@@ -62,6 +68,8 @@ type Page =
 const menu: { page: Page; icon: LucideIcon; needs: Permission | null }[] = [
   { page: "home", icon: Home, needs: null },
   { page: "products", icon: Package, needs: "stock_view" },
+  { page: "stock", icon: Boxes, needs: "stock_view" },
+  { page: "counts", icon: ClipboardList, needs: "stock_count_enter" },
   { page: "categories", icon: FolderTree, needs: "catalog_manage" },
   { page: "brands", icon: Tag, needs: "catalog_manage" },
   { page: "units", icon: Ruler, needs: "catalog_manage" },
@@ -183,8 +191,19 @@ export function OfficeFrame({
           </Alert>
         ) : null}
         {problem ? <Alert kind="problem">{problem}</Alert> : null}
-        {page === "home" ? <HomePage /> : null}
+        {page === "home" ? (
+          <HomePage
+            showStockAlerts={session.permissions.includes("stock_view")}
+            onOpenStock={() => setPage("stock")}
+          />
+        ) : null}
         {page === "products" ? <ProductsPage /> : null}
+        {page === "stock" ? (
+          <StockLevelsPage canAdjust={session.permissions.includes("stock_adjust")} />
+        ) : null}
+        {page === "counts" ? (
+          <StockCountsPage canManage={session.permissions.includes("stock_count_manage")} />
+        ) : null}
         {page === "categories" ? <CategoriesPage /> : null}
         {page === "brands" ? <BrandsPage /> : null}
         {page === "units" ? <UnitsPage /> : null}

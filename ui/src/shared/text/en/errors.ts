@@ -135,6 +135,27 @@ export const errors = {
   hardware_refused: "The {{device}} refused the job. Check its paper and cover, then try again.",
   hardware_no_weight: "The scale sent data without a weight. Check the scale settings.",
   hardware_bad_settings: "The {{device}} settings are wrong. Check them in Settings.",
+  // Stock (INV-01 to INV-10)
+  qty_zero: "Type a quantity above zero.",
+  qty_wrong_sign: "This kind of stock change can't go that way. Check in or out.",
+  reason_needed: "Pick a reason for the change.",
+  reason_unknown: "This reason isn't in the list any more. Pick another one.",
+  reason_wrong_direction: "This reason doesn't fit that way. Example: Damage only takes stock out.",
+  note_needed: "Type a note that says what happened. Example: given to a charity",
+  not_enough_stock: "There isn't enough stock for that.",
+  not_enough_stock_in_batch: "This batch hasn't got that much stock.",
+  batch_needed: "Pick the batch the stock goes into.",
+  batch_of_other_product: "That batch belongs to another product.",
+  expiry_needed: "This product tracks expiry. Type the expiry date. Example: 2026-12-31",
+  new_batch_only_for_stock_in: "A new batch is only for stock coming in.",
+  product_keeps_no_stock: 'This product doesn\'t keep stock (a kit, or "Track stock" is off).',
+  count_name_missing: "Give the count a name. Example: October full count",
+  count_not_open: "This count is already posted or cancelled.",
+  counted_below_zero: "The counted total can't go below zero.",
+  count_mixes_batch_and_whole:
+    "Count this product either by batch or as a whole, not both in one count.",
+  count_uncounted_needs_confirm:
+    "{{uncounted}} products with stock were not counted. Tick the box to set them to 0.",
   internal: "Something went wrong (ref {{ref}}). Copy the details and tell the shop owner.",
   unknown: "Something went wrong. Try again.",
 };

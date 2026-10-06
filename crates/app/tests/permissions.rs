@@ -7,18 +7,22 @@ mod common;
 
 use app::commands::{
     COMMANDS, audit as audit_commands, backup as backup_commands, catalog as catalog_commands,
-    settings as settings_commands, tax as tax_commands, users as user_commands,
+    inventory as stock_commands, settings as settings_commands, tax as tax_commands,
+    users as user_commands,
 };
 use app::session;
 use app::state::AppState;
 use app::workflows::catalog_lists::{BrandInput, CategoryInput, UnitInput};
 use app::workflows::products::{ProductInput, VariantAttribute};
 use app::workflows::settings_change::SettingsChange;
+use app::workflows::stock::{AdjustBatch, AdjustInput, HistoryQuery, StockFilter};
+use app::workflows::stock_counts::{CountInput, CountLineInput};
 use app::workflows::users::{RoleInput, UserInput};
 use audit::{AuditFilter, AuditPage};
 use catalog::{CategoryFields, ProductFilter, ProductKind, ProductPage, UnitFields};
 use common::*;
-use pos_core::{AppError, Bps, Id, Money, Permission};
+use inventory::CountScope;
+use pos_core::{AppError, Bps, Id, Money, Permission, Qty};
 use settings::{CreditSettings, Setting};
 
 type Call = fn(&AppState, &str) -> Result<(), AppError>;
@@ -102,7 +106,128 @@ fn calls() -> Vec<(&'static str, Call)> {
         }),
     ];
     calls.extend(catalog_calls());
+    calls.extend(stock_calls());
     calls
+}
+
+/// The stock and stock count commands (C-M5).
+fn stock_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("stock_levels", |state, _| {
+            ok(stock_commands::stock_levels(
+                state,
+                &StockFilter::default(),
+                ProductPage {
+                    offset: 0,
+                    limit: 10,
+                },
+            ))
+        }),
+        ("stock_product", |state, _| {
+            ok(stock_commands::stock_product(state, &first_product(state)))
+        }),
+        ("stock_lookup", |state, _| {
+            ok(stock_commands::stock_lookup(state, "P000001"))
+        }),
+        ("stock_history", |state, _| {
+            let query = HistoryQuery {
+                product_id: first_product(state),
+                from: None,
+                to: None,
+                kinds: Vec::new(),
+                page: ProductPage {
+                    offset: 0,
+                    limit: 10,
+                },
+            };
+            ok(stock_commands::stock_history(state, &query))
+        }),
+        ("stock_reasons", |state, _| {
+            ok(stock_commands::stock_reasons(state))
+        }),
+        ("stock_adjust", |state, _| {
+            let input = AdjustInput {
+                product_id: first_product(state),
+                qty_delta: Qty(1000),
+                reason_code: "opening".into(),
+                note: None,
+                batch: AdjustBatch::Auto,
+            };
+            ok(stock_commands::stock_adjust(state, &input))
+        }),
+        ("low_stock", |state, _| {
+            let page = ProductPage {
+                offset: 0,
+                limit: 10,
+            };
+            ok(stock_commands::low_stock(state, page))
+        }),
+        ("near_expiry", |state, _| {
+            ok(stock_commands::near_expiry(state))
+        }),
+        ("stock_alerts", |state, _| {
+            ok(stock_commands::stock_alerts(state))
+        }),
+        ("stock_verify", |state, _| {
+            ok(stock_commands::stock_verify(state))
+        }),
+        ("count_list", |state, _| {
+            let page = ProductPage {
+                offset: 0,
+                limit: 10,
+            };
+            ok(stock_commands::count_list(state, page))
+        }),
+        ("count_get", |state, _| {
+            ok(stock_commands::count_get(state, &first_count(state)))
+        }),
+        ("count_create", |state, _| {
+            ok(stock_commands::count_create(state, &count_input()))
+        }),
+        ("count_line", |state, _| {
+            let line = CountLineInput {
+                product_id: first_product(state),
+                batch_id: None,
+                qty: Qty(1000),
+            };
+            ok(stock_commands::count_line(
+                state,
+                &first_count(state),
+                &line,
+            ))
+        }),
+        ("count_variances", |state, _| {
+            ok(stock_commands::count_variances(state, &first_count(state)))
+        }),
+        ("count_post", |state, _| {
+            ok(stock_commands::count_post(state, &first_count(state), true))
+        }),
+        ("count_cancel", |state, _| {
+            ok(stock_commands::count_cancel(state, &first_count(state)))
+        }),
+    ]
+}
+
+fn count_input() -> CountInput {
+    CountInput {
+        name: "Shelf check".into(),
+        scope: CountScope::Partial,
+        category_id: None,
+        brand_id: None,
+        location: None,
+    }
+}
+
+/// The oldest count, read straight from inventory (no permission check). `shop()` made it.
+fn first_count(state: &AppState) -> Id {
+    state
+        .db
+        .read(|conn| Ok(inventory::list_counts(conn, inventory::Page::first(100))?))
+        .expect("counts")
+        .last()
+        .expect("a count")
+        .id
+        .clone()
 }
 
 /// The product, unit, category and brand commands (C-M4).
@@ -284,6 +409,7 @@ fn shop() -> (tempfile::TempDir, AppState, String) {
     finish_setup(&state);
     add_cashier(&state);
     catalog_commands::product_save(&state, new_product("Milk")).expect("a product");
+    stock_commands::count_create(&state, &count_input()).expect("a count");
     let file = backup_commands::backup_now(&state).expect("backed up").file;
     (folder, state, file)
 }

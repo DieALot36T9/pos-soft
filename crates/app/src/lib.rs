@@ -103,7 +103,8 @@ fn command_handler() -> CommandHandler {
 /// Every command, plus the dev-only ones.
 fn with_dev_commands() -> CommandHandler {
     use commands::{
-        audit, auth, backup, catalog, dev, hardware, settings, setup, startup, system, tax, users,
+        audit, auth, backup, catalog, dev, hardware, inventory, settings, setup, startup, system,
+        tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -172,6 +173,23 @@ fn with_dev_commands() -> CommandHandler {
         catalog::cmd::brand_list,
         catalog::cmd::brand_save,
         catalog::cmd::brand_archive,
+        inventory::cmd::stock_levels,
+        inventory::cmd::stock_product,
+        inventory::cmd::stock_lookup,
+        inventory::cmd::stock_history,
+        inventory::cmd::stock_reasons,
+        inventory::cmd::stock_adjust,
+        inventory::cmd::low_stock,
+        inventory::cmd::near_expiry,
+        inventory::cmd::stock_alerts,
+        inventory::cmd::stock_verify,
+        inventory::cmd::count_list,
+        inventory::cmd::count_get,
+        inventory::cmd::count_create,
+        inventory::cmd::count_line,
+        inventory::cmd::count_variances,
+        inventory::cmd::count_post,
+        inventory::cmd::count_cancel,
         dev::dev_fake_scale_get,
         dev::dev_fake_scale_set,
         dev::dev_fake_scale_read,
@@ -181,7 +199,8 @@ fn with_dev_commands() -> CommandHandler {
 /// Every command, without the dev-only ones.
 fn without_dev_commands() -> CommandHandler {
     use commands::{
-        audit, auth, backup, catalog, hardware, settings, setup, startup, system, tax, users,
+        audit, auth, backup, catalog, hardware, inventory, settings, setup, startup, system, tax,
+        users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -250,6 +269,23 @@ fn without_dev_commands() -> CommandHandler {
         catalog::cmd::brand_list,
         catalog::cmd::brand_save,
         catalog::cmd::brand_archive,
+        inventory::cmd::stock_levels,
+        inventory::cmd::stock_product,
+        inventory::cmd::stock_lookup,
+        inventory::cmd::stock_history,
+        inventory::cmd::stock_reasons,
+        inventory::cmd::stock_adjust,
+        inventory::cmd::low_stock,
+        inventory::cmd::near_expiry,
+        inventory::cmd::stock_alerts,
+        inventory::cmd::stock_verify,
+        inventory::cmd::count_list,
+        inventory::cmd::count_get,
+        inventory::cmd::count_create,
+        inventory::cmd::count_line,
+        inventory::cmd::count_variances,
+        inventory::cmd::count_post,
+        inventory::cmd::count_cancel,
     ])
 }
 
