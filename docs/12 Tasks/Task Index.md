@@ -38,7 +38,7 @@ A0 → A1, each alone → all B tasks in parallel → C tasks one after another,
 | [[Task - C-M7]] | Receipts and devices at the till | C-M6, B-reports | ✅ done |
 | [[Task - C-M8]] | Prices, promotions and customers | C-M7, B-pricing, B-customers | ✅ done |
 | [[Task - C-M9]] | Returns and voids | C-M8 | ✅ done |
-| [[Task - C-M10]] | Purchasing | C-M9, B-purchasing | in order |
+| [[Task - C-M10]] | Purchasing | C-M9, B-purchasing | ✅ done |
 | [[Task - C-M11]] | Reports | C-M10, B-reports, B-io | in order |
 | [[Task - C-M12]] | Import/export, labels and shelf tags | C-M11, B-io | in order |
 

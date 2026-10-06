@@ -4,12 +4,15 @@
 use chrono::NaiveDate;
 use pos_core::{Id, Money};
 use rusqlite::{Connection, named_params};
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::PurchasingError;
 use crate::sql::{read_date, read_id, read_optional_date};
 
 /// One supplier's balance split by how late it is. The buckets add up to `balance`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct AgingRow {
     pub supplier_id: Id,
     pub name: String,

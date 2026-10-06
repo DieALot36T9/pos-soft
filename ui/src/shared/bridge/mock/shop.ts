@@ -33,6 +33,7 @@ import { connectPrinter, resetPrinter } from "./printer";
 import { connectStockToShop, resetStock, stockHandlers } from "./stock";
 import { connectTill, resetTill, tillHandlers } from "./till";
 import { connectCustomersToShop, customerHandlers, resetCustomers } from "./customers";
+import { connectPurchasingToShop, purchasingHandlers, resetPurchasing } from "./purchasing";
 
 // A pretend shop for the fake bridge. Rust does the real checks; this stand-in
 // checks only what the screens and their tests need, with the same error codes.
@@ -65,6 +66,7 @@ export function resetFakeShop(startWith: "fresh" | "set_up" = "fresh", signedIn 
   resetStock(startWith === "set_up");
   resetTill();
   resetCustomers(startWith === "set_up");
+  resetPurchasing(startWith === "set_up");
   resetPrinter();
   if (startWith === "set_up") {
     completed = new Set(wizardOrder.filter((step) => step !== "hardware"));
@@ -141,6 +143,7 @@ connectTill(
   () => snapshot,
 );
 connectCustomersToShop(() => snapshot.currency);
+connectPurchasingToShop(() => snapshot.currency);
 connectPrinter(() => snapshot.hardware);
 
 connectCatalog({
@@ -155,6 +158,7 @@ export const shopHandlers = {
   ...stockHandlers,
   ...tillHandlers,
   ...customerHandlers,
+  ...purchasingHandlers,
   startup_status: (): StartupView => ({
     damaged: false,
     setup: setupStatus(),

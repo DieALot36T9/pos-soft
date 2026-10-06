@@ -3801,7 +3801,9 @@ dependencies = [
  "chrono",
  "pos-core",
  "rusqlite",
+ "serde",
  "thiserror 2.0.21",
+ "ts-rs",
 ]
 
 [[package]]

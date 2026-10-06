@@ -3,6 +3,8 @@
 
 use pos_core::{Id, Money, Qty};
 use rusqlite::{OptionalExtension, Transaction, named_params};
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::ledger::{LedgerEntry, LedgerKind, append};
 use crate::sql::{
@@ -31,7 +33,8 @@ pub struct NewSupplierReturn {
 }
 
 /// What `record_return` saved.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, rename = "SupplierReturnRef")]
 pub struct ReturnRef {
     pub id: Id,
     /// Example: "SR-000001".

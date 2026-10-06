@@ -94,6 +94,16 @@ pub const POINTS_ADJUST: &str = "points.adjust";
 pub const RETURN_COMPLETE: &str = "return.complete";
 /// An exchange's credit was given back in cash instead of buying something new (RET-05).
 pub const EXCHANGE_CASH_OUT: &str = "exchange.cash_out";
+/// A supplier was added, changed or archived (PUR-01).
+pub const SUPPLIER_CHANGE: &str = "supplier.change";
+/// A purchase order was made, changed, sent or cancelled (PUR-02).
+pub const PURCHASE_ORDER_CHANGE: &str = "purchase_order.change";
+/// Goods were received from a supplier (GRN); details hold the cost changes (PUR-03).
+pub const GRN_SAVE: &str = "grn.save";
+/// Goods were sent back to a supplier (PUR-04).
+pub const SUPPLIER_RETURN_SAVE: &str = "supplier_return.save";
+/// A supplier was paid (PUR-05).
+pub const SUPPLIER_PAYMENT: &str = "supplier.payment";
 
 /// Every action name, for the action filter on the audit screen (USR-08).
 pub const ALL: &[&str] = &[
@@ -143,6 +153,11 @@ pub const ALL: &[&str] = &[
     POINTS_ADJUST,
     RETURN_COMPLETE,
     EXCHANGE_CASH_OUT,
+    SUPPLIER_CHANGE,
+    PURCHASE_ORDER_CHANGE,
+    GRN_SAVE,
+    SUPPLIER_RETURN_SAVE,
+    SUPPLIER_PAYMENT,
 ];
 
 #[cfg(test)]

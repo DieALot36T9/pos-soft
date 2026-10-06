@@ -5,12 +5,16 @@
 use chrono::NaiveDate;
 use pos_core::{Id, Money};
 use rusqlite::{Connection, Transaction, named_params};
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::sql::{clean_text, date_text, read_id, supplier_facts};
 use crate::{PurchasingCtx, PurchasingError};
 
 /// The kind of a ledger row. Positive amounts mean the shop owes more.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export)]
 pub enum LedgerKind {
     /// A delivery (GRN): positive.
     Invoice,

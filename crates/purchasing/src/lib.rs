@@ -5,6 +5,7 @@
 
 mod aging;
 mod context;
+mod documents;
 mod error;
 mod ledger;
 mod orders;
@@ -18,6 +19,9 @@ mod usage;
 
 pub use aging::{AgingRow, aging};
 pub use context::PurchasingCtx;
+pub use documents::{
+    Grn, GrnLine, GrnRow, OrderRow, ReturnRow, get_grn, list_grns, list_orders, list_returns,
+};
 pub use error::PurchasingError;
 pub use ledger::{LedgerKind, balance, record_adjustment, record_payment, unbalanced_suppliers};
 pub use orders::{
