@@ -52,4 +52,19 @@ describe("shift dialogs (fake bridge)", () => {
     await userEvent.click(within(summary).getByRole("button", { name: /Done/ }));
     expect(onClosed).toHaveBeenCalled();
   });
+
+  it("shf_05: the X report prints from the shift menu", async () => {
+    tillHandlers.shift_open({ float: 50000, counts: [] });
+    wrap(<ShiftMenu onClosedShift={vi.fn()} onClose={vi.fn()} />);
+    await userEvent.click(await screen.findByRole("button", { name: /X report/ }));
+    expect(await screen.findByText("X report printed.")).toBeVisible();
+  });
+
+  it("shf_06: the summary says the Z report printed", async () => {
+    tillHandlers.shift_open({ float: 50000, counts: [] });
+    wrap(<CloseShiftDialog force={false} onClosed={vi.fn()} onClose={vi.fn()} />);
+    await userEvent.type(await screen.findByRole("textbox", { name: "৳500.00" }), "1");
+    await userEvent.click(screen.getByRole("button", { name: /Close shift/ }));
+    expect(await screen.findByText("Z report printed.")).toBeVisible();
+  });
 });

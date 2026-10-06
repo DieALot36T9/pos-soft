@@ -5,6 +5,7 @@ import { approval } from "../shared/text/en/approval";
 import { common } from "../shared/text/en/common";
 import { errors } from "../shared/text/en/errors";
 import { permissions } from "../shared/text/en/permissions";
+import { print } from "../shared/text/en/print";
 import { i18nOptions } from "../shared/text/i18n";
 import { en as audit } from "../modules/audit/text/en";
 import { en as auth } from "../modules/auth/text/en";
@@ -29,6 +30,7 @@ export const resources = {
     errors,
     approval,
     permissions,
+    print,
     app,
     hardware,
     setup,

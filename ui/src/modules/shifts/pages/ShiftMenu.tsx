@@ -1,13 +1,24 @@
-import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Inbox, Landmark, Power } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowLeft,
+  ArrowUpFromLine,
+  FileText,
+  Inbox,
+  Landmark,
+  Power,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 
 import type { CurrencyFormat } from "../../../generated/CurrencyFormat";
+import type { PrintResult } from "../../../generated/PrintResult";
+import { errorMessage } from "../../../shared/bridge";
+import { PrintProblem } from "../../../shared/print/PrintProblem";
 import { ActionButton } from "../../../shared/ui/ActionButton";
 import { Alert } from "../../../shared/ui/Alert";
 import { Dialog } from "../../../shared/ui/Dialog";
-import { shiftState } from "../api";
+import { printXReport, shiftState } from "../api";
 import { CashMoveDialog, type DrawerAction } from "./CashMoveDialog";
 import { CloseShiftDialog } from "./CloseShiftDialog";
 
@@ -16,13 +27,18 @@ type ShiftMenuProps = {
   onClose: () => void;
 };
 
-// F11 at the till: cash in and out, the no-sale drawer, and closing the shift (SHF-03 to SHF-06).
+// F11 at the till: cash in and out, the no-sale drawer, the X report and closing the
+// shift (SHF-03 to SHF-06).
 export function ShiftMenu({ onClosedShift, onClose }: ShiftMenuProps) {
   const { t } = useTranslation("shifts");
+  const { t: tErrors } = useTranslation("errors");
+  // What the last action did: "saved" or "x", a print or drawer problem, or an error.
+  const [printFailed, setPrintFailed] = useState<PrintResult | null>(null);
+  const [note, setNote] = useState<"saved" | "x" | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
   const [currency, setCurrency] = useState<CurrencyFormat | null>(null);
   const [action, setAction] = useState<DrawerAction | null>(null);
   const [closing, setClosing] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     shiftState()
@@ -42,20 +58,39 @@ export function ShiftMenu({ onClosedShift, onClose }: ShiftMenuProps) {
         action={action}
         currency={currency}
         onClose={() => setAction(null)}
-        onSaved={() => {
+        onSaved={(drawer) => {
           setAction(null);
-          setSaved(true);
+          show(drawer, "saved");
         }}
       />
     );
   }
+  function show(result: PrintResult, done: "saved" | "x") {
+    setProblem(null);
+    setNote(done);
+    setPrintFailed(result.printed ? null : result);
+  }
   const choose = (next: DrawerAction) => () => {
-    setSaved(false);
+    setNote(null);
+    setPrintFailed(null);
     setAction(next);
+  };
+  const xReport = () => {
+    setNote(null);
+    printXReport()
+      .then((result) => show(result, "x"))
+      .catch((error: unknown) => setProblem(errorMessage(error, tErrors)));
   };
   return (
     <Dialog title={t("menu.title")} colour="grey">
-      {saved ? <Alert kind="done">{t("menu.done")}</Alert> : null}
+      {note === "saved" ? <Alert kind="done">{t("menu.done")}</Alert> : null}
+      {note === "x" && printFailed === null ? (
+        <Alert kind="done">{t("menu.xPrinted")}</Alert>
+      ) : null}
+      {problem ? <Alert kind="problem">{problem}</Alert> : null}
+      {printFailed ? (
+        <PrintProblem result={printFailed} onGone={() => setPrintFailed(null)} />
+      ) : null}
       <div className="grid grid-cols-2 gap-2">
         <ActionButton
           colour="green"
@@ -88,6 +123,14 @@ export function ShiftMenu({ onClosedShift, onClose }: ShiftMenuProps) {
           label={t("menu.noSale.label")}
           tip={t("menu.noSale.tip")}
           onClick={choose("no_sale")}
+        />
+        <ActionButton
+          colour="blue"
+          icon={FileText}
+          size="till"
+          label={t("menu.xReport.label")}
+          tip={t("menu.xReport.tip")}
+          onClick={xReport}
         />
       </div>
       <div className="flex justify-between">

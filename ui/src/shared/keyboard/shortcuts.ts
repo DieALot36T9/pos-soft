@@ -18,6 +18,8 @@ export const shortcuts = {
   checkoutPay: { label: "F10", keys: "f10" },
   checkoutShift: { label: "F11", keys: "f11" },
   checkoutRemove: { label: "Del", keys: "delete" },
+  // Reprints this till's last receipt, marked COPY (PAY-10).
+  checkoutReprint: { label: "Ctrl+P", keys: "ctrl+p" },
   // Payment dialog: quick cash amounts.
   quickCash: ["F1", "F2", "F3", "F4"],
   // Confirms a dialog (Complete, Change, Add).

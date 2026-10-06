@@ -7,6 +7,7 @@ import { Alert } from "../../../shared/ui/Alert";
 import { Tip } from "../../../shared/ui/Tip";
 import { getSettings } from "../api";
 import { BackupSection } from "../components/BackupSection";
+import { DevicesSection } from "../components/DevicesSection";
 import { LogsSection } from "../components/LogsSection";
 import { MoneySection } from "../components/MoneySection";
 import { PaymentMethodsSection } from "../components/PaymentMethodsSection";
@@ -15,7 +16,17 @@ import { ShopSection } from "../components/ShopSection";
 import { TaxSection } from "../components/TaxSection";
 import { TillSection } from "../components/TillSection";
 
-const sections = ["shop", "money", "tax", "till", "receipt", "payments", "backup", "logs"] as const;
+const sections = [
+  "shop",
+  "money",
+  "tax",
+  "till",
+  "receipt",
+  "devices",
+  "payments",
+  "backup",
+  "logs",
+] as const;
 type Section = (typeof sections)[number];
 
 // Settings: one section at a time, picked from the list on the left (SET-13).
@@ -74,6 +85,7 @@ export function SettingsPage() {
             {section === "tax" ? <TaxSection {...props} /> : null}
             {section === "till" ? <TillSection {...props} /> : null}
             {section === "receipt" ? <ReceiptSection {...props} /> : null}
+            {section === "devices" ? <DevicesSection {...props} /> : null}
             {section === "payments" ? <PaymentMethodsSection /> : null}
             {section === "backup" ? <BackupSection {...props} /> : null}
             {section === "logs" && saved ? <LogsSection saved={saved} /> : null}

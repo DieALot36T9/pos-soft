@@ -29,9 +29,11 @@ export function errorMessage(error: unknown, t: TFunction<"errors">): string {
       return isKnownCode(error.code) ? t(error.code, { replace: error.params }) : t("unknown");
     case "not_found":
       // CHK-02: an unknown scanned code is named back to the cashier.
-      return error.entity === "product_code"
-        ? t("product_code_unknown", { code: error.key })
-        : t("not_found");
+      if (error.entity === "product_code") {
+        return t("product_code_unknown", { code: error.key });
+      }
+      // PAY-10: a reprint by invoice number names the number back.
+      return error.entity === "sale" ? t("sale_unknown", { invoice: error.key }) : t("not_found");
     case "permission_denied":
       return t("permission_denied");
     case "override_required":
