@@ -3,22 +3,14 @@
 mod common;
 
 use app::commands::{settings as settings_commands, tax as tax_commands};
-use app::session::{self, SignInResult};
+use app::session;
 use app::workflows::settings_change::SettingsChange;
 use auth::{CASHIER_ROLE_ID, NewUser};
 use common::*;
 use pos_core::{AppError, CurrencyFormat, Id, Permission, Secret};
 use settings::{CreditSettings, Setting};
 
-fn sign_in(state: &app::state::AppState, username: &str, password: &str) {
-    let result = session::sign_in(state, username, password.into()).expect("sign in runs");
-    assert!(
-        matches!(result, SignInResult::SignedIn { .. }),
-        "{result:?}"
-    );
-}
-
-fn add_cashier(state: &app::state::AppState) {
+fn add_password_cashier(state: &app::state::AppState) {
     let now = state.clock.now();
     state
         .db
@@ -48,7 +40,7 @@ fn set_13_after_setup_settings_need_a_signed_in_admin() {
     let folder = tempfile::tempdir().expect("folder");
     let state = start(folder.path());
     finish_setup(&state);
-    session::sign_out(&state).expect("signed out");
+    session::logout(&state).expect("signed out");
 
     let refused = settings_commands::settings_save(&state, &credit_change());
     assert!(matches!(
@@ -58,7 +50,7 @@ fn set_13_after_setup_settings_need_a_signed_in_admin() {
         })
     ));
 
-    add_cashier(&state);
+    add_password_cashier(&state);
     sign_in(&state, "rina", "cashier-pass");
     assert!(matches!(
         settings_commands::settings_save(&state, &credit_change()),
@@ -190,7 +182,7 @@ fn bak_07_switching_detailed_logging_needs_logs_manage_and_is_saved() {
         .expect("read");
     assert!(saved.detailed);
     assert_eq!(audit_count(&state, "logging.switch"), 1);
-    session::sign_out(&state).expect("out");
+    session::logout(&state).expect("out");
     assert!(matches!(
         settings_commands::logs_set_detailed(&state, false),
         Err(AppError::PermissionDenied {

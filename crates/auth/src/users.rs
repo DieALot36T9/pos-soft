@@ -58,6 +58,24 @@ pub struct UserTile {
     pub has_password: bool,
 }
 
+/// One row of the users screen. Disabled users are listed too, because they have history.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct UserSummary {
+    pub id: Id,
+    pub username: String,
+    pub display_name: String,
+    pub role_id: Id,
+    pub role_name: String,
+    /// The user has the Admin role.
+    pub is_admin: bool,
+    pub active: bool,
+    pub has_pin: bool,
+    pub has_password: bool,
+    /// Set while the user is locked after 5 wrong tries (USR-02). It may lie in the past.
+    pub locked_until: Option<Timestamp>,
+}
+
 /// One row of `auth_users`, for use inside this module.
 pub(crate) struct UserRow {
     pub id: Id,
@@ -209,6 +227,37 @@ pub fn login_tiles(connection: &Connection) -> Result<Vec<UserTile>, AuthError> 
     Ok(tiles)
 }
 
+/// Every user, active or not, for the users screen. Sorted by display name.
+pub fn list_users(connection: &Connection) -> Result<Vec<UserSummary>, AuthError> {
+    let mut statement = connection.prepare(
+        "SELECT u.id, u.username, u.display_name, u.role_id, r.name AS role_name, u.active,
+                u.pin_hash IS NOT NULL AS has_pin, u.password_hash IS NOT NULL AS has_password,
+                u.locked_until
+         FROM auth_users u JOIN auth_roles r ON r.id = u.role_id
+         ORDER BY u.display_name COLLATE NOCASE, u.username",
+    )?;
+    let rows = statement.query_map([], |row| {
+        let role_id: String = row.get("role_id")?;
+        Ok(UserSummary {
+            id: parse_id(row.get("id")?)?,
+            username: row.get("username")?,
+            display_name: row.get("display_name")?,
+            is_admin: role_id == ADMIN_ROLE_ID,
+            role_id: parse_id(role_id)?,
+            role_name: row.get("role_name")?,
+            active: row.get("active")?,
+            has_pin: row.get("has_pin")?,
+            has_password: row.get("has_password")?,
+            locked_until: row.get::<_, Option<i64>>("locked_until")?.map(Timestamp),
+        })
+    })?;
+    let mut users = Vec::new();
+    for row in rows {
+        users.push(row?);
+    }
+    Ok(users)
+}
+
 /// Reads one user by id.
 pub(crate) fn load_user(connection: &Connection, user: &Id) -> Result<UserRow, AuthError> {
     let found = connection
@@ -255,13 +304,16 @@ pub(crate) fn save_lock(
     Ok(())
 }
 
-fn read_user_row(row: &Row) -> rusqlite::Result<UserRow> {
-    let id_text: String = row.get("id")?;
-    let id = Id::parse(&id_text).map_err(|error| {
+/// Reads a stored id. A broken one is a database error.
+fn parse_id(text: String) -> rusqlite::Result<Id> {
+    Id::parse(&text).map_err(|error| {
         rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(error))
-    })?;
+    })
+}
+
+fn read_user_row(row: &Row) -> rusqlite::Result<UserRow> {
     Ok(UserRow {
-        id,
+        id: parse_id(row.get("id")?)?,
         username: row.get("username")?,
         display_name: row.get("display_name")?,
         role_id: row.get("role_id")?,

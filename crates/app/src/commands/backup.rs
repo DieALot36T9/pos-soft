@@ -29,10 +29,20 @@ pub fn backup_list(state: &AppState) -> Result<Vec<BackupRow>, AppError> {
     backup::list_backups(Path::new(&options.primary_dir))
 }
 
-/// Restores a backup at the next start (the command then restarts). Needs `BackupRestore`.
-pub fn backup_restore(state: &AppState, file: &str) -> Result<(), AppError> {
-    let user = session::require(state, Permission::BackupRestore)?;
-    backup::request_restore(state, Path::new(file), Some(user.id))
+/// Restores a backup at the next start (the command then restarts). Needs
+/// `BackupRestore`, or an admin's approval token for it (USR-05).
+pub fn backup_restore(
+    state: &AppState,
+    file: &str,
+    approval: Option<&str>,
+) -> Result<(), AppError> {
+    let allowed = session::require_or_approval(state, Permission::BackupRestore, approval)?;
+    backup::request_restore(
+        state,
+        Path::new(file),
+        Some(allowed.user.id),
+        allowed.approved_by,
+    )
 }
 
 /// The Tauri commands. Each runs its handler above on a worker thread.
@@ -63,10 +73,11 @@ pub mod cmd {
         app: AppHandle,
         state: State<'_, Arc<AppState>>,
         file: String,
+        approval: Option<String>,
     ) -> Result<(), AppError> {
         let state = Arc::clone(&state);
         on_worker("backup_restore", move || {
-            super::backup_restore(&state, &file)
+            super::backup_restore(&state, &file, approval.as_deref())
         })
         .await?;
         app.restart()

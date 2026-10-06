@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { BackupRow } from "../../../generated/BackupRow";
+import { useApproval } from "../../../shared/approval/useApproval";
 import { errorMessage } from "../../../shared/bridge";
 import { useSave } from "../../../shared/bridge/useSave";
 import { ActionButton } from "../../../shared/ui/ActionButton";
@@ -21,6 +22,7 @@ export function BackupsPage() {
   const [asking, setAsking] = useState<BackupRow | null>(null);
   const backup = useSave();
   const restore = useSave();
+  const approval = useApproval();
 
   const load = () => {
     listBackups()
@@ -62,11 +64,14 @@ export function BackupsPage() {
         <RestoreConfirm
           row={asking}
           busy={restore.busy || restore.done}
-          onYes={() => restore.run(() => restoreBackup(asking.file))}
+          onYes={() =>
+            restore.run(() => approval.withApproval((token) => restoreBackup(asking.file, token)))
+          }
           onNo={() => setAsking(null)}
         />
       ) : null}
       <BackupTable rows={rows} onRestore={setAsking} />
+      {approval.dialog}
     </section>
   );
 }

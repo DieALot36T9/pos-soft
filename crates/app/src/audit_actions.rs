@@ -1,5 +1,6 @@
 //! Every audit action name, in one place (Module - audit). Each is lower-case words
-//! joined by dots, as `audit::record` requires. Later milestones add the rest.
+//! joined by dots, as `audit::record` requires. Later milestones add the rest,
+//! and add each one to `ALL`.
 
 /// A cart was cancelled at the till (CHK-05).
 pub const CART_CANCEL: &str = "cart.cancel";
@@ -17,6 +18,51 @@ pub const BACKUP_MANUAL: &str = "backup.manual";
 pub const BACKUP_RESTORE: &str = "backup.restore";
 /// Detailed logging was switched on or off (BAK-07).
 pub const LOGGING_SWITCH: &str = "logging.switch";
+/// Someone logged in (USR-01).
+pub const SESSION_LOGIN: &str = "session.login";
+/// Someone logged out, or "Switch user" on the lock screen (USR-01, USR-03).
+pub const SESSION_LOGOUT: &str = "session.logout";
+/// An admin unlocked the till for the user who locked it (USR-03).
+pub const SESSION_UNLOCK_BY_ADMIN: &str = "session.unlock_by_admin";
+/// The fifth wrong PIN or password in a row locked a user for 60 seconds (USR-02).
+pub const USER_LOCKOUT: &str = "user.lockout";
+/// An admin approved one action for the signed-in user (USR-05).
+pub const APPROVAL_GRANTED: &str = "approval.granted";
+/// A user was added (USR-06).
+pub const USER_CREATE: &str = "user.create";
+/// A user was renamed, moved to another role, disabled, enabled, or had a PIN or password reset (USR-06).
+pub const USER_CHANGE: &str = "user.change";
+/// A user changed their own PIN or password (USR-07).
+pub const USER_OWN_SECRET_CHANGE: &str = "user.own_secret_change";
+/// A custom role was added (USR-04).
+pub const ROLE_CREATE: &str = "role.create";
+/// A role's permissions or discount limit changed (USR-04).
+pub const ROLE_CHANGE: &str = "role.change";
+/// The recovery code set a new admin password (USR-09).
+pub const RECOVERY_USED: &str = "recovery.used";
+
+/// Every action name, for the action filter on the audit screen (USR-08).
+pub const ALL: &[&str] = &[
+    CART_CANCEL,
+    SALE_VOID,
+    DRAWER_NO_SALE,
+    SETTINGS_CHANGE,
+    TAX_RATE_CHANGE,
+    BACKUP_MANUAL,
+    BACKUP_RESTORE,
+    LOGGING_SWITCH,
+    SESSION_LOGIN,
+    SESSION_LOGOUT,
+    SESSION_UNLOCK_BY_ADMIN,
+    USER_LOCKOUT,
+    APPROVAL_GRANTED,
+    USER_CREATE,
+    USER_CHANGE,
+    USER_OWN_SECRET_CHANGE,
+    ROLE_CREATE,
+    ROLE_CHANGE,
+    RECOVERY_USED,
+];
 
 #[cfg(test)]
 mod tests {
@@ -29,5 +75,19 @@ mod tests {
         assert_eq!(CART_CANCEL, reports::ACTION_CART_CANCEL);
         assert_eq!(SALE_VOID, reports::ACTION_SALE_VOID);
         assert_eq!(DRAWER_NO_SALE, reports::ACTION_DRAWER_NO_SALE);
+    }
+
+    #[test]
+    fn usr_08_every_name_is_listed_once_and_well_formed() {
+        let mut names = ALL.to_vec();
+        names.sort_unstable();
+        names.dedup();
+        assert_eq!(names.len(), ALL.len(), "a name is listed twice");
+        for name in ALL {
+            let words_and_dots = name
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c == '_' || c == '.');
+            assert!(words_and_dots && name.contains('.'), "{name}");
+        }
     }
 }

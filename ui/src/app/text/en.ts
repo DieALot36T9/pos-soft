@@ -16,19 +16,17 @@ export const en = {
     settings: { label: "Settings", tip: "Shop details, money, tax, receipt, backups and logs." },
     tax: { label: "Tax rates", tip: "Add, change or deactivate tax rates." },
     backups: { label: "Backups", tip: "Back up now, see backups and restore one." },
+    users: { label: "Users", tip: "Add users, reset a PIN or password, disable a user." },
+    roles: { label: "Roles", tip: "What each role may do, and its biggest discount." },
+    audit: { label: "Audit log", tip: "Every sensitive action: who, when and what." },
+    account: { label: "My PIN and password", tip: "Change your own PIN or password." },
   },
-  signedInAs: "Signed in: {{name}}",
-  signOut: { label: "Sign out", tip: "Sign out of the app. The next person signs in again." },
-  signIn: {
-    title: "Sign in",
-    intro: "Sign in with the admin account made during setup.",
-    username: { label: "Username", tip: "The username from setup. Example: owner" },
-    password: { label: "Password", tip: "Your password. Letters are hidden." },
-    button: { label: "Sign in", tip: "Check the username and password and open the app." },
-    refused: "The username or password is wrong.",
-    refusedLeft: "The username or password is wrong. {{left}} tries left before a short lock.",
-    locked: "Too many wrong tries. Wait a minute and try again.",
+  signedInAs: "Logged in: {{name}} ({{role}})",
+  signOut: {
+    label: "Log out",
+    tip: "Log out of the app. The next person logs in with their tile.",
   },
+  lock: { label: "Lock", tip: "Lock the till. Your PIN or password unlocks it." },
 };
 
 export type AppText = typeof en;

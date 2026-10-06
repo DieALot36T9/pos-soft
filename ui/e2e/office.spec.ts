@@ -2,11 +2,11 @@ import { expect, test } from "@playwright/test";
 
 // Settings, tax rates and backups after setup (SET-13, TAX-02, BAK-04, BAK-05).
 
-test("set_13: the admin signs in and changes the shop name", async ({ page }) => {
+test("set_13: the admin logs in and changes the shop name", async ({ page }) => {
   await page.goto("/?shop=signed_out");
-  await page.getByRole("textbox", { name: "Username" }).fill("owner");
+  await page.getByRole("button", { name: /Shop Owner/ }).click();
   await page.getByLabel("Password").fill("shop-owner-1");
-  await page.getByRole("button", { name: /Sign in/ }).click();
+  await page.getByRole("button", { name: /^Log in/ }).click();
 
   await page
     .getByRole("navigation", { name: "Main menu" })

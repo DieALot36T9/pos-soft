@@ -1,55 +1,111 @@
 import {
   DatabaseBackup,
+  History,
   Home,
+  KeyRound,
+  Lock,
   LogOut,
   Percent,
   Printer,
   Settings,
+  ShieldCheck,
+  Users,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 
+import type { Permission } from "../generated/Permission";
 import type { SessionView } from "../generated/SessionView";
+import { AuditLogPage } from "../modules/audit/pages/AuditLogPage";
+import { MyAccountPage } from "../modules/auth/pages/MyAccountPage";
 import { BackupsPage } from "../modules/backup/pages/BackupsPage";
 import { HardwarePage } from "../modules/hardware/pages/HardwarePage";
 import { SettingsPage } from "../modules/settings/pages/SettingsPage";
 import { TaxRatesPage } from "../modules/tax/pages/TaxRatesPage";
+import { RolesPage } from "../modules/users/pages/RolesPage";
+import { UsersPage } from "../modules/users/pages/UsersPage";
 import { errorMessage } from "../shared/bridge";
+import { shortcuts } from "../shared/keyboard/shortcuts";
 import { ActionButton } from "../shared/ui/ActionButton";
 import { Alert } from "../shared/ui/Alert";
 import { Tip } from "../shared/ui/Tip";
 import { HomePage } from "./HomePage";
-import { signOut } from "./api";
+import { lockTill, logOut } from "./api";
 
-type Page = "home" | "hardware" | "settings" | "tax" | "backups";
+type Page =
+  "home" | "hardware" | "settings" | "tax" | "backups" | "users" | "roles" | "audit" | "account";
 
-const menu: { page: Page; icon: LucideIcon }[] = [
-  { page: "home", icon: Home },
-  { page: "hardware", icon: Printer },
-  { page: "settings", icon: Settings },
-  { page: "tax", icon: Percent },
-  { page: "backups", icon: DatabaseBackup },
+// Each menu entry, and the permission it needs. The menu hides what the user's role
+// can't open, as a convenience: Rust checks every command anyway.
+const menu: { page: Page; icon: LucideIcon; needs: Permission | null }[] = [
+  { page: "home", icon: Home, needs: null },
+  { page: "hardware", icon: Printer, needs: null },
+  { page: "settings", icon: Settings, needs: "settings_manage" },
+  { page: "tax", icon: Percent, needs: "tax_manage" },
+  { page: "backups", icon: DatabaseBackup, needs: "backup_run" },
+  { page: "users", icon: Users, needs: "users_manage" },
+  { page: "roles", icon: ShieldCheck, needs: "users_manage" },
+  { page: "audit", icon: History, needs: "audit_view" },
+  { page: "account", icon: KeyRound, needs: null },
 ];
 
 type OfficeFrameProps = {
   session: SessionView;
   devTools: boolean;
   backupWarning: string | null;
+  // Lock the till after this many minutes without a key or mouse press (USR-03).
+  idleLockMinutes: number;
+  onLocked: (session: SessionView) => void;
   onSignedOut: () => void;
 };
 
 // The back office: a side menu and one page. React Router replaces this in a later task.
-export function OfficeFrame({ session, devTools, backupWarning, onSignedOut }: OfficeFrameProps) {
+export function OfficeFrame({
+  session,
+  devTools,
+  backupWarning,
+  idleLockMinutes,
+  onLocked,
+  onSignedOut,
+}: OfficeFrameProps) {
   const { t } = useTranslation("app");
   const { t: tErrors } = useTranslation("errors");
   const [page, setPage] = useState<Page>("home");
+  const [problem, setProblem] = useState<string | null>(null);
 
   const leave = () => {
-    void signOut()
+    void logOut()
       .catch(() => undefined)
       .then(onSignedOut);
   };
+  const lock = () => {
+    lockTill()
+      .then(onLocked)
+      .catch((error: unknown) => setProblem(errorMessage(error, tErrors)));
+  };
+  useHotkeys(shortcuts.lock.keys, lock, { enableOnFormTags: true, preventDefault: true });
+
+  // The idle timer starts again at every key or mouse press.
+  useEffect(() => {
+    let timer = window.setTimeout(lock, idleLockMinutes * 60_000);
+    const restart = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(lock, idleLockMinutes * 60_000);
+    };
+    const events = ["keydown", "mousedown", "touchstart"] as const;
+    events.forEach((name) => window.addEventListener(name, restart));
+    return () => {
+      window.clearTimeout(timer);
+      events.forEach((name) => window.removeEventListener(name, restart));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- restart only when the setting changes.
+  }, [idleLockMinutes]);
+
+  const allowed = menu.filter(
+    (entry) => entry.needs === null || session.permissions.includes(entry.needs),
+  );
 
   return (
     <div className="flex flex-1">
@@ -57,7 +113,7 @@ export function OfficeFrame({ session, devTools, backupWarning, onSignedOut }: O
         aria-label={t("menu.label")}
         className="flex w-60 shrink-0 flex-col gap-1 border-r border-border bg-panel p-3"
       >
-        {menu.map(({ page: each, icon: Icon }) => (
+        {allowed.map(({ page: each, icon: Icon }) => (
           <Tip key={each} tip={t(`menu.${each}.tip`)}>
             <button
               type="button"
@@ -77,8 +133,16 @@ export function OfficeFrame({ session, devTools, backupWarning, onSignedOut }: O
         ))}
         <div className="mt-auto flex flex-col gap-2 border-t border-border pt-3">
           <p className="text-sm text-text-muted">
-            {t("signedInAs", { name: session.display_name })}
+            {t("signedInAs", { name: session.display_name, role: session.role_name })}
           </p>
+          <ActionButton
+            colour="grey"
+            icon={Lock}
+            label={t("lock.label")}
+            tip={t("lock.tip")}
+            shortcut={shortcuts.lock.label}
+            onClick={lock}
+          />
           <ActionButton
             colour="grey"
             icon={LogOut}
@@ -94,11 +158,16 @@ export function OfficeFrame({ session, devTools, backupWarning, onSignedOut }: O
             {errorMessage({ kind: "conflict", code: backupWarning, params: {} }, tErrors)}
           </Alert>
         ) : null}
+        {problem ? <Alert kind="problem">{problem}</Alert> : null}
         {page === "home" ? <HomePage /> : null}
         {page === "hardware" ? <HardwarePage devTools={devTools} /> : null}
         {page === "settings" ? <SettingsPage /> : null}
         {page === "tax" ? <TaxRatesPage /> : null}
         {page === "backups" ? <BackupsPage /> : null}
+        {page === "users" ? <UsersPage /> : null}
+        {page === "roles" ? <RolesPage /> : null}
+        {page === "audit" ? <AuditLogPage /> : null}
+        {page === "account" ? <MyAccountPage /> : null}
       </main>
     </div>
   );

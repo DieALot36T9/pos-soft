@@ -15,6 +15,18 @@ pub fn record(
     details: Value,
     user_id: Option<Id>,
 ) -> Result<(), AppError> {
+    record_approved(tx, clock, action, details, user_id, None)
+}
+
+/// Like `record`, with the admin who approved the action (USR-05).
+pub fn record_approved(
+    tx: &Transaction,
+    clock: &dyn Clock,
+    action: &'static str,
+    details: Value,
+    user_id: Option<Id>,
+    approved_by: Option<Id>,
+) -> Result<(), AppError> {
     let till: TillSettings = settings::get(tx)?;
     let Some(till_id) = till.till_id else {
         return Ok(());
@@ -35,7 +47,7 @@ pub fn record(
         entity_id: None,
         details,
         user_id,
-        approved_by: None,
+        approved_by,
     };
     audit::record(tx, event, &context)?;
     Ok(())

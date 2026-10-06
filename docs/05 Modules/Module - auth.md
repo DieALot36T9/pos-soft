@@ -63,6 +63,9 @@ pub fn update_user(tx, &Id, UserUpdate, now) -> Result<()>;  // UserUpdate { dis
                                                              // refuses to disable or demote the last active admin
 pub fn set_secret(tx, &Id, SecretKind, Secret<String>, now) -> Result<()>; // also ends a lockout
 pub fn login_tiles(conn) -> Result<Vec<UserTile>>;           // active users, by display name
+pub fn list_users(conn) -> Result<Vec<UserSummary>>;         // every user, disabled ones too, by display name (C-M3)
+pub fn list_roles(conn) -> Result<Vec<RoleSummary>>;         // Admin, Cashier, then custom roles by name (C-M3)
+pub fn session_user(conn, user: &Id) -> Result<SessionUser>; // the user with their role as it is now; disabled → user_inactive (C-M3)
 
 pub fn verify_login(tx, user: &Id, secret: Secret<String>, now) -> Result<LoginOutcome>;
 pub fn verify_override(tx, username: &str, secret: Secret<String>, needed: Permission, now) -> Result<OverrideOutcome>;
@@ -75,6 +78,8 @@ pub enum LoginOutcome { LoggedIn(SessionUser), WrongSecret { attempts_left }, Lo
 pub enum OverrideOutcome { Approved { approved_by: Id }, NotAllowed, WrongSecret { attempts_left }, LockedNow { until }, StillLocked { until } }
 pub struct SessionUser { id, username, display_name, role_id, role_name, is_admin, max_discount: Bps, permissions: PermissionSet }
 pub struct UserTile { id, username, display_name, has_pin, has_password }
+pub struct UserSummary { id, username, display_name, role_id, role_name, is_admin, active, has_pin, has_password, locked_until: Option<Timestamp> }
+pub struct RoleSummary { id, name, is_system, is_admin, max_discount: Bps, permissions: PermissionSet }
 pub struct PermissionSet;   // contains(p), iter(), len(), is_empty(), all(), from_list(&[..]); JSON: ["checkout_sell", …]
 pub enum SecretKind { Password, Pin }
 ```
@@ -116,6 +121,7 @@ Override **tokens** (single-use, 60 s) live in `app` memory, not here.
 | `verify_override` fails for a user without the needed permission; password not PIN; lockout | `tests/override.rs` `usr_05_*` | USR-05 |
 | Recovery code: shown once, hashed, replaced after use | `tests/recovery.rs` `usr_09_*` | USR-09 |
 | Tables, seeded roles, JSON shapes, unknown stored permissions ignored | `tests/contract.rs` | contract |
+| User and role lists (disabled users, locks, Admin first with every permission), reading a signed-in user again, snake-case JSON | `tests/lists.rs` | USR-04, USR-06 |
 | Hash parameters give a check of ≤ 300 ms | `benches/hash_check.rs` (criterion, `cargo bench -p auth`): about 19 ms on the cloud build machine. Still to check on the reference PC in M3 | Security Model |
 
 ## Working on this module
@@ -129,7 +135,7 @@ Override **tokens** (single-use, 60 s) live in `app` memory, not here.
 | **You may change** | Files in the folders above, this page, and new migration files |
 | **Don't touch** | Other modules' folders and tables. If you need another module's data, take it as a function argument; `app` passes it in |
 | **Gets from `app`** | The current time (`Clock`) |
-| **Used by** (re-run their tests when the public API changes) | Login and lock commands, the permission guard (`app/src/guard.rs`), and the admin-approval flow |
+| **Used by** (re-run their tests when the public API changes) | Login and lock commands, the permission check (`app/src/session.rs`), the users and roles workflows (`app/src/workflows/users.rs`), and the admin-approval flow |
 | **Test it on its own** | `cargo nextest run -p auth` · screens: `pnpm test src/modules/<folder>` |
 
 **Watch out for**
@@ -142,8 +148,8 @@ Override **tokens** (single-use, 60 s) live in `app` memory, not here.
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
 - Built in task B-auth. The page was changed to match the code: every function gets `now` (rows have `created_at`/`updated_at`), and login/approval return an outcome instead of an error for a wrong secret (see "Why a wrong secret is an outcome").
-- For C-M3: `app` must **commit** the transaction after `verify_login` / `verify_override` for every outcome, audit `LockedNow`, and for USR-07 call `verify_login` with the current secret before `set_secret`.
-- For C-M3: add the error codes above to `ui/src/shared/text/en/errors.ts`, and run `cargo xtask gen-types` after any change to the exported types.
+- Done in C-M3: `app` commits after `verify_login` / `verify_override` for every outcome and audits `LockedNow` (`user.lockout`); USR-07 calls `verify_login` with the current secret before `set_secret`; the error codes are in `ui/src/shared/text/en/errors.ts`. Added `list_users`, `list_roles` and `session_user` for the screens and the permission check. Screens: `ui/src/modules/auth/` (login, lock, own PIN/password, recovery) and `ui/src/modules/users/` (users, roles). The admin approval dialog lives in `ui/src/shared/approval/`, because every module's screens use it (a module folder can't import another module's).
+- Usernames and role names can't be changed (no function yet).
 - For C-M2: the setup wizard creates the first admin and calls `create_recovery_code`.
 - Run `cargo bench -p auth` on the reference PC in M3 and record the time here (must be ≤ 300 ms).
 - No published views yet. If `reports` or `audit` screens need user names, add `auth_v_users` (id, username, display_name, role_name, active) in a new migration.

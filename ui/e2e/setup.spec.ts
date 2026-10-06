@@ -37,7 +37,7 @@ test("set_01..set_12: a fresh install goes through the wizard into the app", asy
   await expect(page.getByRole("heading", { name: "Your shop is ready" })).toBeVisible();
   await page.getByRole("button", { name: /^Start/ }).click();
   await expect(page.getByRole("navigation", { name: "Main menu" })).toBeVisible();
-  await expect(page.getByText("Signed in: Shop Owner")).toBeVisible();
+  await expect(page.getByText("Logged in: Shop Owner (Admin)")).toBeVisible();
 });
 
 test("set_02: Back shows what was saved", async ({ page }) => {

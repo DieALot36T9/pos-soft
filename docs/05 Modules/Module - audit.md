@@ -95,7 +95,8 @@ All in `crates/audit/`. Every test name starts with `usr_08_` (requirement USR-0
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- Built in task B-audit (Rust only). **No `app` wiring and no screens yet:** `app/src/audit_actions.rs` exists with the three names the reports count (`cart.cancel`, `sale.void`, `drawer.no_sale`; added with the reports work, tested against `reports::ACTION_*`). C-M3 adds the rest of the names, the `audit_query` command, the audit screen and the Excel export.
+- Built in task B-audit (Rust only). **Wired in C-M3:** `app/src/audit_actions.rs` holds every action name so far and `ALL` (the screen's action filter); the `audit_query` and `audit_export` commands (`AuditView`) in `app/src/commands/audit.rs`; the audit screen `ui/src/modules/audit/` (filters by business date, user and action, 50 a page, details shown as a list, a plain name for each action) and the Excel export (`io::write_xlsx`, one sheet). Logins, logouts, lockouts, approvals, admin unlocks, user, role and own-secret changes and the recovery code are audited from C-M3 on.
+- The audit screen has no detail panel yet (Back Office Screens): each row shows its details inline.
 - Filters use `(:x IS NULL OR column = :x)`, which is simple but can't always use the indexes. Measure with a big seeded log (`xtask seed`) before adding a `business_date` index or building the SQL per filter.
 - If another module needs the same paging shape (catalog and inventory pages say `Page`), consider one shared `Page` in `core` and switch `AuditPage` to it (rule R5).
 - The secret-key check is a safety net, not a guarantee. Callers still must not put secrets in `details`.

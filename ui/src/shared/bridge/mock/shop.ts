@@ -10,17 +10,24 @@ import type { HardwareStep } from "../../../generated/HardwareStep";
 import type { MoneyStep } from "../../../generated/MoneyStep";
 import type { RateInput } from "../../../generated/RateInput";
 import type { RateWithComponents } from "../../../generated/RateWithComponents";
-import type { SessionView } from "../../../generated/SessionView";
 import type { SettingsChange } from "../../../generated/SettingsChange";
 import type { SettingsSnapshot } from "../../../generated/SettingsSnapshot";
 import type { SetupStatus } from "../../../generated/SetupStatus";
 import type { SetupStep } from "../../../generated/SetupStep";
 import type { ShopProfile } from "../../../generated/ShopProfile";
-import type { SignInResult } from "../../../generated/SignInResult";
 import type { StartupView } from "../../../generated/StartupView";
 import type { TaxStep } from "../../../generated/TaxStep";
 import type { TillStep } from "../../../generated/TillStep";
 import { defaultSettings } from "./defaultSettings";
+import {
+  createFirstAdmin,
+  currentSession,
+  peopleHandlers,
+  recordFakeEvent,
+  requireOrApproval,
+  requirePermission,
+  resetPeople,
+} from "./people";
 
 // A pretend shop for the fake bridge. Rust does the real checks; this stand-in
 // checks only what the screens and their tests need, with the same error codes.
@@ -36,23 +43,10 @@ const wizardOrder: SetupStep[] = [
   "products",
 ];
 
-type Admin = { username: string; displayName: string; password: string };
-
 let completed = new Set<SetupStep>();
 let snapshot: SettingsSnapshot = defaultSettings();
 let rates: RateWithComponents[] = [];
-let admin: Admin | null = null;
-let session: SessionView | null = null;
 let backups: BackupRow[] = [];
-
-function adminSession(who: Admin): SessionView {
-  return {
-    username: who.username,
-    display_name: who.displayName,
-    is_admin: true,
-    permissions: ["settings_manage", "tax_manage", "backup_run", "backup_restore", "logs_manage"],
-  };
-}
 
 // Starts the pretend shop again: empty, or set up (and then signed in or not).
 // Tests call it before each test.
@@ -60,17 +54,14 @@ export function resetFakeShop(startWith: "fresh" | "set_up" = "fresh", signedIn 
   completed = new Set();
   snapshot = defaultSettings();
   rates = [];
-  admin = null;
-  session = null;
   backups = [];
+  resetPeople(startWith === "set_up", signedIn);
   if (startWith === "set_up") {
     completed = new Set(wizardOrder.filter((step) => step !== "hardware"));
     snapshot.shop_profile.name = "Rahim Store";
     rates = [rate("01FAKERATE0000000000000001", "Standard 15%", 1500)];
     snapshot.tax.default_rate_id = rates[0]?.id ?? null;
-    admin = { username: "owner", displayName: "Shop Owner", password: "shop-owner-1" };
     backups = [backupRow("pos-20261004-200000-close.sqlite", "2026-10-04 20:00:00", "close")];
-    session = signedIn ? adminSession(admin) : null;
   }
 }
 
@@ -121,10 +112,8 @@ function requireSetupOpen() {
 
 // Settings and tax commands work during setup, then need a signed-in admin.
 function requireAdminOrSetup(permission: "settings_manage" | "tax_manage") {
-  if (setupStatus().is_complete && !session?.permissions.includes(permission)) {
-    const error: AppError = { kind: "permission_denied", permission };
-    // eslint-disable-next-line @typescript-eslint/only-throw-error
-    throw error;
+  if (setupStatus().is_complete) {
+    requirePermission(permission);
   }
 }
 
@@ -136,25 +125,14 @@ function step(name: SetupStep, save: () => void): SetupStatus {
 }
 
 export const shopHandlers = {
+  ...peopleHandlers,
   startup_status: (): StartupView => ({
     damaged: false,
     setup: setupStatus(),
-    session,
+    session: currentSession(),
     backup_warning: null,
+    idle_lock_min: snapshot.checkout.idle_lock_min,
   }),
-  session_sign_in: (args?: Record<string, unknown>): SignInResult => {
-    const username = typeof args?.username === "string" ? args.username.toLowerCase() : "";
-    if (admin && username === admin.username && args?.password === admin.password) {
-      session = adminSession(admin);
-      return { kind: "signed_in", session };
-    }
-    return { kind: "refused", attempts_left: null };
-  },
-  session_sign_out: (): null => {
-    session = null;
-    return null;
-  },
-  session_current: (): SessionView | null => session,
   setup_status: (): SetupStatus => setupStatus(),
   setup_save_shop: (args?: Record<string, unknown>): SetupStatus => {
     const shop = args?.shop as ShopProfile;
@@ -189,10 +167,9 @@ export const shopHandlers = {
     if (form.password !== form.password_again) {
       refuse("password_again", "passwords_differ");
     }
-    admin = { username: form.username, displayName: form.display_name, password: form.password };
-    session = adminSession(admin);
+    const created = createFirstAdmin(form.username, form.display_name, form.password);
     completed.add("admin");
-    return { recovery_code: "7KQ2-M9XD-4RTW-PZ8C-H3NB", session };
+    return created as AdminCreated;
   },
   setup_save_till: (args?: Record<string, unknown>): SetupStatus => {
     const till = args?.step as TillStep;
@@ -260,6 +237,7 @@ export const shopHandlers = {
     return snapshot;
   },
   logs_set_detailed: (args?: Record<string, unknown>): null => {
+    requirePermission("logs_manage");
     snapshot.logging = { detailed: Boolean(args?.detailed) };
     return null;
   },
@@ -293,6 +271,8 @@ export const shopHandlers = {
     return null;
   },
   backup_now: (): BackupDone => {
+    requirePermission("backup_run");
+    recordFakeEvent("backup.manual", currentSession()?.user_id ?? null);
     const row = backupRow(
       `pos-20261005-1400${String(backups.length).padStart(2, "0")}-manual.sqlite`,
       `2026-10-05 14:00:${String(backups.length).padStart(2, "0")}`,
@@ -301,8 +281,14 @@ export const shopHandlers = {
     backups = [row, ...backups];
     return { file: row.file, warning: null };
   },
-  backup_list: (): BackupRow[] => backups,
-  backup_restore: (): null => null,
+  backup_list: (): BackupRow[] => {
+    requirePermission("backup_run");
+    return backups;
+  },
+  backup_restore: (args?: Record<string, unknown>): null => {
+    requireOrApproval("backup_restore", args?.approval);
+    return null;
+  },
   recovery_backups: (): BackupRow[] => backups,
   recovery_restore: (): null => null,
 };

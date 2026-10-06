@@ -13,4 +13,8 @@ damaged: boolean, setup: SetupStatus, session: SessionView | null,
 /**
  * The last backup problem, as an error code for the warning banner (BAK-02, BAK-03).
  */
-backup_warning: string | null, };
+backup_warning: string | null, 
+/**
+ * Lock the till after this many minutes without a key or mouse press (USR-03).
+ */
+idle_lock_min: number, };

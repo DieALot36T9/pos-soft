@@ -4,6 +4,22 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task C-M3: login, roles, admin approval and audit)
+- **Login screen** (USR-01): a tile for each active user, then their PIN or password. Five wrong tries in a row lock that user for 60 seconds, with a countdown, and the lockout is audited (USR-02). Logins and logouts are audited.
+- **Lock screen** (USR-03): F12, the Lock button or the idle timer (`checkout.idle_lock_min`) lock the till; every command is refused until the same user unlocks it, or an admin unlocks to help. "Switch user" logs out.
+- **Admin approval** (USR-05): when a role lacks a permission, the amber dialog asks an admin's password; Rust gives a single-use token for that one permission, good for 60 seconds, and audits who asked and who approved. First used by "Restore backup".
+- **Users and Roles screens** (USR-04, USR-06): add users with a PIN and/or password, reset them, disable instead of delete (never the last active admin); custom roles with permission checkboxes grouped by area and a discount limit. Every change is audited.
+- **My PIN and password** (USR-07) and **Forgot admin password** with the recovery code, which shows a new code once (USR-09).
+- **Audit log screen** (USR-08): filters by business date, user and action, newest first, 50 a page, and export to Excel.
+- `auth::list_users`, `auth::list_roles`, `auth::session_user` (with contract tests).
+- `crates/app/tests/permissions.rs`: every guarded command called signed out, as a cashier, as an admin and on a locked till.
+
+### Changed (task C-M3)
+- The interim username/password sign-in (`session_sign_in`, `session_sign_out`) is replaced by `login_tiles`, `login` and `logout`.
+- Every permission check reads the user again, so a disabled user or a changed role counts at once.
+- The back-office menu hides pages the user's role can't open (Rust still checks every command).
+- The window may open the save-file picker (`dialog:allow-save`), for the Excel export.
+
 ### Added (task C-M2: settings, setup wizard and backups)
 - **Startup** (BAK-06): pending restore → open → `quick_check` → backup before an upgrade → migrations. A damaged database opens only the **recovery screen**, which restores the newest checked backup.
 - **Setup wizard** (SET-01 to SET-12): welcome (new shop or restore from a backup), shop, money with live preview, tax with rates, first admin with the recovery code shown once, till, printer (can be skipped), backups, products ("add later"). Each step is saved on Next, so setup resumes where it stopped.

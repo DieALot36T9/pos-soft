@@ -1,4 +1,4 @@
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 
 // The fake bridge runs in `pnpm dev:mock` (a normal browser) and in tests.
 const useFakeBridge = import.meta.env.MODE === "mock" || import.meta.env.MODE === "test";
@@ -28,4 +28,17 @@ export async function pickFolder(title: string): Promise<string | null> {
   }
   const picked = await open({ title, multiple: false, directory: true });
   return typeof picked === "string" ? picked : null;
+}
+
+// Lets the user choose where to save an Excel file. Null if cancelled.
+export async function pickSaveFile(title: string, suggestedName: string): Promise<string | null> {
+  if (useFakeBridge) {
+    return `/fake/exports/${suggestedName}`;
+  }
+  const picked = await save({
+    title,
+    defaultPath: suggestedName,
+    filters: [{ name: "Excel", extensions: ["xlsx"] }],
+  });
+  return picked ?? null;
 }

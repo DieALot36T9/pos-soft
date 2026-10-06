@@ -1,5 +1,5 @@
 import type { AppInfo } from "../generated/AppInfo";
-import type { SignInResult } from "../generated/SignInResult";
+import type { SessionView } from "../generated/SessionView";
 import type { StartupView } from "../generated/StartupView";
 import { call } from "../shared/bridge";
 
@@ -7,7 +7,7 @@ import { call } from "../shared/bridge";
 export const getAppInfo = (): Promise<AppInfo> => call<AppInfo>("app_info");
 // Which screen to open: recovery, setup, sign-in or the app (SET-01, BAK-06).
 export const getStartup = () => call<StartupView>("startup_status");
-// Checks a username and password in Rust (until the login screens of C-M3).
-export const signIn = (username: string, password: string) =>
-  call<SignInResult>("session_sign_in", { username, password });
-export const signOut = () => call<null>("session_sign_out");
+// Logs out (USR-01). The login screen shows next.
+export const logOut = () => call<null>("logout");
+// Locks the till: F12, the Lock button or the idle timer (USR-03).
+export const lockTill = () => call<SessionView>("lock");

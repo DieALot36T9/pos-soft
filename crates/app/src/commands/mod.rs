@@ -1,6 +1,8 @@
 //! Tauri commands, one file per area of the UI. Commands stay thin: check the
 //! permission, call one workflow or query, return.
 
+pub mod audit;
+pub mod auth;
 pub mod backup;
 pub mod dev;
 pub mod hardware;
@@ -9,6 +11,7 @@ pub mod setup;
 pub mod startup;
 pub mod system;
 pub mod tax;
+pub mod users;
 
 use pos_core::{AppError, Permission};
 
@@ -22,15 +25,26 @@ use pos_core::{AppError, Permission};
 ///   while setup is open, because the wizard uses them.
 /// - "Test print" goes to the Preview printer and reaches no device yet; when printer
 ///   settings are used (C-M7), `hardware_test_print` needs `SettingsManage`.
+/// - `login_tiles`, `login` and `recover_admin` work only once setup is complete.
+/// - `lock`, `unlock`, `unlock_by_admin`, `request_override` and `change_own_secret`
+///   need someone signed in (any role); `unlock*` only while the till is locked.
+/// - `backup_restore` also takes an admin's approval token (`require_or_approval`, USR-05).
 pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("app_info", None),
     ("hardware_test_print", None),
     ("preview_take_printouts", None),
     ("print_window", None),
     ("startup_status", None),
-    ("session_sign_in", None),
-    ("session_sign_out", None),
     ("session_current", None),
+    ("login_tiles", None),
+    ("login", None),
+    ("logout", None),
+    ("lock", None),
+    ("unlock", None),
+    ("unlock_by_admin", None),
+    ("request_override", None),
+    ("change_own_secret", None),
+    ("recover_admin", None),
     ("recovery_backups", None),
     ("recovery_restore", None),
     ("setup_status", None),
@@ -55,6 +69,12 @@ pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("backup_now", Some(Permission::BackupRun)),
     ("backup_list", Some(Permission::BackupRun)),
     ("backup_restore", Some(Permission::BackupRestore)),
+    ("user_list", Some(Permission::UsersManage)),
+    ("user_save", Some(Permission::UsersManage)),
+    ("role_list", Some(Permission::UsersManage)),
+    ("role_save", Some(Permission::UsersManage)),
+    ("audit_query", Some(Permission::AuditView)),
+    ("audit_export", Some(Permission::AuditView)),
 ];
 
 /// The dev-only commands (fake scale panel). Registered only when `dev_tools::ON` is true.
@@ -104,7 +124,7 @@ mod tests {
     #[test]
     fn every_command_has_a_permission_decision() {
         let all = names(COMMANDS);
-        assert_eq!(all.len(), 32);
+        assert_eq!(all.len(), 45);
         let mut unique = all.clone();
         unique.sort_unstable();
         unique.dedup();

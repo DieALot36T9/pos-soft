@@ -42,12 +42,16 @@ io.workspace = true
 printing.workspace = true
 hardware.workspace = true
 serde.workspace = true
+# Random single-use admin approval tokens (USR-05).
+rand.workspace = true
 tauri.workspace = true
 tauri-plugin-single-instance.workspace = true
 # File pickers: restore from a backup file, choose backup folders (Reuse Map).
 tauri-plugin-dialog.workspace = true
 rusqlite.workspace = true
 serde_json.workspace = true
+# Times in the audit log export (USR-08).
+chrono.workspace = true
 # Logs: always warnings and errors, detailed on a switch, daily files kept 14 days (BAK-07).
 tracing.workspace = true
 tracing-subscriber.workspace = true

@@ -1,0 +1,67 @@
+// All screen text for the audit log screen, in plain English (ADR-022).
+export const en = {
+  page: {
+    title: "Audit log",
+    intro: "Every sensitive action, newest first. Nobody can change or delete these records.",
+  },
+  filter: {
+    from: {
+      label: "From",
+      tip: "First business day to show, as year-month-day. Example: 2026-03-01",
+    },
+    to: { label: "To", tip: "Last business day to show. Example: 2026-03-07" },
+    user: { label: "User", tip: "Show only this user's actions." },
+    action: { label: "Action", tip: "Show only this kind of action." },
+    anyone: "Anyone",
+    anything: "Any action",
+    show: { label: "Show", tip: "Show the actions that match these filters." },
+    dateInvalid: "Type the date as year-month-day. Example: 2026-03-01",
+  },
+  table: {
+    time: "Time",
+    user: "User",
+    approvedBy: "Approved by",
+    action: "Action",
+    details: "Details",
+    empty: "No actions match these filters.",
+    system: "The app",
+    detailKey: "{{key}}:",
+  },
+  pages: {
+    previous: { label: "Newer", tip: "Show the newer actions." },
+    next: { label: "Older", tip: "Show the older actions." },
+    showing: "Actions {{from}} to {{to}}",
+    newest: "These are the newest actions.",
+    oldest: "There are no older actions.",
+  },
+  export: {
+    label: "Export to Excel",
+    tip: "Save every action that matches the filters as an Excel file.",
+    title: "Save the audit log",
+    done: "Saved {{count}} actions to the Excel file.",
+  },
+  // A plain name for each action. A new action without a name here shows its code.
+  actions: {
+    cart_cancel: "Sale cancelled",
+    sale_void: "Sale voided",
+    drawer_no_sale: "Drawer opened without a sale",
+    settings_change: "Setting changed",
+    tax_rate_change: "Tax rate changed",
+    backup_manual: "Backed up by hand",
+    backup_restore: "Backup restored",
+    logging_switch: "Detailed logging switched",
+    session_login: "Logged in",
+    session_logout: "Logged out",
+    session_unlock_by_admin: "Till unlocked by an admin",
+    user_lockout: "Locked after wrong tries",
+    approval_granted: "Admin approved an action",
+    user_create: "User added",
+    user_change: "User changed",
+    user_own_secret_change: "Changed own PIN or password",
+    role_create: "Role added",
+    role_change: "Role changed",
+    recovery_used: "Recovery code used",
+  },
+};
+
+export type AuditText = typeof en;
