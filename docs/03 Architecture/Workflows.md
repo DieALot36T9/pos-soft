@@ -32,7 +32,7 @@ The cart is the cashier's open cart on their open shift (`workflows::checkout::c
 `workflows::cart_view` (C-M6).
 1. `sales::get_cart(conn, id)` → lines (product ids, qty, sticker prices, manual discounts, overrides)
 2. `catalog::price_info(ids)` → price, cost, tax rate, category path (reversed into top-first for pricing), brand → `pricing::PricingProduct`; `catalog::get` for names, kind and unit
-3. `pricing::load_context(conn, products, tier (none until customers, C-M8), cart price list, local time)` → `pricing::price_cart(ctx, lines, invoice discount)` (pure)
+3. `pricing::load_context(conn, products, the attached customer's tier (C-M8), cart price list, local time)` → `pricing::price_cart(ctx, lines, invoice discount)` (pure)
 4. `tax::get_many(rate ids)` → `tax::calc_line(amount, rate, mode)` for each line (pure)
 5. `core::cash_round(Σ gross, rounding rule)` for the "if paid in cash" total
 6. Stock warnings per product (`not_enough_stock`, `expired_batch`; amber, never blocking here)
@@ -69,7 +69,16 @@ sequenceDiagram
 ```
 Failure in any step before COMMIT → rollback; the cart is unchanged.
 
-As built in C-M6 (`workflows::complete_sale`, `payment_amounts`, `sale_snapshot`): the payment dialog calls `checkout_payment_preview` after every change, so the screen never adds money. **Amount due** (SET-06, PAY-06): rounding "for all payments" rounds the gross; "cash only" rounds the part left after non-cash payments when cash pays it, otherwise the gross stands. `sales::settle_payments(due, payments)` gives the applied amounts and the change (only cash may go over). Credit, points and exchange credit are refused with `payment_needs_customer` until C-M8/C-M9. Completing: reprice → due → settle (anything left is `payment_not_enough`) → `sales::complete` with one snapshot per line (name, SKU, unit, category, brand, unit and retail price, promotion, each discount, net/tax/gross, rate and its parts from `tax::split_components`, unit cost; a kit's cost is the sum of its parts) → `inventory::record` `sale` rows per product (FEFO, kit parts × kits sold, products that keep no stock skipped, `allow_negative` from settings) → `shifts::record` one `sale_payment` per payment (cash: the amount kept after change) → a fresh cart → COMMIT. No audit event for a plain sale. After the commit, `complete_and_print` prints the receipt and pulses the drawer when cash was taken (C-M7, see "Receipts and printing"); the result is `SaleDone.receipt`.
+As built in C-M6 (`workflows::complete_sale`, `payment_amounts`, `sale_snapshot`): the payment dialog calls `checkout_payment_preview` after every change, so the screen never adds money. **Amount due** (SET-06, PAY-06): rounding "for all payments" rounds the gross; "cash only" rounds the part left after non-cash payments when cash pays it, otherwise the gross stands. `sales::settle_payments(due, payments)` gives the applied amounts and the change (only cash may go over). Credit (when selling on credit is on) and points (when loyalty is on) need an attached customer, otherwise `payment_needs_customer`; exchange credit waits for C-M9. Completing: reprice → due → settle (anything left is `payment_not_enough`) → `sales::complete` with one snapshot per line (name, SKU, unit, category, brand, unit and retail price, promotion, each discount, net/tax/gross, rate and its parts from `tax::split_components`, unit cost; a kit's cost is the sum of its parts) → `inventory::record` `sale` rows per product (FEFO, kit parts × kits sold, products that keep no stock skipped, `allow_negative` from settings) → `shifts::record` one `sale_payment` per payment (cash: the amount kept after change) → a fresh cart → COMMIT. No audit event for a plain sale. After the commit, `complete_and_print` prints the receipt and pulses the drawer when cash was taken (C-M7, see "Receipts and printing"); the result is `SaleDone.receipt`.
+
+**With a customer (C-M8):** before saving, points must be whole points (`points_whole_only`) and no more than `customers::max_points_to_redeem` (`points_over_limit`); credit that takes the debt over the customer's limit needs `CreditLimitExceed` or an admin's approval token (`OverrideRequired`). After `sales::complete`, in the same transaction: `customers::add_points` `redeem` for the points paid, `customers::pay_with_credit` for the credit (store credit first, then new debt), and `add_points` `earn` on `eligible_for_points(total, points, credit)` unless the customer opted out. `SaleDone.points_earned` says how many.
+
+## Discounts, typed prices, customer and price list (C-M8)
+`workflows::cart_pricing`, each one transaction ending with the repriced `CartView`.
+- **Discount** (CHK-12, PRC-07): price the cart, take `pricing::manual_discount_bps`, save the line or invoice discount, price again. If the biggest discount went up and is above the user's own limit (admin unlimited, the role's limit with `DiscountApply`, otherwise 0), an approval token for `DiscountApply` is used up and its admin's own limit must cover it; otherwise `OverrideRequired` and nothing is saved. Approved discounts are audited (`discount.over_limit`, with both users).
+- **Typed price** (CHK-13): `require_or_approval(PriceOverride)`, `sales::set_price_override`, audit `price.override` with the old, retail and new unit price.
+- **Customer** (CHK-11): `customers::get` (archived refused), `sales::set_customer`; the next price uses the tier's price list and discount.
+- **Price list** (CHK-17): `require_or_approval(PriceListSwitch)`, the list must be switched on, `sales::set_price_list`.
 
 ## Hold / resume / cancel cart
 `workflows::held_carts` (C-M6).
@@ -127,6 +136,8 @@ Requires the sale's shift to still be open. `sales::void` → `inventory` `sale_
 
 ## Customer payment (debt)
 `customers::credit_ledger` `payment` → if cash at the till: `shifts::record` `customer_payment` → audit → print a payment receipt.
+
+As built in C-M8 (`workflows::customer_records::take_payment`): the method must be active and one of cash, card, wallet or other; a reference when the method needs one. Cash needs the user's open shift; other methods also work from the back office and go on the user's shift when they have one. `customers::add_credit` `payment` (more than owed: `payment_more_than_debt`) → `shifts::record` `customer_payment` → audit `customer.payment` → COMMIT. The payment receipt isn't printed yet (open item on [[Module - app]]).
 
 ## Supplier payment
 `purchasing` payables `payment` → if cash from the drawer: `shifts::record` `cash_out` → audit.

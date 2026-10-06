@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: high
 phase: C
 depends_on: [C-M8]
-status: waiting
+status: ready
 ---
 # Task C-M9: Returns and voids
 
