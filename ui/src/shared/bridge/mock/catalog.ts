@@ -70,6 +70,22 @@ function unit(id: string, name: string, symbol: string, decimals: number): Unit 
   return { id, name, symbol, unit_code: null, decimals, is_system: true, archived_at: null };
 }
 
+// What the pretend stock (stock.ts) reads from the pretend catalog. Copies, never the originals.
+export function fakeCatalog() {
+  return {
+    products: structuredClone(products),
+    units: structuredClone(units),
+    categories: structuredClone(categories),
+    reorder: new Map(reorder),
+  };
+}
+
+// The pretend stock tells the catalog how much of a product is on hand (product page).
+let onHandOf: (id: string) => number = () => 0;
+export function connectStock(read: (id: string) => number) {
+  onHandOf = read;
+}
+
 // Starts the pretend catalog again. A set-up shop has a few demo products.
 export function resetCatalog(withDemoProducts: boolean) {
   units = [
@@ -95,7 +111,9 @@ export function resetCatalog(withDemoProducts: boolean) {
   if (withDemoProducts) {
     const dairy = addCategory("Dairy", null);
     const brand = addBrand("Farm Fresh");
-    addDemo("Milk 1L", 9000, 7500, dairy, brand, ["8901234567890"]);
+    const milk = addDemo("Milk 1L", 9000, 7500, dairy, brand, ["8901234567890"]);
+    // Milk is low on stock in the demo (reorder below 30, see stock.ts).
+    reorder.set(milk, { level: 30000, qty: 24000 });
     addDemo("Bread", 5000, 3800, UNCATEGORISED, null, []);
     addDemo("Soap", 3000, 2200, UNCATEGORISED, null, ["8902222222227"]);
   }
@@ -121,7 +139,7 @@ function addDemo(
   brand: string | null,
   barcodes: string[],
 ) {
-  create({
+  return create({
     ...blankInput(name),
     sale_price: sale,
     cost_price: cost,
@@ -463,7 +481,7 @@ export const catalogHandlers = {
     return {
       product: structuredClone(found),
       reorder: reorder.get(found.id) ?? null,
-      on_hand: 0,
+      on_hand: onHandOf(found.id),
       kit_parts: parts.map((part) => {
         const each = product(part.product_id);
         return {

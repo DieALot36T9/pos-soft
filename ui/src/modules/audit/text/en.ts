@@ -69,6 +69,10 @@ export const en = {
     unit_change: "Unit changed",
     category_change: "Category changed",
     brand_change: "Brand changed",
+    stock_adjust: "Stock adjusted",
+    stock_count_create: "Stock count started",
+    stock_count_post: "Stock count posted",
+    stock_count_cancel: "Stock count cancelled",
   },
 };
 

@@ -5,11 +5,13 @@
 use pos_core::Qty;
 use rusqlite::{Connection, OptionalExtension, Transaction, named_params};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::InventoryError;
 
 /// Which way a reason moves stock.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "snake_case")]
 pub enum ReasonDirection {
     In,
@@ -50,7 +52,8 @@ impl ReasonDirection {
 }
 
 /// One adjustment reason.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Reason {
     pub code: String,
     pub name: String,

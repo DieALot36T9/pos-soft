@@ -211,3 +211,37 @@ fn cat_08_a_product_that_moved_in_stock_is_used() {
     assert!(inventory::is_product_used(&connection, &moved).unwrap());
     assert!(!inventory::is_product_used(&connection, &Id::new()).unwrap());
 }
+
+#[test]
+fn get_batch_finds_a_batch_even_when_it_is_empty() {
+    let mut connection = test_db();
+    let product = Id::new();
+    let empty = batch(&mut connection, &product, Some("2026-06-01"));
+    let found = inventory::get_batch(&connection, &empty).unwrap();
+    assert_eq!(found.product_id, product);
+    assert_eq!(found.on_hand.0, 0);
+    assert_eq!(found.expiry_date, Some(support::date("2026-06-01")));
+    assert!(matches!(
+        inventory::get_batch(&connection, &Id::new()),
+        Err(inventory::InventoryError::NotFound {
+            entity: "batch",
+            ..
+        })
+    ));
+}
+
+#[test]
+fn stock_screen_enums_have_typescript_types() {
+    use ts_rs::{Config, TS};
+    let config = Config::default();
+    assert_eq!(
+        MoveKind::inline(&config),
+        r#""sale" | "sale_void" | "return" | "receive" | "supplier_return" | "adjust" | "count" | "opening""#
+    );
+    assert_eq!(CountScope::inline(&config), r#""full" | "partial""#);
+    assert_eq!(
+        CountStatus::inline(&config),
+        r#""open" | "posted" | "cancelled""#
+    );
+    assert_eq!(ReasonDirection::inline(&config), r#""in" | "out" | "both""#);
+}

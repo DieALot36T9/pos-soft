@@ -8,7 +8,7 @@ milestone: M5
 **Purpose:** how much of each product the shop has, where it came from and where it went: ledger, levels, batches with expiry (FEFO), adjustments, reorder rules, stock counts.
 
 **Requirements:** [[Req - Inventory]]. **Design:** [[ADR-010 Append-only ledgers]], [[ADR-020 Negative stock allowed by default]].
-**Depends on:** `core`, `rusqlite`, `serde`, `thiserror`, `chrono` (expiry dates are `NaiveDate`), `serde_json` (a count's scope details are stored as JSON). Tests also use `proptest`.
+**Depends on:** `core`, `rusqlite`, `serde`, `thiserror`, `chrono` (expiry dates are `NaiveDate`), `serde_json` (a count's scope details are stored as JSON), `ts-rs` (TypeScript types for the stock screens, ADR-014). Tests also use `proptest`.
 
 ## Tables
 Migration `migrations/001_init.sql`. The SQL below is a summary; the file is the source of truth.
@@ -95,6 +95,7 @@ pub fn reverse(tx, ref_type: &str, ref_id: &Id, kind: MoveKind, ctx: &MoveCtx) -
 pub struct BatchRow { id, product_id, batch_no: Option<String>, expiry_date: Option<NaiveDate>, unit_cost: Money, received_at: Timestamp, on_hand: Qty }
 pub fn create_batch(tx, product: &Id, batch_no: Option<&str>, expiry: Option<NaiveDate>, cost: Money, now: Timestamp) -> Result<Id>;
 pub fn batches_of(conn, product: &Id) -> Result<Vec<BatchRow>>;             // batches with stock ≠ 0, FEFO order
+pub fn get_batch(conn, id: &Id) -> Result<BatchRow>;                       // any batch, even empty (history, C-M5); unknown → NotFound
 pub fn near_expiry(conn, today: NaiveDate, days: u32) -> Result<Vec<BatchRow>>;
 
 // Levels and reorder rules (levels.rs)
@@ -174,7 +175,7 @@ pub fn migrations() -> ModuleMigrations;
 | `tests/history_and_verify.rs` | **INV-07** running balance (true even when filtered), date filter, link to the document; **INV-10** `verify` reports wrong levels and batches without fixing them |
 | `tests/append_only.rs` | **INV-01** append-only triggers refuse UPDATE and DELETE |
 | `tests/properties.rs` | **INV-10** proptest: random sequences of receives, FEFO and plain sales, batch adjustments, voids and counts (with negative stock on and off) → `verify()` is empty and every level equals its ledger sum |
-| `tests/contract.rs` | Migrations numbered from 1; every table, view, index and trigger has the `inventory_` prefix; the three views' columns; `inventory_v_levels` includes rule-only products; enum texts; `cat_08_a_product_that_moved_in_stock_is_used` |
+| `tests/contract.rs` | Migrations numbered from 1; every table, view, index and trigger has the `inventory_` prefix; the three views' columns; `inventory_v_levels` includes rule-only products; enum texts; `cat_08_a_product_that_moved_in_stock_is_used`; `get_batch` finds empty batches; the TypeScript types of `MoveKind`, `CountScope`, `CountStatus`, `ReasonDirection` |
 
 ## Working on this module
 *Everything needed to work on this module on its own. Read this page, [[Module Rules]] and [[Module - core]]. Nothing else is required. The same instructions are in `crates/inventory/CLAUDE.md`, which points back here.*
@@ -203,9 +204,9 @@ pub fn migrations() -> ModuleMigrations;
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- Built in task B-inventory: Rust crate, migration, public API and tests. **No `app` wiring and no screens** yet (Phase C).
-- **TypeScript types:** the public structs derive `serde` but not yet `ts_rs::TS`. Add the `TS` derives (and run `cargo xtask gen-types`) in the C task that builds the stock screens, when the screens show which types they need.
+- Built in task B-inventory: Rust crate, migration, public API and tests.
+- **Built in C-M5:** `app` wiring (`workflows/stock.rs`, `workflows/stock_counts.rs`, `commands/inventory.rs`) and the screens in `ui/src/modules/inventory/` (Stock, product stock with batches, adjust and history, Stock counts with counting by scanning and the variance review, stock alerts on the Home page). See [[Module - app]] for what is not built yet.
+- **TypeScript types:** `MoveKind`, `CountScope`, `CountStatus`, `ReasonDirection` and `Reason` derive `ts_rs::TS`. The other structs (`BatchRow`, `LedgerRow`, `VarianceRow`, …) reach the screens through `app`'s view types, which add names and units.
 - **`Page`** is defined here because `core` has no shared paging type yet. If one is added to `core` (catalog and audit also page lists), switch to it.
-- [[Workflows]] calls the scan check `inventory::available(product)`; the function is `availability(conn, product, today)`. Fix the name there when `app` wiring is written (outside this module's folders).
-- Partial counts store their scope (category, brand, location note, product list) as JSON for display only. Choosing which products to count from that scope is for `app`/screens, since categories and brands belong to catalog.
-- A whole-product count line of a product that has batches writes its difference with no batch; the batches keep their stock. The count screen should ask for the batch when a product tracks expiry.
+- Partial counts store their scope (category, brand, location note, product list) as JSON for display only. Choosing which products to count from that scope is for `app`/screens, since categories and brands belong to catalog. In C-M5 the screen shows the scope ("Dairy · Aisle 3") but any product can be counted.
+- A whole-product count line of a product that has batches writes its difference with no batch; the batches keep their stock. The count screen (C-M5) asks for the batch whenever a scanned product has batches with stock, with "Whole product" as the first choice.

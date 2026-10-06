@@ -21,7 +21,7 @@ Input: raw code from the checkout input.
    - Not found → `AppError::NotFound` (UI shows CHK-02)
    - Variant parent → error "choose a variant"
    - Weighed with a plain code → return `NeedsWeight` (UI opens the weight dialog, then calls `add_line` with qty)
-3. `inventory::available(product)` → a warning if ≤ 0 or an expired batch (block if the settings say so)
+3. `inventory::availability(conn, product, today)` → a warning if ≤ 0 or an expired batch (block if the settings say so)
 4. `sales::add_line(tx, cart, line)` (or merge into the existing line)
 5. **Reprice the cart** (see below) and return a `CartView`
 
@@ -95,10 +95,17 @@ Requires the sale's shift to still be open. `sales::void` → `inventory` `sale_
 `purchasing::record_supplier_return` → `inventory::record` `supplier_return` → payables ledger `return_credit` → audit.
 
 ## Adjust stock
-`inventory::record` `adjust` with reason → audit.
+`workflows::stock::adjust` (C-M5), one transaction: `catalog::get` (a kit, a variant parent or a product with "track stock" off is `product_keeps_no_stock`, INV-09) → the batch: **Auto** is FEFO for stock out and no batch for stock in; **Existing** is that batch; **New** (stock in only, else `new_batch_only_for_stock_in`) needs an expiry date when the product tracks expiry (`expiry_needed`) and is made with `inventory::create_batch` at the product's cost → `inventory::record` `adjust` with the reason, note, the product's cost and `tracks_expiry`, and `allow_negative` from `InventorySettings` (INV-02, INV-04, INV-05) → audit `stock.adjust` (product, quantity, reason, note, batches). Returns the new stock on hand.
 
-## Post stock count
-Backup (`pre-count-post`) → `inventory::post_count` (creates `count` rows for differences) → audit.
+## Stock counts (C-M5)
+- **Start:** `inventory::create_count` (SC-000001, …) with the scope; a partial count keeps its category, brand and place as JSON for display → audit `stock_count.create`.
+- **Count:** `catalog::find_by_code` (barcode, then SKU; `stock_lookup`) → `inventory::record_count_line` (scans add up; the expected stock is kept at the first scan).
+- **Review:** `inventory::count_variances` with each product's current `catalog` cost.
+- **Post:** refused while a full count has products with stock nobody counted, unless the user confirmed setting them to 0 (`count_uncounted_needs_confirm` with `uncounted`) → backup (`pre-count-post`, before the transaction; a failed backup stops the post) → one transaction: `inventory::post_count` (creates `count` rows for differences) → audit `stock_count.post` (rows written, uncounted set to 0, value of the difference).
+- **Cancel:** `inventory::cancel_count` → audit `stock_count.cancel`. Stock doesn't change.
+
+## Stock lists (C-M5)
+`workflows::stock::levels` reads the published views `catalog_v_products`, `catalog_v_categories`, `inventory_v_levels` and `inventory_v_batches` in one query: standard products and variants that keep stock (archived ones only while they hold stock), filtered by name or SKU, category (with sub-categories) and Low / Below zero / Expiring; value = on hand × cost (`core::mul_qty`, INV-08). The dashboard's `stock_alerts`: `inventory::low_stock_count` and the 5 biggest shortfalls, `inventory::near_expiry` with `near_expiry_days` (expired batches first), and the number of products below zero. "Verify stock data" is `inventory::verify` with product names; it never fixes anything (INV-10).
 
 ## Open / close shift
 - **Open:** `shifts::open` (refuses if one is already open on the till).

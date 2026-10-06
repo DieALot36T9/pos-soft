@@ -8,6 +8,8 @@ pub mod folders;
 pub mod products;
 pub mod settings_change;
 pub mod setup;
+pub mod stock;
+pub mod stock_counts;
 pub mod tax_rates;
 pub mod test_print;
 pub mod users;

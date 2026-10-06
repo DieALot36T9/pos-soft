@@ -56,6 +56,14 @@ pub const UNIT_CHANGE: &str = "unit.change";
 pub const CATEGORY_CHANGE: &str = "category.change";
 /// A brand was added, renamed or archived (CAT-03).
 pub const BRAND_CHANGE: &str = "brand.change";
+/// Stock was adjusted by hand with a reason (INV-02).
+pub const STOCK_ADJUST: &str = "stock.adjust";
+/// A stock count was started (INV-06).
+pub const STOCK_COUNT_CREATE: &str = "stock_count.create";
+/// A stock count's differences were posted to stock (INV-06).
+pub const STOCK_COUNT_POST: &str = "stock_count.post";
+/// A stock count was cancelled; stock didn't change (INV-06).
+pub const STOCK_COUNT_CANCEL: &str = "stock_count.cancel";
 
 /// Every action name, for the action filter on the audit screen (USR-08).
 pub const ALL: &[&str] = &[
@@ -86,6 +94,10 @@ pub const ALL: &[&str] = &[
     UNIT_CHANGE,
     CATEGORY_CHANGE,
     BRAND_CHANGE,
+    STOCK_ADJUST,
+    STOCK_COUNT_CREATE,
+    STOCK_COUNT_POST,
+    STOCK_COUNT_CANCEL,
 ];
 
 #[cfg(test)]

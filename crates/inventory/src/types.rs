@@ -3,11 +3,13 @@
 
 use pos_core::{BusinessDate, Id, Money, Qty, Timestamp};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::InventoryError;
 
 /// Why stock changed. Stored in `inventory_ledger.kind` as lower snake case.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "snake_case")]
 pub enum MoveKind {
     /// Sold at the till. Stock goes out.

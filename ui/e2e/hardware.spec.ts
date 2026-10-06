@@ -68,7 +68,9 @@ test("design: every button and field has a tooltip, shown when reached with Tab"
   await page.keyboard.press("Tab");
   // The first control on screen shows its tooltip at once.
   await expect(page.getByRole("button", { name: /^Home/ })).toBeFocused();
-  await expect(page.getByRole("tooltip")).toHaveText("The start page with the app's version.");
+  await expect(page.getByRole("tooltip")).toHaveText(
+    "The start page with stock alerts and the app's version.",
+  );
 
   // Walk the page with the Tab key. Every control sits inside a tooltip trigger
   // (Radix marks each trigger with data-state). A tooltip that opens while the page
