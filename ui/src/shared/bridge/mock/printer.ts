@@ -5,7 +5,9 @@ import type { Printable } from "../../../generated/Printable";
 import type { PrintResult } from "../../../generated/PrintResult";
 // The approved printouts, made by Rust (crates/app/tests/golden).
 import receiptCopy from "../../../../../crates/app/tests/golden/sale_receipt_copy_80mm.png";
+import returnReceipt from "../../../../../crates/app/tests/golden/return_receipt_80mm.png";
 import receipt from "../../../../../crates/app/tests/golden/sale_receipt_80mm.png";
+import voidReceipt from "../../../../../crates/app/tests/golden/void_receipt_80mm.png";
 import xReport from "../../../../../crates/app/tests/golden/x_report_80mm.png";
 import zReport from "../../../../../crates/app/tests/golden/z_report_80mm.png";
 import { currentSession } from "./people";
@@ -14,7 +16,7 @@ import { currentSession } from "./people";
 // the Preview printer works: any other printer in the settings counts as offline,
 // which is how the "Receipt not printed" banner can be tried (PAY-09).
 
-export const pictures = { receipt, receiptCopy, xReport, zReport };
+export const pictures = { receipt, receiptCopy, xReport, zReport, returnReceipt, voidReceipt };
 
 // What the fake Preview printer has printed and not yet handed out.
 let waitingPrintouts: PreviewPrintout[] = [];

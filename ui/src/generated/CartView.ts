@@ -2,6 +2,7 @@
 import type { CartCustomer } from "./CartCustomer";
 import type { CartLineView } from "./CartLineView";
 import type { CartTotals } from "./CartTotals";
+import type { ExchangeView } from "./ExchangeView";
 import type { Id } from "./Id";
 import type { ManualDiscount } from "./ManualDiscount";
 import type { PriceListChoice } from "./PriceListChoice";
@@ -26,4 +27,8 @@ tax_label: string,
 /**
  * Inclusive: prices already contain tax, shown as "VAT (incl.)".
  */
-tax_mode: TaxMode, };
+tax_mode: TaxMode, 
+/**
+ * The new half of an exchange: the return's credit that pays for this cart (RET-05).
+ */
+exchange: ExchangeView | null, };

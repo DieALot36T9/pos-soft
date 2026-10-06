@@ -22,11 +22,13 @@ export function SaleDoneBar({ done, currency }: { done: SaleDone; currency: Curr
           </span>
         ) : null}
       </span>
-      {done.change > 0 ? (
+      {done.change > 0 || done.exchange_cash_back > 0 ? (
         <span className="text-right">
-          <span className="block text-xl font-semibold">{t("done.change")}</span>
+          <span className="block text-xl font-semibold">
+            {done.change > 0 ? t("done.change") : t("done.exchangeBack")}
+          </span>
           <span className="text-[56px] leading-tight font-semibold tabular-nums">
-            {formatMoney(done.change, currency)}
+            {formatMoney(done.change > 0 ? done.change : done.exchange_cash_back, currency)}
           </span>
         </span>
       ) : (

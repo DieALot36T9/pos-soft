@@ -90,6 +90,10 @@ pub const CUSTOMER_CHANGE: &str = "customer.change";
 pub const CUSTOMER_PAYMENT: &str = "customer.payment";
 /// An admin added or took away loyalty points, with a reason (CUS-04).
 pub const POINTS_ADJUST: &str = "points.adjust";
+/// Goods came back with or without a receipt, or as the first half of an exchange (RET-01, RET-03, RET-05).
+pub const RETURN_COMPLETE: &str = "return.complete";
+/// An exchange's credit was given back in cash instead of buying something new (RET-05).
+pub const EXCHANGE_CASH_OUT: &str = "exchange.cash_out";
 
 /// Every action name, for the action filter on the audit screen (USR-08).
 pub const ALL: &[&str] = &[
@@ -137,6 +141,8 @@ pub const ALL: &[&str] = &[
     CUSTOMER_CHANGE,
     CUSTOMER_PAYMENT,
     POINTS_ADJUST,
+    RETURN_COMPLETE,
+    EXCHANGE_CASH_OUT,
 ];
 
 #[cfg(test)]

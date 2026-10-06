@@ -10,6 +10,7 @@ import {
   PauseCircle,
   Printer,
   ReceiptText,
+  RotateCcw,
   Search,
   Trash2,
   Wallet,
@@ -42,13 +43,13 @@ type ButtonBarProps = {
   onCancel: () => void;
   onReprint: () => void;
   onOldReceipt: () => void;
+  onReturn: () => void;
   onShift: () => void;
   onLock: () => void;
   onBackOffice: () => void;
 };
 
 // The buttons under the cart, each with its icon, word, colour and key (Checkout Screen).
-// Returns come in a later milestone (C-M9).
 export function ButtonBar(props: ButtonBarProps) {
   const { t } = useTranslation("checkout");
   const noItems = props.hasLines ? undefined : t("pay.empty");
@@ -181,6 +182,15 @@ export function ButtonBar(props: ButtonBarProps) {
           onClick={props.onOldReceipt}
         />
       ) : null}
+      <ActionButton
+        colour="red"
+        icon={RotateCcw}
+        size="till"
+        label={t("buttons.returns.label")}
+        tip={t("buttons.returns.tip")}
+        shortcut={shortcuts.checkoutReturn.label}
+        onClick={props.onReturn}
+      />
       <ActionButton
         colour="grey"
         icon={Wallet}

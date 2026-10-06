@@ -106,7 +106,8 @@ fn command_handler() -> CommandHandler {
 fn with_dev_commands() -> CommandHandler {
     use commands::{
         audit, auth, backup, catalog, checkout, customers, dev, hardware, inventory,
-        payment_methods, pricing, receipts, settings, setup, shifts, startup, system, tax, users,
+        payment_methods, pricing, receipts, returns, settings, setup, shifts, startup, system, tax,
+        users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -245,6 +246,12 @@ fn with_dev_commands() -> CommandHandler {
         customers::cmd::customer_payment,
         customers::cmd::points_adjust,
         customers::cmd::customer_statement,
+        returns::cmd::return_lookup,
+        returns::cmd::return_preview,
+        returns::cmd::return_complete,
+        returns::cmd::exchange_start,
+        returns::cmd::exchange_cash_out,
+        returns::cmd::sale_void,
         dev::dev_fake_scale_get,
         dev::dev_fake_scale_set,
         dev::dev_fake_scale_read,
@@ -257,7 +264,7 @@ fn with_dev_commands() -> CommandHandler {
 fn without_dev_commands() -> CommandHandler {
     use commands::{
         audit, auth, backup, catalog, checkout, customers, hardware, inventory, payment_methods,
-        pricing, receipts, settings, setup, shifts, startup, system, tax, users,
+        pricing, receipts, returns, settings, setup, shifts, startup, system, tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -396,6 +403,12 @@ fn without_dev_commands() -> CommandHandler {
         customers::cmd::customer_payment,
         customers::cmd::points_adjust,
         customers::cmd::customer_statement,
+        returns::cmd::return_lookup,
+        returns::cmd::return_preview,
+        returns::cmd::return_complete,
+        returns::cmd::exchange_start,
+        returns::cmd::exchange_cash_out,
+        returns::cmd::sale_void,
     ])
 }
 

@@ -10,7 +10,7 @@ use crate::audit_log;
 use crate::state::AppState;
 use crate::workflows::cart_view::{self, CartView};
 use crate::workflows::checkout::{current_cart, own_cart, selling};
-use crate::workflows::till::till_settings;
+use crate::workflows::till::{conflict, till_settings};
 
 /// One row of the held sales list (CHK-10).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
@@ -43,6 +43,10 @@ pub fn hold(state: &AppState, user: &Id, note: Option<&str>) -> Result<CartView,
     state.db.write(|tx| {
         let selling = selling(tx, user)?;
         let cart = current_cart(tx, clock, &selling, user)?;
+        // The exchange's credit belongs to this customer now: finish it or give it back.
+        if cart.exchange_return_id.is_some() {
+            return Err(conflict("exchange_in_progress"));
+        }
         sales::hold(tx, &cart.id, note.map(str::to_string), clock.now())?;
         let fresh = current_cart(tx, clock, &selling, user)?;
         cart_view::cart_view(tx, clock, fresh)
@@ -115,6 +119,9 @@ pub fn cancel(state: &AppState, user: &Id) -> Result<CartView, AppError> {
     state.db.write(|tx| {
         let selling = selling(tx, user)?;
         let cart = own_cart(tx, clock, user)?;
+        if cart.exchange_return_id.is_some() {
+            return Err(conflict("exchange_in_progress"));
+        }
         if cart.lines.is_empty() {
             return cart_view::cart_view(tx, clock, cart);
         }

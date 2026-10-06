@@ -17,6 +17,7 @@ use crate::audit_log;
 use crate::devices::Devices;
 use crate::state::AppState;
 use crate::workflows::receipts::{self, PrintResult};
+use crate::workflows::returns::pay_out_exchange;
 use crate::workflows::till::{conflict, conflict_with, shift_view, till_settings, till_shift};
 
 /// How many of one note or coin were counted. Example: 12 × 500.00.
@@ -210,6 +211,12 @@ pub fn close(
         if open_carts > 0 {
             return Err(conflict_with("shift_has_open_carts", "count", open_carts));
         }
+        // An exchange's credit belongs to the customer: finish it or give it back first.
+        if sales::current_cart(tx, &shift.till_id, user)?
+            .is_some_and(|cart| cart.exchange_return_id.is_some())
+        {
+            return Err(conflict("exchange_in_progress"));
+        }
         drop_empty_cart(tx, &shift.till_id, user)?;
         let result = shifts::close(
             tx,
@@ -239,6 +246,8 @@ pub fn force_close(
     state.db.write(|tx| {
         let shift = till_shift(tx)?.ok_or_else(|| conflict("shift_not_open"))?;
         if let Some(cart) = sales::current_cart(tx, &shift.till_id, &shift.user_id)? {
+            // An exchange left open: its credit goes back in cash, so the count shows it.
+            pay_out_exchange(tx, clock, &cart, &shift.id, user)?;
             if cart.lines.is_empty() {
                 sales::cancel(tx, &cart.id)?;
             } else {

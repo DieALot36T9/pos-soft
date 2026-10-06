@@ -43,4 +43,12 @@ points_offer: PointsOffer | null,
  * With a customer: how much more may go on credit before the limit (PAY-04).
  * Store credit counts too. None without a customer.
  */
-credit_available: Money | null, };
+credit_available: Money | null, 
+/**
+ * The new half of an exchange: the return's credit that pays for this sale (RET-05).
+ */
+exchange_credit: Money, 
+/**
+ * The return's credit beyond this sale, given back in cash (RET-05).
+ */
+exchange_cash_back: Money, };

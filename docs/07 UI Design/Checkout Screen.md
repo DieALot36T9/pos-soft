@@ -60,6 +60,7 @@ The screen cashiers use all day. Requirements: [[Req - Checkout]], [[Req - Payme
 - TOTAL is the largest text on the screen.
 - All amounts come from the cart sent by Rust (`CartView`).
 - As built in C-M8: the customer strip sits between the scan box and the cart (customer, tier, points, debt or store credit, price list, sale discount). The button bar also has **Sale discount** (`Shift+F7`) and **Price list** (no key; it lists the switched-on lists). A line with a typed price shows a purple "Price typed" badge. Anything above the user's rights opens the admin approval dialog and runs again once allowed.
+- As built in C-M9: **Return** (red, `Ctrl+R`) opens "Return, exchange or void": the invoice number (scan the receipt's barcode or type it), the sale's lines with sold, returned and a "Coming back" quantity and a "Damaged" tick, the reason and "Refund by"; the refund total in red with how it goes back and the points taken back, all from Rust. "No receipt" switches to picking products at today's price. Buttons: Back, **Void sale** (asks for a reason; disabled with the reason when the shift is closed or part came back), **Exchange** and **Refund**. Afterwards a red strip says what was done and the cash to give back in big numbers. An exchange cart shows a blue strip with the credit and "Give credit back"; the payment dialog shows the exchange credit first and any credit given back.
 
 ## Payment dialog
 ```

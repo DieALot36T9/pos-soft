@@ -1,7 +1,8 @@
 # Module: checkout (screens)
 
 You are working on the **Checkout** screen (till mode): scan box, cart, totals, weight,
-quantity, hold/resume/cancel and the payment dialog (CHK-01 to CHK-22, PAY-01 to PAY-08).
+quantity, hold/resume/cancel, the payment dialog (CHK-01 to CHK-22, PAY-01 to PAY-08) and
+returns, exchanges and voids (RET-01 to RET-07, `ReturnDialog`).
 The Rust side is the `sales` crate; `app` connects it to catalog, barcode, pricing, tax,
 inventory and shifts.
 

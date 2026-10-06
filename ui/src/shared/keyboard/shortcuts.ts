@@ -25,6 +25,8 @@ export const shortcuts = {
   checkoutRemove: { label: "Del", keys: "delete" },
   // Reprints this till's last receipt, marked COPY (PAY-10).
   checkoutReprint: { label: "Ctrl+P", keys: "ctrl+p" },
+  // Returns, exchanges and voids (RET-01 to RET-05).
+  checkoutReturn: { label: "Ctrl+R", keys: "ctrl+r" },
   // Payment dialog: quick cash amounts.
   quickCash: ["F1", "F2", "F3", "F4"],
   // Confirms a dialog (Complete, Change, Add).

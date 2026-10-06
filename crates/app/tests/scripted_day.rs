@@ -1,17 +1,20 @@
 //! A whole trading day at the till, driven at random (Module - app, "Scripted day";
-//! milestone M6): open a shift, sell, hold, resume, cancel and move cash hundreds of
-//! times, kill the app in the middle, then close the shift. Afterwards every rule
-//! still holds: no completed sale is lost, invoice numbers are gapless, payments add
-//! up to each sale, the drawer's expected cash matches, and stock matches its ledger.
+//! milestones M6 and M9): open a shift, sell, hold, resume, cancel, move cash, return
+//! and void hundreds of times, kill the app in the middle, then close the shift.
+//! Afterwards every rule still holds: no completed sale is lost, invoice and return
+//! numbers are gapless, payments add up to each sale, the drawer's expected cash
+//! matches, and stock matches its ledger.
 
 mod common;
 
 use app::commands::checkout as till;
+use app::commands::returns as return_commands;
 use app::commands::shifts as shift_commands;
 use app::state::AppState;
 use app::workflows::checkout::MethodKind;
 use app::workflows::complete_sale::PaymentEntry;
 use app::workflows::payment_methods::PaymentMethodSave;
+use app::workflows::returns::{ReturnInput, ReturnLineInput};
 use app::workflows::shifts::{CashMoveInput, CashMoveKind, CountLine};
 use common::*;
 use pos_core::{AppError, Id, Money, Qty};
@@ -27,6 +30,9 @@ struct Expected {
     sales: u32,
     cash_kept: i64,
     cash_moves: i64,
+    /// Every sale made: (id, invoice number, still open to a void).
+    sold: Vec<(Id, String, bool)>,
+    returns: u32,
 }
 
 fn prices() -> [(&'static str, i64); 5] {
@@ -94,6 +100,8 @@ fn m6_a_random_day_keeps_every_rule() {
     assert_eq!(closed.expected_cash, Money(drawer));
     assert_eq!(closed.difference, Some(Money(0)));
     check_saved_sales(&state, &expected);
+    assert!(expected.returns > 0, "the day had returns");
+    assert!(audit_count(&state, "sale.void") > 0, "the day had voids");
     let mismatches = state
         .db
         .read(|conn| Ok(inventory::verify(conn)?))
@@ -150,6 +158,8 @@ fn one_step(state: &AppState, random: &mut StdRng, expected: &mut Expected, card
                 -amount
             };
         }
+        72..=75 if !expected.sold.is_empty() => give_back(state, random, expected),
+        76..=77 if !expected.sold.is_empty() => void(state, random, expected),
         _ if !cart.lines.is_empty() => pay(state, random, expected, card),
         _ => {}
     }
@@ -198,9 +208,51 @@ fn pay(state: &AppState, random: &mut StdRng, expected: &mut Expected, card: &Id
             expected.sales += 1;
             assert_eq!(done.invoice_no, format!("T1-{:06}", expected.sales));
             expected.cash_kept += cash_given - done.change.0;
+            expected.sold.push((done.sale_id, done.invoice_no, true));
         }
         Err(error) => panic!("payment refused: {error:?} for {payments:?}"),
     }
+}
+
+/// Returns one piece of a random earlier sale, refunded the way it was paid (RET-01).
+fn give_back(state: &AppState, random: &mut StdRng, expected: &mut Expected) {
+    let pick = random.random_range(0..expected.sold.len());
+    let found = return_commands::return_lookup(state, &expected.sold[pick].1).expect("found");
+    let Some(line) = found.lines.iter().find(|line| line.returnable.0 >= 1_000) else {
+        return;
+    };
+    let input = ReturnInput {
+        sale_id: Some(found.sale_id.clone()),
+        lines: vec![ReturnLineInput {
+            sale_line_id: Some(line.sale_line_id.clone()),
+            product_id: None,
+            qty: Qty(1_000),
+            restock: random.random_bool(0.8),
+            unit_price: None,
+        }],
+        reason: Some("Changed mind".into()),
+        refund_method_id: found.refund_method_id.clone(),
+        reference: None,
+    };
+    let done = return_commands::return_complete(state, devices(), &input, None).expect("returned");
+    expected.returns += 1;
+    assert_eq!(done.return_no, format!("T1-R{:06}", expected.returns));
+    expected.cash_kept -= done.cash_back.0;
+    // A sale with a return can't be voided any more (RET-04).
+    expected.sold[pick].2 = false;
+}
+
+/// Voids a random earlier sale that has no return and isn't void yet (RET-04).
+fn void(state: &AppState, random: &mut StdRng, expected: &mut Expected) {
+    let pick = random.random_range(0..expected.sold.len());
+    let (sale_id, _, open) = &expected.sold[pick];
+    if !open {
+        return;
+    }
+    let done = return_commands::sale_void(state, devices(), sale_id, "Rang up twice", None)
+        .expect("voided");
+    expected.cash_kept -= done.cash_back.0;
+    expected.sold[pick].2 = false;
 }
 
 fn check_saved_sales(state: &AppState, expected: &Expected) {

@@ -13,10 +13,11 @@ use pos_core::{AppError, Bitmap1, CurrencyFormat, Id, Money, TaxMode, Timestamp}
 use printing::escpos::{self, DrawerPin, EscPosOpts};
 use printing::{
     CustomerOnReceipt, Doc, LineDiscount, PaymentLine, ReceiptData, ReceiptLayout, ReceiptLine,
-    ShopHeader, TaxSummaryLine, logo_from_image, rasterize, receipt, shift_report, to_png,
+    ReturnData, ShopHeader, TaxSummaryLine, logo_from_image, rasterize, receipt, return_receipt,
+    shift_report, to_png,
 };
 use rusqlite::Connection;
-use sales::{PaymentKind, Sale, SaleStatus};
+use sales::{PaymentKind, Return, Sale, SaleStatus};
 use serde::{Deserialize, Serialize};
 use settings::{HardwareSettings, ReceiptSettings, ShopProfile, TaxSettings, TillSettings};
 use ts_rs::TS;
@@ -37,6 +38,8 @@ pub enum Printable {
     Receipt { sale_id: Id },
     /// A shift's X report (still open) or Z report (closed).
     ShiftReport { shift_id: Id },
+    /// A return's receipt (RET-06).
+    Return { return_id: Id },
 }
 
 /// How a printout or a drawer pulse went (HW-08). The screen shows a banner when
@@ -64,6 +67,20 @@ pub fn print_receipt(
         sale_id: sale_id.clone(),
     };
     print(state, devices, printable, copy, open_drawer)
+}
+
+/// Prints a return's receipt (RET-06). With `open_drawer` it opens the cash drawer
+/// for a cash refund (HW-04).
+pub fn print_return(
+    state: &AppState,
+    devices: &Devices,
+    return_id: &Id,
+    open_drawer: bool,
+) -> PrintResult {
+    let printable = Printable::Return {
+        return_id: return_id.clone(),
+    };
+    print(state, devices, printable, false, open_drawer)
 }
 
 /// Prints a shift's report: X while the shift is open, Z once it is closed (SHF-05, SHF-06).
@@ -159,6 +176,12 @@ pub fn retry(
             print_receipt(state, devices, sale_id, false, took_cash)
         }
         Printable::ShiftReport { shift_id } => print_shift_report(state, devices, shift_id),
+        Printable::Return { return_id } => {
+            let cash_back = state
+                .db
+                .read(|conn| Ok(refunded_cash(&sales::get_return(conn, return_id)?)))?;
+            print_return(state, devices, return_id, cash_back)
+        }
     })
 }
 
@@ -261,7 +284,9 @@ fn send(
     })?;
     // Reports and reprints print once; a new receipt as many times as the settings say.
     let copies = match printable {
-        Printable::Receipt { .. } if !copy => receipt_settings.copies.clamp(1, 3),
+        Printable::Receipt { .. } | Printable::Return { .. } if !copy => {
+            receipt_settings.copies.clamp(1, 3)
+        }
         _ => 1,
     };
     let printer = devices.receipt_printer(&hardware);
@@ -286,6 +311,7 @@ fn picture(
     let doc = state.db.read(|conn| match printable {
         Printable::Receipt { sale_id } => receipt_doc(conn, offset, sale_id, copy),
         Printable::ShiftReport { shift_id } => report_doc(conn, offset, shift_id),
+        Printable::Return { return_id } => return_doc(conn, offset, return_id),
     })?;
     Ok(rasterize(&doc, &devices.fonts)?)
 }
@@ -301,6 +327,19 @@ pub fn receipt_doc(
     let layout = receipt_layout(conn)?;
     let data = receipt_data(conn, utc_offset_minutes, &sale, &layout, copy)?;
     Ok(receipt(&data, &layout, &receipt_words::english()))
+}
+
+/// A return's receipt (RET-06): heading RETURN, the return number, the original invoice
+/// number, the lines, the refund total and how it went back.
+pub fn return_doc(
+    conn: &Connection,
+    utc_offset_minutes: i32,
+    return_id: &Id,
+) -> Result<Doc, AppError> {
+    let found = sales::get_return(conn, return_id)?;
+    let layout = receipt_layout(conn)?;
+    let data = return_data(conn, utc_offset_minutes, &found)?;
+    Ok(return_receipt(&data, &layout, &receipt_words::english()))
 }
 
 /// A shift's X or Z report (SHF-08), from `reports::shift_report`.
@@ -443,6 +482,111 @@ fn receipt_data(
         invoice_barcode,
         qr_data: None,
     })
+}
+
+/// Everything the return receipt prints, from the saved return.
+fn return_data(
+    conn: &Connection,
+    utc_offset_minutes: i32,
+    found: &Return,
+) -> Result<ReturnData, AppError> {
+    let till: TillSettings = settings::get(conn)?;
+    let tax: TaxSettings = settings::get(conn)?;
+    let decimals = unit_decimals(conn)?;
+    let sale = found
+        .sale_id
+        .as_ref()
+        .map(|id| sales::get_sale(conn, id))
+        .transpose()?;
+    let mut lines = Vec::with_capacity(found.lines.len());
+    let mut tax_summary: Vec<TaxSummaryLine> = Vec::new();
+    for line in &found.lines {
+        let sold = sale.as_ref().and_then(|sale| {
+            sale.lines
+                .iter()
+                .find(|each| Some(&each.id) == line.sale_line_id.as_ref())
+        });
+        let unit_symbol = sold.map(|each| each.snapshot.unit_symbol.clone());
+        let shows_unit = unit_symbol
+            .as_ref()
+            .and_then(|symbol| decimals.get(symbol))
+            .is_some_and(|places| *places > 0);
+        lines.push(ReceiptLine {
+            name: line.name.clone(),
+            qty: line.qty,
+            unit: if shows_unit {
+                unit_symbol.unwrap_or_default()
+            } else {
+                String::new()
+            },
+            unit_price: sold.map_or(Money::zero(), |each| each.snapshot.unit_price),
+            amount: line.amounts.gross,
+            discount: None,
+        });
+        // Returns without a receipt name the rate as it is today. Example: "VAT 15%".
+        let tax_name = match sold {
+            Some(each) => each.snapshot.tax_name.clone(),
+            None => tax::get_many(conn, std::slice::from_ref(&line.tax_rate_id))?
+                .remove(&line.tax_rate_id)
+                .map_or_else(|| tax.label.clone(), |rate| rate.name),
+        };
+        match tax_summary.iter_mut().find(|each| each.name == tax_name) {
+            Some(each) => {
+                each.net = each.net.checked_add(line.amounts.net)?;
+                each.tax = each.tax.checked_add(line.amounts.tax)?;
+            }
+            None => tax_summary.push(TaxSummaryLine {
+                name: tax_name,
+                net: line.amounts.net,
+                tax: line.amounts.tax,
+            }),
+        }
+    }
+    let mut refunds = Vec::with_capacity(found.payments.len());
+    for payment in &found.payments {
+        refunds.push(PaymentLine {
+            method: sales::payment_method(conn, &payment.method_id)?.name,
+            amount: payment.amount,
+            reference: payment.reference.clone(),
+        });
+    }
+    let till_name = if till.till_id.as_ref() == Some(&found.till_id) {
+        till.till_code
+    } else {
+        found.till_id.to_string()
+    };
+    let customer = match (
+        &found.customer_id,
+        sale.as_ref().and_then(|sale| sale.customer.as_ref()),
+    ) {
+        (Some(id), Some(on_sale)) => Some(customer_on_receipt(conn, id, &on_sale.name)?),
+        _ => None,
+    };
+    Ok(ReturnData {
+        return_no: found.return_no.clone(),
+        original_invoice_no: sale.as_ref().map(|sale| sale.invoice_no.clone()),
+        printed_at: local_time(found.at, utc_offset_minutes),
+        till: till_name,
+        cashier: user_names(conn)?
+            .remove(&found.user_id)
+            .unwrap_or_else(|| found.user_id.to_string()),
+        customer,
+        lines,
+        tax_summary,
+        tax_label: tax.label,
+        prices_include_tax: tax.mode == TaxMode::Inclusive,
+        refund_total: found.totals.total,
+        refunds,
+        reason: found.reason.clone(),
+    })
+}
+
+/// True when some of a return's refund went back in cash: the drawer opens for it.
+pub(crate) fn refunded_cash(found: &Return) -> bool {
+    found
+        .payments
+        .iter()
+        .any(|payment| payment.kind == PaymentKind::Cash)
 }
 
 /// The receipt's item lines, their subtotal after line discounts, and the tax per rate.

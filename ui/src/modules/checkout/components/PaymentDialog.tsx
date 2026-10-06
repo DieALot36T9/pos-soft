@@ -161,6 +161,20 @@ export function PaymentDialog({ methods, currency, onDone, onClose }: PaymentDia
         </p>
       ) : null}
       <div className="flex flex-col gap-2 border-y border-border py-3">
+        {preview && preview.exchange_credit > 0 ? (
+          <Tip tip={t("payment.exchangeTip")}>
+            <div className="flex justify-between text-lg text-blue">
+              <span>{t("payment.exchange")}</span>
+              <span className="tabular-nums">{money(preview.exchange_credit)}</span>
+            </div>
+          </Tip>
+        ) : null}
+        {preview && preview.exchange_cash_back > 0 ? (
+          <div className="flex justify-between text-lg text-red">
+            <span>{t("payment.exchangeBack")}</span>
+            <span className="tabular-nums">{money(preview.exchange_cash_back)}</span>
+          </div>
+        ) : null}
         {methods.map((method, index) => (
           <PaymentRow
             key={method.id}

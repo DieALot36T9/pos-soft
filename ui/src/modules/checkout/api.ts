@@ -2,16 +2,22 @@ import type { CartView } from "../../generated/CartView";
 import type { CheckoutView } from "../../generated/CheckoutView";
 import type { CustomerRow } from "../../generated/CustomerRow";
 import type { CustomerSave } from "../../generated/CustomerSave";
+import type { ExchangeCashOut } from "../../generated/ExchangeCashOut";
 import type { HeldCartView } from "../../generated/HeldCartView";
 import type { ManualDiscount } from "../../generated/ManualDiscount";
 import type { PaymentEntry } from "../../generated/PaymentEntry";
 import type { PaymentPreview } from "../../generated/PaymentPreview";
 import type { PrintResult } from "../../generated/PrintResult";
 import type { ResumedCart } from "../../generated/ResumedCart";
+import type { ReturnDone } from "../../generated/ReturnDone";
+import type { ReturnInput } from "../../generated/ReturnInput";
+import type { ReturnPreview } from "../../generated/ReturnPreview";
+import type { ReturnSale } from "../../generated/ReturnSale";
 import type { SaleDone } from "../../generated/SaleDone";
 import type { SaleHit } from "../../generated/SaleHit";
 import type { ScaleView } from "../../generated/ScaleView";
 import type { ScanResult } from "../../generated/ScanResult";
+import type { VoidDone } from "../../generated/VoidDone";
 import type { WeightInput } from "../../generated/WeightInput";
 import { call } from "../../shared/bridge";
 
@@ -79,3 +85,21 @@ export const reprintLast = () => call<PrintResult>("receipt_reprint_last");
 // Reprints any receipt by its invoice number, marked COPY. Needs ReceiptReprintAny (PAY-10).
 export const reprintInvoice = (invoiceNo: string) =>
   call<PrintResult>("receipt_reprint", { invoiceNo });
+// The sale on a receipt, with what can still come back and whether it can be voided (RET-01).
+export const findSaleToReturn = (invoiceNo: string) =>
+  call<ReturnSale>("return_lookup", { invoiceNo });
+// What a return would refund, line by line and by method. Saves nothing (RET-02, RET-07).
+export const previewReturn = (input: ReturnInput) =>
+  call<ReturnPreview>("return_preview", { input });
+// Saves the return, prints its receipt and opens the drawer for cash (RET-01, RET-03, RET-06).
+// Without the permission Rust answers "override_required" and an admin approves.
+export const completeReturn = (input: ReturnInput, approval: string | null) =>
+  call<ReturnDone>("return_complete", { input, approval });
+// Saves the return as exchange credit and starts the new sale with it (RET-05).
+export const startExchange = (input: ReturnInput, approval: string | null) =>
+  call<ReturnDone>("exchange_start", { input, approval });
+// Gives the exchange credit back in cash when the customer takes nothing new (RET-05).
+export const cashOutExchange = () => call<ExchangeCashOut>("exchange_cash_out");
+// Voids a sale while its shift is open and prints the void slip (RET-04).
+export const voidSale = (saleId: string, reason: string, approval: string | null) =>
+  call<VoidDone>("sale_void", { saleId, reason, approval });

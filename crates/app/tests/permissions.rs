@@ -13,7 +13,8 @@ use app::commands::{
 };
 use app::commands::{
     customers as customer_commands, payment_methods as payment_commands,
-    pricing as pricing_commands, receipts as receipt_commands, shifts as shift_commands,
+    pricing as pricing_commands, receipts as receipt_commands, returns as return_commands,
+    shifts as shift_commands,
 };
 use app::devices::Devices;
 use app::session;
@@ -24,6 +25,7 @@ use app::workflows::customer_records::{CustomerPaymentInput, CustomerSave};
 use app::workflows::payment_methods::PaymentMethodSave;
 use app::workflows::pricing_admin::{PriceListSave, PromotionSave, TierSave};
 use app::workflows::products::{ProductInput, VariantAttribute};
+use app::workflows::returns::{ReturnInput, ReturnLineInput};
 use app::workflows::settings_change::SettingsChange;
 use app::workflows::shifts::{CashMoveInput, CashMoveKind, CountLine};
 use app::workflows::stock::{AdjustBatch, AdjustInput, HistoryQuery, StockFilter};
@@ -124,6 +126,7 @@ fn calls() -> Vec<(&'static str, Call)> {
     calls.extend(receipt_calls());
     calls.extend(pricing_calls());
     calls.extend(customer_calls());
+    calls.extend(return_calls());
     calls
 }
 
@@ -847,6 +850,99 @@ fn cashier_has(permission: Permission) -> bool {
 }
 
 /// Commands that take an admin's approval answer `OverrideRequired` instead.
+/// The returns commands (C-M9).
+fn return_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("return_lookup", |state, _| {
+            // A sale of bread to look up (nothing is sold when signed out or locked).
+            a_line(state).ok();
+            till_commands::checkout_complete(state, devices(), &[cash(state, 5_000)]).ok();
+            let invoice = state
+                .db
+                .read(|conn| {
+                    let till: settings::TillSettings = settings::get(conn)?;
+                    let till_id = till.till_id.expect("till");
+                    Ok(sales::last_sale(conn, &till_id)?)
+                })
+                .expect("read")
+                .map_or_else(|| "T1-000001".to_string(), |sale| sale.invoice_no);
+            ok(return_commands::return_lookup(state, &invoice))
+        }),
+        ("return_preview", |state, _| {
+            let bread = product_by_code(state, "BREAD-1");
+            ok(return_commands::return_preview(
+                state,
+                &without_receipt(state, &bread),
+            ))
+        }),
+        ("return_complete", |state, _| {
+            ensure_shift(state);
+            ok(return_commands::return_complete(
+                state,
+                devices(),
+                &with_unknown_receipt(state),
+                None,
+            ))
+        }),
+        ("exchange_start", |state, _| {
+            ensure_shift(state);
+            ok(return_commands::exchange_start(
+                state,
+                devices(),
+                &with_unknown_receipt(state),
+                None,
+            ))
+        }),
+        ("exchange_cash_out", |state, _| {
+            ensure_shift(state);
+            ok(return_commands::exchange_cash_out(state, devices()))
+        }),
+        ("sale_void", |state, _| {
+            ok(return_commands::sale_void(
+                state,
+                devices(),
+                &Id::new(),
+                "Mistake",
+                None,
+            ))
+        }),
+    ]
+}
+
+/// One loaf back without a receipt, refunded in cash.
+fn without_receipt(state: &AppState, product: &Id) -> ReturnInput {
+    ReturnInput {
+        sale_id: None,
+        lines: vec![ReturnLineInput {
+            sale_line_id: None,
+            product_id: Some(product.clone()),
+            qty: Qty(1_000),
+            restock: true,
+            unit_price: None,
+        }],
+        reason: Some("Stale".into()),
+        refund_method_id: cash_method(state),
+        reference: None,
+    }
+}
+
+/// A return against a sale that doesn't exist: only the permission check is tested.
+fn with_unknown_receipt(state: &AppState) -> ReturnInput {
+    ReturnInput {
+        sale_id: Some(Id::new()),
+        lines: vec![ReturnLineInput {
+            sale_line_id: Some(Id::new()),
+            product_id: None,
+            qty: Qty(1_000),
+            restock: true,
+            unit_price: None,
+        }],
+        reason: Some("Wrong size".into()),
+        refund_method_id: cash_method(state),
+        reference: None,
+    }
+}
+
 const TAKES_APPROVAL: &[&str] = &[
     "backup_restore",
     "shift_cash_move",
@@ -854,6 +950,9 @@ const TAKES_APPROVAL: &[&str] = &[
     "shift_force_close",
     "checkout_price_override",
     "checkout_set_price_list",
+    "return_complete",
+    "exchange_start",
+    "sale_void",
 ];
 
 fn shop() -> (tempfile::TempDir, AppState, String) {
