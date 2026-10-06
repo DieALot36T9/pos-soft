@@ -475,3 +475,33 @@ fn cus_02_a_cashier_adds_a_customer_without_tier_or_limit_but_may_not_change_one
         })
     ));
 }
+
+#[test]
+fn cus_08_the_receipt_shows_the_customers_points_and_balance_due() {
+    let (_folder, state, _item) = shop(10_000);
+    switch_on_credit(&state);
+    switch_on_loyalty(&state);
+    let asha = customer(&state, "01711123456", "Asha", None, 50_000);
+    open_shift(&state, 0);
+    let credit = method_of(&state, sales::PaymentKind::Credit);
+    till::checkout_scan(&state, "ITEM-1").expect("scan");
+    till::checkout_set_customer(&state, Some(&asha)).expect("attached");
+    let done = till::checkout_complete(
+        &state,
+        devices(),
+        &[paying(&credit, 4_000), cash(&state, 6_000)],
+    )
+    .expect("sold");
+    let doc = state
+        .db
+        .read(|conn| app::workflows::receipts::receipt_doc(conn, 360, &done.sale_id, false))
+        .expect("receipt");
+    let printed = format!("{doc:?}");
+    assert!(printed.contains("Asha"), "{printed}");
+    assert!(printed.contains("Points"), "{printed}");
+    assert!(printed.contains("Balance due"), "{printed}");
+    assert!(
+        printed.contains("40.00"),
+        "the 40.00 on credit is owed: {printed}"
+    );
+}
