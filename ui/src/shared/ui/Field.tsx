@@ -15,6 +15,8 @@ type FieldProps = {
   width?: "short" | "full";
   // True for passwords: the letters are hidden.
   secret?: boolean;
+  // Puts the cursor here when the form opens, such as the first field of a dialog.
+  autoFocus?: boolean;
 };
 
 // A labelled text box with its tooltip and, when needed, an error message under it.
@@ -27,6 +29,7 @@ export function Field({
   error,
   width = "full",
   secret = false,
+  autoFocus = false,
 }: FieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
@@ -43,6 +46,7 @@ export function Field({
           value={value}
           onChange={handleChange}
           onKeyDown={onKeyDown}
+          autoFocus={autoFocus}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           className={

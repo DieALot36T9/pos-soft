@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: medium
 phase: C
 depends_on: [C-M6, B-reports]
-status: waiting
+status: ready
 ---
 # Task C-M7: Receipts and devices at the till
 

@@ -1,5 +1,6 @@
 import {
   Boxes,
+  ShoppingCart,
   ClipboardList,
   DatabaseBackup,
   FolderTree,
@@ -18,7 +19,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 
@@ -45,9 +46,11 @@ import { Alert } from "../shared/ui/Alert";
 import { Tip } from "../shared/ui/Tip";
 import { HomePage } from "./HomePage";
 import { lockTill, logOut } from "./api";
+import { useIdleLock } from "./useIdleLock";
 
 type Page =
   | "home"
+  | "checkout"
   | "products"
   | "stock"
   | "counts"
@@ -67,6 +70,7 @@ type Page =
 // can't open, as a convenience: Rust checks every command anyway.
 const menu: { page: Page; icon: LucideIcon; needs: Permission | null }[] = [
   { page: "home", icon: Home, needs: null },
+  { page: "checkout", icon: ShoppingCart, needs: "checkout_sell" },
   { page: "products", icon: Package, needs: "stock_view" },
   { page: "stock", icon: Boxes, needs: "stock_view" },
   { page: "counts", icon: ClipboardList, needs: "stock_count_enter" },
@@ -91,6 +95,8 @@ type OfficeFrameProps = {
   idleLockMinutes: number;
   onLocked: (session: SessionView) => void;
   onSignedOut: () => void;
+  // "Checkout" in the menu switches to till mode.
+  onOpenTill: () => void;
 };
 
 // The back office: a side menu and one page. React Router replaces this in a later task.
@@ -101,6 +107,7 @@ export function OfficeFrame({
   idleLockMinutes,
   onLocked,
   onSignedOut,
+  onOpenTill,
 }: OfficeFrameProps) {
   const { t } = useTranslation("app");
   const { t: tErrors } = useTranslation("errors");
@@ -119,21 +126,7 @@ export function OfficeFrame({
   };
   useHotkeys(shortcuts.lock.keys, lock, { enableOnFormTags: true, preventDefault: true });
 
-  // The idle timer starts again at every key or mouse press.
-  useEffect(() => {
-    let timer = window.setTimeout(lock, idleLockMinutes * 60_000);
-    const restart = () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(lock, idleLockMinutes * 60_000);
-    };
-    const events = ["keydown", "mousedown", "touchstart"] as const;
-    events.forEach((name) => window.addEventListener(name, restart));
-    return () => {
-      window.clearTimeout(timer);
-      events.forEach((name) => window.removeEventListener(name, restart));
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- restart only when the setting changes.
-  }, [idleLockMinutes]);
+  useIdleLock(idleLockMinutes, lock);
 
   const allowed = menu.filter(
     (entry) => entry.needs === null || session.permissions.includes(entry.needs),
@@ -150,7 +143,7 @@ export function OfficeFrame({
             <button
               type="button"
               aria-current={each === page ? "page" : undefined}
-              onClick={() => setPage(each)}
+              onClick={() => (each === "checkout" ? onOpenTill() : setPage(each))}
               className={
                 "flex min-h-10 items-center gap-2 rounded-ui border px-3 text-left " +
                 (each === page

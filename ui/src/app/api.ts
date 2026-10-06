@@ -11,3 +11,5 @@ export const getStartup = () => call<StartupView>("startup_status");
 export const logOut = () => call<null>("logout");
 // Locks the till: F12, the Lock button or the idle timer (USR-03).
 export const lockTill = () => call<SessionView>("lock");
+// The till's open shift: after login, a cashier with an open shift goes to Checkout (USR-01).
+export { shiftState } from "../modules/shifts/api";

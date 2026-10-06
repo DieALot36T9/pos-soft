@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: high
 phase: C
 depends_on: [C-M5, B-sales, B-shifts, B-pricing, B-tax]
-status: waiting
+status: done
 ---
 # Task C-M6: Shifts and checkout
 

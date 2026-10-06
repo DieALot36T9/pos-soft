@@ -10,7 +10,7 @@ milestone: M6, M9
 **Requirements:** [[Req - Checkout]], [[Req - Payments]], [[Req - Returns and Voids]], [[Req - Setup and Settings]] SET-15, [[Req - Backup and Logging]] BAK-05 (restore list). **Design:** [[ADR-011 Snapshots on sale lines]], [[Workflows]], [[Money Tax and Rounding]].
 **Depends on:** `core`, `rusqlite`, `serde` + `serde_json` (the tax parts JSON on sale lines), `thiserror`. Tests also use `proptest`.
 
-**Built in task B-sales.** No `app` wiring and no screens yet (those come in C-M6 and C-M9).
+**Built in task B-sales.** Wired into `app` with the checkout screens in C-M6 (`ui/src/modules/checkout/`); returns and voids come in C-M9.
 
 ## Tables
 The full SQL is in `crates/sales/migrations/001_init.sql`. In short:
@@ -217,7 +217,7 @@ Test helpers live in `crates/sales/tests/support/mod.rs`: `test_db()` (in-memory
 | **You may change** | Files in the folders above, this page, and new migration files |
 | **Don't touch** | Other modules' folders and tables. If you need another module's data, take it as a function argument; `app` passes it in |
 | **Gets from `app`** | **Fully priced** lines from `app` (sales never calculates prices or tax), plus the shift, till (id and code) and user ids, the business date and "now" |
-| **Used by** (re-run their tests when the public API changes) | All checkout commands, returns, voids, closing a shift (`open_carts_on_shift`), settings (`has_any_sale`, payment methods), backup restore list (`sales_summary`), reports (`sales_v_*` views) |
+| **Used by** (re-run their tests when the public API changes) | All checkout commands (`app` workflows `checkout`, `cart_lines`, `cart_view`, `held_carts`, `complete_sale`, `sale_snapshot`, `payment_methods`), returns, voids, closing a shift (`open_carts_on_shift`), settings (`has_any_sale`, payment methods), backup restore list (`sales_summary`), reports (`sales_v_*` views) |
 | **Test it on its own** | `cargo nextest run -p sales` · screens: `pnpm test src/modules/<folder>` |
 
 **Watch out for**
@@ -234,12 +234,10 @@ Test helpers live in `crates/sales/tests/support/mod.rs`: `test_db()` (in-memory
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- **No `serde`/`ts-rs` derives on the public types yet.** Add them in C-M6 when the screens need `Cart`, `HeldCartRow`, `PaymentMethod`, `Sale` and `Return` (and run `cargo xtask gen-types`). `ts-rs` must then be added to this page's "Depends on".
-- **Payment method colour** ([[Design System]], "Payment method colours": the admin can change it): there is no column for it yet. Add one in a new migration when C-M2 builds the Settings screen.
-- **Stale shift on an open cart:** if a shift is force-closed (SHF-07) while a cashier's cart is open, that cart keeps the old `shift_id`. `resume` updates the shift of a held cart, but there is no function to move an open cart to a new shift. C-M6 should decide: hold it during force close, or add `move_to_shift`.
+- **No `serde`/`ts-rs` derives on the public types (decided in C-M6).** `app` maps them into its own screen types (`CartView`, `HeldCartView`, `PaymentMethodView`, `PaymentMethodRow`, `SaleDone`), because the screen needs priced amounts that `sales` never calculates. Add derives here only if a screen ever needs a type exactly as stored (for example `Sale` for the receipt viewer, C-M9).
+- **Payment method colour** ([[Design System]], "Payment method colours": the admin can change it): there is no column for it yet. The screens colour each method by its kind (cash green, card blue, wallet teal, other grey). Add a column in a new migration if shops ask for their own colours.
+- **Stale shift on an open cart (decided in C-M6):** force close holds the owner's cart (or drops it when empty), and closing a shift drops the cashier's empty cart. If a cart with items is still found on an older shift, `app` holds it, so `resume` moves it to the new shift. No `move_to_shift` was needed.
 - **Voiding an exchange sale** leaves its return's exchange credit unspent. C-M9 decides what the void workflow does with it (for example, refund it in cash).
-- **Workflows page names:** [[Workflows]] says `sales::cart(conn, id)` and `sales::open_carts(shift)`. The functions are `get_cart` and `open_carts_on_shift`. Fix the wording there when C-M6 writes the workflow.
-- **First-run setup** ([[Workflows]], "First-run setup") says the last step creates the first sequence rows. It doesn't need to: `sales_sequences` rows are made on first use.
 
 ## Change log (significant API/table changes)
 | Date | Change |

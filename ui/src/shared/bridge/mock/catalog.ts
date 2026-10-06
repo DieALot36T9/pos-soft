@@ -404,6 +404,11 @@ function listRows(filter: ProductFilter, page: ProductPage): ProductList {
   };
 }
 
+// The till's search list reads the same search (CHK-03).
+export function searchFakeCatalog(text: string, limit: number): SearchHit[] {
+  return search(text, limit);
+}
+
 function search(text: string, limit: number): SearchHit[] {
   const words = text.trim().toLowerCase().split(/\s+/).filter(Boolean);
   if (words.length === 0) {

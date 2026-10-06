@@ -15,23 +15,28 @@ A **workflow** is a use case in `app/src/workflows/` that coordinates several mo
 ---
 
 ## Scan code
-Input: raw code from the checkout input.
-1. `barcode::parse(code, &rules)` → `Plain(code)` | `Weighed{item_code, qty}` | `Priced{item_code, price}`
-2. Look up the product: `catalog::find_by_barcode` / `find_by_sku` / `find_by_scale_code`
-   - Not found → `AppError::NotFound` (UI shows CHK-02)
-   - Variant parent → error "choose a variant"
-   - Weighed with a plain code → return `NeedsWeight` (UI opens the weight dialog, then calls `add_line` with qty)
-3. `inventory::availability(conn, product, today)` → a warning if ≤ 0 or an expired batch (block if the settings say so)
-4. `sales::add_line(tx, cart, line)` (or merge into the existing line)
-5. **Reprice the cart** (see below) and return a `CartView`
+`workflows::cart_lines::scan` (C-M6). Input: raw text from the scan box, optionally `n*` first (`3*890…` adds 3, CHK-04).
+1. `barcode::parse(code, scale rules from settings, currency digits)` → `Plain(code)` | `Weighed{item_code, qty}` | `Priced{item_code, price}`
+2. Look up the product: `catalog::find_by_code` (barcode, then SKU) / `find_by_scale_code`
+   - Not found: digits only → `NotFound { entity: "product_code", key: code }` (CHK-02); words → `Search { hits }` from `catalog::search` (20 at most, with stock and thumbnail; none → not found)
+   - Archived products and variant parents are never found (CHK-15)
+   - Weighed with a plain code → `NeedsWeight` (the weight dialog then calls `checkout_add_weighed` with the scale or a typed weight; each weighing is its own line)
+   - Price sticker: quantity = sticker price ÷ unit price (for stock); the line costs exactly the sticker price (CHK-08)
+3. Unit decimals (`qty_decimals_too_many`: no 1.5 pieces), then stock (CHK-21): `inventory::availability` with the local date → refused when "allow negative" is off and the cart would sell more than on hand (`not_enough_stock` with `available_milli`), or when expired batches are set to block (`batch_expired`)
+4. `sales::add_line(tx, cart, line, merge)`; merge only when "merge scans" is on and it isn't weighed or a sticker
+5. **Reprice the cart** (see below) and return the `CartView` with the line used
+
+The cart is the cashier's open cart on their open shift (`workflows::checkout::current_cart`): made when missing; a cart found on an older shift is held (or dropped when empty). Selling needs the till's open shift to be the user's own (`shift_not_open`, `shift_not_yours`; CHK-20, SHF-02).
 
 ## Reprice cart (used after every cart change)
-1. `sales::cart(conn, id)` → lines (product ids, qty, manual discounts, overrides)
-2. `catalog::price_info(ids)` → price, tax rate, category path, brand (mapped by app into `pricing::PricingProduct`)
-3. `pricing::load_context(conn, ids, tier, price_list, now)` → `pricing::price_cart(ctx, lines)` (pure)
-4. `tax::rates(ids)` → `tax::calc_line` for each line (pure)
-5. `core::cash_round(subtotal, settings)`
-6. Build the `CartView` (lines with all amounts, totals). Nothing about the price is stored on the cart. **Prices are always recalculated** until completion.
+`workflows::cart_view` (C-M6).
+1. `sales::get_cart(conn, id)` → lines (product ids, qty, sticker prices, manual discounts, overrides)
+2. `catalog::price_info(ids)` → price, cost, tax rate, category path (reversed into top-first for pricing), brand → `pricing::PricingProduct`; `catalog::get` for names, kind and unit
+3. `pricing::load_context(conn, products, tier (none until customers, C-M8), cart price list, local time)` → `pricing::price_cart(ctx, lines, invoice discount)` (pure)
+4. `tax::get_many(rate ids)` → `tax::calc_line(amount, rate, mode)` for each line (pure)
+5. `core::cash_round(Σ gross, rounding rule)` for the "if paid in cash" total
+6. Stock warnings per product (`not_enough_stock`, `expired_batch`; amber, never blocking here)
+7. Build the `CartView` (lines with all amounts, totals). Nothing about the price is stored on the cart. **Prices are always recalculated** until completion.
 
 ## Complete sale
 ```mermaid
@@ -64,10 +69,14 @@ sequenceDiagram
 ```
 Failure in any step before COMMIT → rollback; the cart is unchanged.
 
+As built in C-M6 (`workflows::complete_sale`, `payment_amounts`, `sale_snapshot`): the payment dialog calls `checkout_payment_preview` after every change, so the screen never adds money. **Amount due** (SET-06, PAY-06): rounding "for all payments" rounds the gross; "cash only" rounds the part left after non-cash payments when cash pays it, otherwise the gross stands. `sales::settle_payments(due, payments)` gives the applied amounts and the change (only cash may go over). Credit, points and exchange credit are refused with `payment_needs_customer` until C-M8/C-M9. Completing: reprice → due → settle (anything left is `payment_not_enough`) → `sales::complete` with one snapshot per line (name, SKU, unit, category, brand, unit and retail price, promotion, each discount, net/tax/gross, rate and its parts from `tax::split_components`, unit cost; a kit's cost is the sum of its parts) → `inventory::record` `sale` rows per product (FEFO, kit parts × kits sold, products that keep no stock skipped, `allow_negative` from settings) → `shifts::record` one `sale_payment` per payment (cash: the amount kept after change) → a fresh cart → COMMIT. No audit event for a plain sale. Receipts and the drawer come in C-M7.
+
 ## Hold / resume / cancel cart
-- **Hold:** `sales::hold(tx, cart, note)` → a new empty cart for this shift.
-- **Resume:** `sales::resume(tx, cart)` (if the current cart is empty; otherwise the user must hold it first) → reprice.
-- **Cancel:** `audit::record(cart snapshot)` → `sales::cancel(tx, cart)`.
+`workflows::held_carts` (C-M6).
+- **Hold:** `sales::hold(tx, cart, note)` → a new empty cart for this shift (CHK-09). An empty cart can't be held.
+- **Held list:** `sales::held_carts(till)` with each cart repriced for its total, and the cashier's name (CHK-10).
+- **Resume:** `sales::resume(tx, cart, user, shift)` (refused with `cart_in_progress` while the current cart has items; an empty one is dropped) → reprice. Lines whose product's sale price changed after the cart was held (`catalog::price_history`) come back in `price_changed` for the badge.
+- **Cancel:** reprice for the snapshot → `sales::cancel(tx, cart)` → audit `cart.cancel` (cart, shift, total, lines with name, quantity and amount) → a new empty cart. An empty cart is left as it is.
 
 ## Return items
 1. `sales::find_by_invoice` → sale and lines with returnable quantities.
@@ -108,8 +117,12 @@ Requires the sale's shift to still be open. `sales::void` → `inventory` `sale_
 `workflows::stock::levels` reads the published views `catalog_v_products`, `catalog_v_categories`, `inventory_v_levels` and `inventory_v_batches` in one query: standard products and variants that keep stock (archived ones only while they hold stock), filtered by name or SKU, category (with sub-categories) and Low / Below zero / Expiring; value = on hand × cost (`core::mul_qty`, INV-08). The dashboard's `stock_alerts`: `inventory::low_stock_count` and the 5 biggest shortfalls, `inventory::near_expiry` with `near_expiry_days` (expired batches first), and the number of products below zero. "Verify stock data" is `inventory::verify` with product names; it never fixes anything (INV-10).
 
 ## Open / close shift
-- **Open:** `shifts::open` (refuses if one is already open on the till).
-- **Close:** refuse if open carts exist (`sales::open_carts(shift)`) → `shifts::close(counts)` → `reports::shift_report` → print the Z report.
+`workflows::shifts` and `workflows::till` (C-M6). Each is one transaction with its audit event.
+- **Open:** float typed, or the count's total → `core::business_date` with the till's cutoff → `shifts::open` (refuses if one is already open on the till) → audit `shift.open` (SHF-01, SHF-02).
+- **Cash in / paid-out / cash drop:** amount > 0 and a reason → `shifts::record` with the kind's sign (method `cash`) → audit `shift.cash_move` with the approving admin (SHF-03; `ShiftCashInOut` or an approval token).
+- **No-sale drawer:** a reason → audit `drawer.no_sale` (SHF-04; no money moves, so no shift row).
+- **Close:** own shift only (`shift_not_yours`) → refuse if carts with items are open (`sales::open_carts_on_shift(shift)`, `shift_has_open_carts`) → drop the cashier's empty cart → `shifts::close(counts)` (a count is needed) → audit `shift.close` with expected, counted and difference (SHF-06). With "count first" on, `shift_current` hides the expected cash until the count is saved. The Z report comes in C-M7 (`reports::shift_report` → print).
+- **Force close:** `ShiftForceClose` or an approval → the owner's cart is held (dropped when empty) → `shifts::close(forced)` (count optional) → audit `shift.force_close` (SHF-07).
 
 ## Customer payment (debt)
 `customers::credit_ledger` `payment` → if cash at the till: `shifts::record` `customer_payment` → audit → print a payment receipt.
@@ -146,7 +159,7 @@ Each is one transaction with its audit event (`product.archive`, `product.unarch
 `workflows::test_print::run(printer, paper, fonts)`: sample receipt data (sample shop, a sample logo, a Code 128 barcode from `barcode::bitmap`, a QR code) → `printing::receipt` with the English `ReceiptLabels` (`app::receipt_words`) → `printing::rasterize` → `printing::escpos::encode` (cut, no drawer) → `printer.send`. Saves nothing, so there is no transaction. A printer error comes back as `AppError::Hardware` (HW-08). Until printer settings are saved (C-M2, C-M7) the printer is always the Preview printer, and the shop details are samples.
 
 ## First-run setup
-Each wizard step saves through `settings` (and `tax`, `auth`) in its own transaction together with `settings::complete_step` (`workflows::setup`), and is refused once setup is complete (`setup_already_done`). Shop → money (also fills the denominations from `suggested_denominations` if empty) → tax (the rates are added first with `tax_rate_save`; at least one is needed, the default must be one of them, `None` takes the first) → admin (`auth::create_user` with the Admin role + `auth::create_recovery_code`, then the admin is signed in) → till (gets its `till_id` once; the code is trimmed and upper-cased) → hardware (printer, paper width, drawer pin; can be skipped) → backup (folders must be writable) → products ("Add later" only for now). Setup itself isn't audited: there is no till yet. Sequence rows for invoices come with sales (C-M6).
+Each wizard step saves through `settings` (and `tax`, `auth`) in its own transaction together with `settings::complete_step` (`workflows::setup`), and is refused once setup is complete (`setup_already_done`). Shop → money (also fills the denominations from `suggested_denominations` if empty) → tax (the rates are added first with `tax_rate_save`; at least one is needed, the default must be one of them, `None` takes the first) → admin (`auth::create_user` with the Admin role + `auth::create_recovery_code`, then the admin is signed in) → till (gets its `till_id` once; the code is trimmed and upper-cased) → hardware (printer, paper width, drawer pin; can be skipped) → backup (folders must be writable) → products ("Add later" only for now). Setup itself isn't audited: there is no till yet. Invoice sequence rows are made by `sales` on first use, so setup makes none.
 
 ## Settings change
 `workflows::settings_change::save`: one section per call, in one transaction; each setting saved is audited (`settings.change`, details `{key, old, new}`, the old value being the one in use, the default if never saved). Money: refused with `minor_digits_locked` when the number of decimals changes and `sales::has_any_sale` (SET-05). Tax: the default rate must exist. Till: keeps its id. Backup: folders must be writable. Detailed logging is saved, audited (`logging.switch`) and applied at once.
