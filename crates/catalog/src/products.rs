@@ -190,6 +190,26 @@ pub fn archive_product(
     refresh_search_row(tx, product_id)
 }
 
+/// Rule CAT-08: brings an archived product back into sale and search. Its unit,
+/// category and brand must still be active.
+pub fn unarchive_product(
+    tx: &Transaction,
+    product_id: &Id,
+    now: Timestamp,
+) -> Result<(), CatalogError> {
+    let product = get(tx, product_id)?;
+    check_unit_decimals(tx, &product.unit_id)?;
+    check_category(tx, &product.category_id)?;
+    if let Some(brand_id) = &product.brand_id {
+        check_brand(tx, brand_id)?;
+    }
+    tx.execute(
+        "UPDATE catalog_products SET archived_at = NULL, updated_at = :now WHERE id = :id",
+        named_params! { ":id": product_id.as_str(), ":now": now.0 },
+    )?;
+    refresh_search_row(tx, product_id)
+}
+
 /// Rule CAT-08: deletes a product for good, only if it was never used. `app` asks the
 /// other modules (sales, stock, purchase orders) and passes the answer as `used_elsewhere`.
 pub fn delete_unused_product(

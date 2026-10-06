@@ -4,6 +4,14 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task C-M4: products)
+- **Products screen** (CAT-01, CAT-08): list with search by name or SKU, category (with sub-categories) and brand filters, archived products on request, prices in the shop's money format, 50 a page.
+- **Product page** with tabs (CAT-01 to CAT-11): General (kind, name, SKU, category, brand, unit, weighing, scale item code, notes), Prices and tax (sale, cost, tax rate with the shop default, price history with who changed it), Barcodes (add by scanning or typing, remove, "Make shop barcode" from the internal prefix), Stock (track stock and expiry, reorder level and quantity, preferred supplier), Variants (attributes → every combination), Kit parts (find products, quantities), Picture. `Ctrl+S` saves, `Esc` goes back. Archive, bring back, and delete for good (only if never used).
+- **Save product** workflow: catalog fields, barcodes (check digits checked for EAN/UPC codes), reorder rule and audit in one transaction. Changing a price also needs the "Change prices" permission.
+- **Categories** (tree shown as paths), **Brands** and **Units** screens, each audited.
+- `catalog::unarchive_product`, a `parent_id` filter on `catalog::list`, and TypeScript types for the catalog shapes. `sales`, `inventory` and `purchasing::is_product_used` (with contract tests), so a used product can only be archived.
+- `crates/app/tests/products.rs`, the new commands in `tests/permissions.rs`, screen tests and `ui/e2e/products.spec.ts`.
+
 ### Added (task C-M3: login, roles, admin approval and audit)
 - **Login screen** (USR-01): a tile for each active user, then their PIN or password. Five wrong tries in a row lock that user for 60 seconds, with a countdown, and the lockout is audited (USR-02). Logins and logouts are audited.
 - **Lock screen** (USR-03): F12, the Lock button or the idle timer (`checkout.idle_lock_min`) lock the till; every command is refused until the same user unlocks it, or an admin unlocks to help. "Switch user" logs out.

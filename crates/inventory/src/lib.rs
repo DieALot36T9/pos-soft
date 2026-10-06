@@ -27,8 +27,8 @@ pub use counts::{
 pub use error::InventoryError;
 pub use history::{HistoryFilter, LedgerRowWithBalance, history};
 pub use levels::{
-    Availability, LowStockRow, ReorderRule, availability, low_stock, low_stock_count, on_hand,
-    on_hand_many, remove_reorder_rule, reorder_rule, set_reorder_rule,
+    Availability, LowStockRow, ReorderRule, availability, is_product_used, low_stock,
+    low_stock_count, on_hand, on_hand_many, remove_reorder_rule, reorder_rule, set_reorder_rule,
 };
 pub use reasons::{
     Reason, ReasonDirection, add_reason, list_reasons, rename_reason, set_reason_active,

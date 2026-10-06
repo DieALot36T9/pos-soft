@@ -49,7 +49,8 @@ pub use sale::{
     SaleLine, SaleRef, SaleStatus, SaleTotals, TaxPart, VoidInfo,
 };
 pub use sale_read::{
-    SalesSummary, find_by_invoice, get_sale, has_any_sale, last_sale, returnable_qty, sales_summary,
+    SalesSummary, find_by_invoice, get_sale, has_any_sale, is_product_used, last_sale,
+    returnable_qty, sales_summary,
 };
 pub use settle::{EnteredPayment, Settlement, settle_payments};
 pub use void::void;

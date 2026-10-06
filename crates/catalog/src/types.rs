@@ -2,6 +2,7 @@
 
 use pos_core::{Id, Money, Timestamp};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::error::{CatalogError, invalid};
 
@@ -16,7 +17,8 @@ pub const UNIT_ML: &str = "00000000000000000000000005";
 pub const UNIT_PACK: &str = "00000000000000000000000006";
 
 /// What sort of product a row is.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "snake_case")]
 pub enum ProductKind {
     /// An ordinary product.
@@ -53,7 +55,8 @@ impl ProductKind {
 }
 
 /// A new product as typed on the product form (rule CAT-01).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct NewProduct {
     pub kind: ProductKind,
     pub name: String,
@@ -104,7 +107,8 @@ impl NewProduct {
 }
 
 /// Everything about one product, as shown on the product page.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Product {
     pub id: Id,
     pub kind: ProductKind,
@@ -137,7 +141,8 @@ pub struct Product {
 }
 
 /// The editable fields of a product. Barcodes, kit parts and the image have their own functions.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ProductUpdate {
     pub name: String,
     pub sku: String,
@@ -178,21 +183,24 @@ impl ProductUpdate {
 }
 
 /// One price that changed: the old and the new amount.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct PriceChange {
     pub old: Money,
     pub new: Money,
 }
 
 /// Which prices an update changed. `None` means that price stayed the same.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct PriceChanges {
     pub sale_price: Option<PriceChange>,
     pub cost_price: Option<PriceChange>,
 }
 
 /// Which price a history row is about.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "snake_case")]
 pub enum PriceField {
     SalePrice,
@@ -210,7 +218,8 @@ impl PriceField {
 }
 
 /// One row of a product's price history (rule CAT-09).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct PriceHistoryRow {
     pub field: PriceField,
     pub old: Money,
@@ -222,7 +231,8 @@ pub struct PriceHistoryRow {
 }
 
 /// Which products `list` shows. The default shows every active product.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ProductFilter {
     /// Part of the name or SKU. Example: "mil".
     pub text: Option<String>,
@@ -230,18 +240,22 @@ pub struct ProductFilter {
     pub category_id: Option<Id>,
     pub brand_id: Option<Id>,
     pub kind: Option<ProductKind>,
+    /// Only the variants of this parent product.
+    pub parent_id: Option<Id>,
     pub include_archived: bool,
 }
 
 /// Which slice of a long list to return. Example: offset 50, limit 50 is the second page.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ProductPage {
     pub offset: u32,
     pub limit: u32,
 }
 
 /// One row of the product list.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ProductRow {
     pub id: Id,
     pub kind: ProductKind,
@@ -257,14 +271,16 @@ pub struct ProductRow {
 }
 
 /// One page of the product list, plus how many rows match in total.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ProductList {
     pub rows: Vec<ProductRow>,
     pub total: u64,
 }
 
 /// What checkout needs to add a scanned product to the cart.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct SaleProduct {
     pub id: Id,
     /// Standard, variant or kit. Variant parents are never returned.
@@ -286,7 +302,8 @@ pub struct SaleProduct {
 }
 
 /// One search result (rules CAT-05 and CHK-03).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct SearchHit {
     pub product_id: Id,
     pub name: String,
@@ -299,7 +316,8 @@ pub struct SearchHit {
 }
 
 /// What pricing needs about a product. `app` turns it into pricing's own input type.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ProductPriceInfo {
     pub sale_price: Money,
     pub cost_price: Money,
@@ -310,7 +328,8 @@ pub struct ProductPriceInfo {
 }
 
 /// A unit products are counted or weighed in (rule CAT-02).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Unit {
     pub id: Id,
     pub name: String,
@@ -325,7 +344,8 @@ pub struct Unit {
 }
 
 /// The fields an admin types for a unit.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct UnitFields {
     pub name: String,
     pub symbol: String,
@@ -334,7 +354,8 @@ pub struct UnitFields {
 }
 
 /// A product category. Categories form a tree (rule CAT-03).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Category {
     pub id: Id,
     pub parent_id: Option<Id>,
@@ -344,7 +365,8 @@ pub struct Category {
 }
 
 /// The fields an admin types for a category.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct CategoryFields {
     pub name: String,
     /// Empty for a top-level category.
@@ -365,7 +387,8 @@ impl CategoryFields {
 }
 
 /// A brand. Brands are a flat list (rule CAT-03).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Brand {
     pub id: Id,
     pub name: String,

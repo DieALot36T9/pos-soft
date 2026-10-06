@@ -39,6 +39,11 @@ impl AppPaths {
         self.data_dir.join("dev-prints")
     }
 
+    /// Product pictures and their thumbnails (rule CAT-10). Made when the first picture is saved.
+    pub fn images(&self) -> PathBuf {
+        self.data_dir.join("images")
+    }
+
     /// Written before a restart that restores a backup; read and removed at the next start.
     pub fn restore_marker(&self) -> PathBuf {
         self.data_dir.join("restore-pending.json")

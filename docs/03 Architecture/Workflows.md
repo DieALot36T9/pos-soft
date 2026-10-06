@@ -114,7 +114,17 @@ Backup (`pre-count-post`) → `inventory::post_count` (creates `count` rows for 
 Backup (`pre-import`) → `io::read_table` → map rows to `catalog::NewProduct`/`UpdateProduct` + `inventory::ReorderRule` + `pricing` prices → validate everything → **one transaction** → audit with counts.
 
 ## Save product (back office)
-`catalog::create/update` + `inventory::set_reorder_rule` + `catalog` price history (if prices changed) + audit, in one transaction.
+`workflows::products::save` (C-M4), one transaction: the tax rate must exist and be active (none picked → the shop's default, `tax_rate_missing` if there is none) → the preferred supplier must exist (`purchasing::get_supplier`) → barcodes are trimmed, repeats dropped, and codes that look like EAN-8, UPC-A or EAN-13 must have the right check digit (`barcode::is_valid_gtin`, else `barcode_check_digit_wrong`; CAT-04) → `catalog::create_product`, or `catalog::update_product` (writes price history, CAT-09) and the barcodes made to match the list (removed, then added) → `inventory::set_reorder_rule`, or `remove_reorder_rule` when there is none or the product holds no stock → audit `product.create` / `product.change` (name, SKU, the price changes). The command also needs `CatalogPriceEdit` when a price changes.
+
+## Product actions (C-M4)
+Each is one transaction with its audit event (`product.archive`, `product.unarchive`, `product.change`, `product.delete`).
+- **Archive / bring back:** `catalog::archive_product` / `unarchive_product` (CAT-08).
+- **Delete:** used = `sales::is_product_used` or `inventory::is_product_used` or `purchasing::is_product_used` → `catalog::delete_unused_product(used)` (also refuses kit parts and parents with variants) → `inventory::remove_reorder_rule`.
+- **Make shop barcode** (CAT-11): `catalog::next_internal_number` → `barcode::internal_ean13(InternalBarcode.prefix, number)` → `catalog::add_barcode`; a number already typed by hand on another product (`barcode_in_use`) is skipped and the next is tried.
+- **Generate variants** (CAT-06): values trimmed, empty ones dropped → `catalog::generate_variants`.
+- **Kit parts** (CAT-07): `catalog::set_kit_components`.
+- **Picture** (CAT-10): `catalog::set_image(source, <data>/images)`. `product_get` returns the 512 px picture as a `data:image/jpeg;base64,…` address.
+- **Units, categories, brands** (CAT-02, CAT-03): `workflows::catalog_lists`, audited `unit.change`, `category.change`, `brand.change` (create, update or archive).
 
 ## Startup
 `app::startup::start(paths, clock)`: make the data, `backups` and `logs` folders → finish a restore asked for before the restart (`restore-pending.json`: delete the database, its `-wal` and `-shm`, copy the backup in, remove the marker first so a failed restore never repeats) → `Db::open` → `db::quick_check` (a failure, or a file SQLite can't open, gives `DbHealth::Damaged`: only the recovery screen works, BAK-06) → if an existing database has pending migrations, `db::backup_to(backups/…-pre-upgrade.sqlite)` → `db::migrate` → audit the restore (`backup.restore`) **into the restored database**. Logging starts first (warnings and errors), then the saved `LoggingSettings` switch the detail on. The backup timer starts only for a healthy database.

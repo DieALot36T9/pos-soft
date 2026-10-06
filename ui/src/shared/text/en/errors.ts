@@ -76,6 +76,55 @@ export const errors = {
     "The last backup failed its check. Make a new backup and tell the shop owner.",
   database_damaged: "The shop's data is damaged. Restore a backup first.",
   database_not_damaged: "The shop's data is fine, so there is nothing to recover.",
+  // Products, units, categories and brands (CAT-01 to CAT-11).
+  qty_empty: "Type a quantity. Example: 12",
+  qty_invalid:
+    "Type the quantity as a plain number, not below zero, with no more decimals than the unit allows.",
+  name_missing: "Type a name. Example: Milk 1L",
+  name_too_long: "The name is too long. Use at most 120 characters.",
+  sku_missing: "Type a SKU, or leave it empty on a new product to get one made for you.",
+  price_negative: "A price can't be below zero.",
+  price_reason_invalid: "This price change has no valid reason. Try again.",
+  weighed_unit_needs_decimals: "A weighed product needs a unit with decimals, such as kg or litre.",
+  variant_needs_parent: 'Variants are made with "Generate variants" on the parent product.',
+  parent_not_sellable: "A parent product can't be sold or have barcodes. Use one of its variants.",
+  barcode_invalid: "Type the barcode without spaces.",
+  barcode_check_digit_wrong:
+    "The last digit of barcode {{code}} is wrong. Check the code on the packet and type it again.",
+  not_a_kit: "Only a kit has parts. Make this product a kit first.",
+  kit_contains_itself: "A kit can't contain itself.",
+  kit_contains_kit: "A kit can't contain another kit or a parent product.",
+  kit_qty_not_positive: "Each part needs a quantity above zero.",
+  kit_component_repeated: "Each product can be in the kit only once. Change its quantity instead.",
+  not_a_variant_parent: "Only a parent product has variants.",
+  variant_attribute_missing:
+    "Give every attribute a name and at least one value. Example: Size: 200 ml",
+  variant_attribute_repeated: "Each attribute name and value can be used only once.",
+  symbol_missing: "Type the unit's short sign. Example: kg",
+  unit_decimals_invalid: "A unit has 0 to 3 decimals.",
+  category_parent_loop: "A category can't go inside itself or one of its own sub-categories.",
+  image_too_large: "This picture is bigger than 10 MB. Choose a smaller one.",
+  image_not_supported:
+    "This file isn't a picture the app can read. Choose a PNG, JPEG or WebP file.",
+  barcode_in_use: "Barcode {{code}} is already used by {{product_name}} (SKU {{sku}}).",
+  sku_in_use: "SKU {{value}} is already used by another product.",
+  scale_item_code_in_use: "Scale item code {{value}} is already used by another product.",
+  product_in_use:
+    "{{value}} was already used (sold, in stock, on an order or in a kit), so it can only be archived.",
+  product_has_variants: "{{value}} has variants. Archive it instead of deleting it.",
+  unit_name_in_use: "Another unit is already called {{value}}.",
+  unit_in_use:
+    "{{value}} is used by products, so it can't be archived or have its decimals changed.",
+  unit_is_built_in: "{{value}} comes with the app and can't be archived.",
+  brand_name_in_use: "Another brand is already called {{value}}.",
+  category_is_built_in: "{{value}} comes with the app and can't be archived.",
+  category_has_children: "{{value}} has sub-categories. Move or archive them first.",
+  category_has_products: "{{value}} still has products. Move or archive them first.",
+  tax_rate_inactive: "This tax rate is inactive. Pick another rate.",
+  internal_prefix_invalid: "The internal barcode prefix is wrong. Check it in Settings.",
+  internal_barcode_range_full:
+    "All internal barcode numbers are used. Change the prefix in Settings.",
+  reorder_below_zero: "The reorder level and quantity can't be below zero.",
   hardware: "A device isn't working. Check that it's switched on and connected.",
   // Device errors, by the code Rust sends (AppError::Hardware). {{device}} is "printer" or "scale".
   hardware_timeout:

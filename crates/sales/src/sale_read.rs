@@ -53,6 +53,19 @@ pub fn has_any_sale(conn: &Connection) -> Result<bool, SalesError> {
     Ok(found)
 }
 
+/// True if the product is in any cart, sale or return. Such a product can only be
+/// archived, never deleted (CAT-08).
+pub fn is_product_used(conn: &Connection, product: &Id) -> Result<bool, SalesError> {
+    let used: bool = conn.query_row(
+        "SELECT EXISTS (SELECT 1 FROM sales_cart_lines WHERE product_id = ?1)
+             OR EXISTS (SELECT 1 FROM sales_lines WHERE product_id = ?1)
+             OR EXISTS (SELECT 1 FROM sales_return_lines WHERE product_id = ?1)",
+        [product.as_str()],
+        |row| row.get(0),
+    )?;
+    Ok(used)
+}
+
 /// What the backup restore list shows about one database (BAK-05).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SalesSummary {

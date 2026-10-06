@@ -30,7 +30,9 @@ pub use images::{set_image, thumbnail_file};
 pub use kits::{kit_components, set_kit_components};
 pub use lookup::{find_by_code, find_by_scale_code, price_info};
 pub use prices::{price_history, set_cost};
-pub use products::{archive_product, create_product, delete_unused_product, update_product};
+pub use products::{
+    archive_product, create_product, delete_unused_product, unarchive_product, update_product,
+};
 pub use read::{get, list};
 pub use search::{rebuild_search, search};
 pub use sequences::next_internal_number;

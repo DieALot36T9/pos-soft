@@ -61,6 +61,14 @@ export const en = {
     role_create: "Role added",
     role_change: "Role changed",
     recovery_used: "Recovery code used",
+    product_create: "Product added",
+    product_change: "Product changed",
+    product_archive: "Product archived",
+    product_unarchive: "Product brought back",
+    product_delete: "Product deleted",
+    unit_change: "Unit changed",
+    category_change: "Category changed",
+    brand_change: "Brand changed",
   },
 };
 

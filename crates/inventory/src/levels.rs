@@ -112,6 +112,18 @@ pub fn reorder_rule(
     Ok(rule)
 }
 
+/// True if the product ever moved in stock or is on a stock count. Such a product
+/// can only be archived, never deleted (CAT-08).
+pub fn is_product_used(connection: &Connection, product: &Id) -> Result<bool, InventoryError> {
+    let used: bool = connection.query_row(
+        "SELECT EXISTS (SELECT 1 FROM inventory_ledger WHERE product_id = :product_id)
+             OR EXISTS (SELECT 1 FROM inventory_count_lines WHERE product_id = :product_id)",
+        named_params! { ":product_id": product.as_str() },
+        |row| row.get(0),
+    )?;
+    Ok(used)
+}
+
 /// Removes a product's reorder rule, so it never shows as low stock.
 pub fn remove_reorder_rule(transaction: &Transaction, product: &Id) -> Result<(), InventoryError> {
     transaction.execute(

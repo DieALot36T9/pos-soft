@@ -202,3 +202,12 @@ fn kinds_are_sent_to_the_ui_as_snake_case() {
         r#""supplier_return""#
     );
 }
+
+#[test]
+fn cat_08_a_product_that_moved_in_stock_is_used() {
+    let mut connection = test_db();
+    let moved = Id::new();
+    receive(&mut connection, &moved, 2);
+    assert!(inventory::is_product_used(&connection, &moved).unwrap());
+    assert!(!inventory::is_product_used(&connection, &Id::new()).unwrap());
+}

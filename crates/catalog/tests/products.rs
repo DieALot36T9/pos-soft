@@ -193,6 +193,43 @@ fn cat_08_archive_hides_from_find_by_code_and_search() {
 }
 
 #[test]
+fn cat_08_an_archived_product_can_be_brought_back() {
+    let mut db = test_db();
+    let milk = create_with_barcode(&mut db, "Milk 1L", "8901234567890", 9000);
+    let tx = db.transaction().unwrap();
+    catalog::archive_product(&tx, &milk, NOW).unwrap();
+    catalog::unarchive_product(&tx, &milk, Timestamp(NOW.0 + 1)).unwrap();
+    tx.commit().unwrap();
+
+    assert_eq!(catalog::get(&db, &milk).unwrap().archived_at, None);
+    assert!(
+        catalog::find_by_code(&db, "8901234567890")
+            .unwrap()
+            .is_some()
+    );
+    assert_eq!(catalog::search(&db, "milk", 10).unwrap().len(), 1);
+}
+
+#[test]
+fn cat_08_bringing_back_needs_an_active_category() {
+    let mut db = test_db();
+    let tx = db.transaction().unwrap();
+    let dairy = catalog::create_category(&tx, &catalog::CategoryFields::new("Dairy")).unwrap();
+    let milk_fields = NewProduct {
+        category_id: Some(dairy.clone()),
+        ..standard("Milk", 100)
+    };
+    let milk = catalog::create_product(&tx, milk_fields, NOW).unwrap();
+    catalog::archive_product(&tx, &milk, NOW).unwrap();
+    catalog::archive_category(&tx, &dairy, NOW).unwrap();
+
+    let refused = catalog::unarchive_product(&tx, &milk, NOW).unwrap_err();
+    assert!(
+        matches!(AppError::from(refused), AppError::NotFound { entity, .. } if entity == "category")
+    );
+}
+
+#[test]
 fn cat_08_archived_products_are_listed_only_when_asked() {
     let mut db = test_db();
     let milk = create(&mut db, standard("Milk", 100));

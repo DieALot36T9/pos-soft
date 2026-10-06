@@ -18,6 +18,7 @@ import type { ShopProfile } from "../../../generated/ShopProfile";
 import type { StartupView } from "../../../generated/StartupView";
 import type { TaxStep } from "../../../generated/TaxStep";
 import type { TillStep } from "../../../generated/TillStep";
+import { catalogHandlers, connectCatalog, resetCatalog } from "./catalog";
 import { defaultSettings } from "./defaultSettings";
 import {
   createFirstAdmin,
@@ -56,6 +57,7 @@ export function resetFakeShop(startWith: "fresh" | "set_up" = "fresh", signedIn 
   rates = [];
   backups = [];
   resetPeople(startWith === "set_up", signedIn);
+  resetCatalog(startWith === "set_up");
   if (startWith === "set_up") {
     completed = new Set(wizardOrder.filter((step) => step !== "hardware"));
     snapshot.shop_profile.name = "Rahim Store";
@@ -124,8 +126,16 @@ function step(name: SetupStep, save: () => void): SetupStatus {
   return setupStatus();
 }
 
+// The catalog reads the shop's tax rates and money format.
+connectCatalog({
+  rates: () => rates,
+  defaultRate: () => snapshot.tax.default_rate_id,
+  currency: () => snapshot.currency,
+});
+
 export const shopHandlers = {
   ...peopleHandlers,
+  ...catalogHandlers,
   startup_status: (): StartupView => ({
     damaged: false,
     setup: setupStatus(),

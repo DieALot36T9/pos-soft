@@ -4,6 +4,7 @@
 pub mod audit;
 pub mod auth;
 pub mod backup;
+pub mod catalog;
 pub mod dev;
 pub mod hardware;
 pub mod settings;
@@ -29,6 +30,7 @@ use pos_core::{AppError, Permission};
 /// - `lock`, `unlock`, `unlock_by_admin`, `request_override` and `change_own_secret`
 ///   need someone signed in (any role); `unlock*` only while the till is locked.
 /// - `backup_restore` also takes an admin's approval token (`require_or_approval`, USR-05).
+/// - `product_save` also needs `CatalogPriceEdit` when it changes a sale or cost price.
 pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("app_info", None),
     ("hardware_test_print", None),
@@ -75,6 +77,27 @@ pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("role_save", Some(Permission::UsersManage)),
     ("audit_query", Some(Permission::AuditView)),
     ("audit_export", Some(Permission::AuditView)),
+    ("product_list", Some(Permission::StockView)),
+    ("product_search", Some(Permission::StockView)),
+    ("product_get", Some(Permission::StockView)),
+    ("product_choices", Some(Permission::StockView)),
+    ("product_save", Some(Permission::CatalogManage)),
+    ("product_archive", Some(Permission::CatalogManage)),
+    ("product_unarchive", Some(Permission::CatalogManage)),
+    ("product_delete", Some(Permission::CatalogManage)),
+    ("barcode_generate", Some(Permission::CatalogManage)),
+    ("variants_generate", Some(Permission::CatalogManage)),
+    ("kit_save", Some(Permission::CatalogManage)),
+    ("product_image_set", Some(Permission::CatalogManage)),
+    ("unit_list", Some(Permission::StockView)),
+    ("unit_save", Some(Permission::CatalogManage)),
+    ("unit_archive", Some(Permission::CatalogManage)),
+    ("category_list", Some(Permission::StockView)),
+    ("category_save", Some(Permission::CatalogManage)),
+    ("category_archive", Some(Permission::CatalogManage)),
+    ("brand_list", Some(Permission::StockView)),
+    ("brand_save", Some(Permission::CatalogManage)),
+    ("brand_archive", Some(Permission::CatalogManage)),
 ];
 
 /// The dev-only commands (fake scale panel). Registered only when `dev_tools::ON` is true.
@@ -124,7 +147,7 @@ mod tests {
     #[test]
     fn every_command_has_a_permission_decision() {
         let all = names(COMMANDS);
-        assert_eq!(all.len(), 45);
+        assert_eq!(all.len(), 66);
         let mut unique = all.clone();
         unique.sort_unstable();
         unique.dedup();

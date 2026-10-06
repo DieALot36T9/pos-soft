@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: medium
 phase: C
 depends_on: [C-M3, B-catalog, B-barcode]
-status: waiting
+status: done
 ---
 # Task C-M4: Products
 

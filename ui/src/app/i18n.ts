@@ -9,6 +9,7 @@ import { i18nOptions } from "../shared/text/i18n";
 import { en as audit } from "../modules/audit/text/en";
 import { en as auth } from "../modules/auth/text/en";
 import { en as backup } from "../modules/backup/text/en";
+import { en as catalog } from "../modules/catalog/text/en";
 import { en as hardware } from "../modules/hardware/text/en";
 import { en as settings } from "../modules/settings/text/en";
 import { en as setup } from "../modules/setup/text/en";
@@ -34,6 +35,7 @@ export const resources = {
     auth,
     users,
     audit,
+    catalog,
   },
 };
 
