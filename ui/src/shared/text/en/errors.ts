@@ -208,6 +208,13 @@ export const errors = {
   float_count_mismatch: "The count doesn't add up to the float.",
   denomination_invalid: "A note or coin must be worth more than zero.",
   denomination_repeated: "Each note or coin may be listed only once.",
+  // Receipts and printing (C-M7)
+  printer_connection_incomplete: "Fill in every detail of the printer connection.",
+  scale_port_missing: "Type the scale's port and speed. Example: COM3 at 9600.",
+  scale_profile_missing: "Choose what kind of scale it is.",
+  no_sale_to_reprint: "No sale on this till yet, so there is no receipt to reprint.",
+  sale_unknown: "No sale with invoice number {{invoice}}.",
+  print_not_waiting: "This printout is not waiting to be printed. Use Reprint instead.",
   internal: "Something went wrong (ref {{ref}}). Copy the details and tell the shop owner.",
   unknown: "Something went wrong. Try again.",
 };

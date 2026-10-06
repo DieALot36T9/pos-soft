@@ -74,6 +74,8 @@ pub const STOCK_COUNT_CREATE: &str = "stock_count.create";
 pub const STOCK_COUNT_POST: &str = "stock_count.post";
 /// A stock count was cancelled; stock didn't change (INV-06).
 pub const STOCK_COUNT_CANCEL: &str = "stock_count.cancel";
+/// A receipt was printed again, marked COPY (PAY-10).
+pub const RECEIPT_REPRINT: &str = "receipt.reprint";
 
 /// Every action name, for the action filter on the audit screen (USR-08).
 pub const ALL: &[&str] = &[
@@ -113,6 +115,7 @@ pub const ALL: &[&str] = &[
     STOCK_COUNT_CREATE,
     STOCK_COUNT_POST,
     STOCK_COUNT_CANCEL,
+    RECEIPT_REPRINT,
 ];
 
 #[cfg(test)]

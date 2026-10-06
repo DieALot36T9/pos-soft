@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: medium
 phase: C
 depends_on: [C-M7, B-pricing, B-customers]
-status: waiting
+status: ready
 ---
 # Task C-M8: Prices, promotions and customers
 

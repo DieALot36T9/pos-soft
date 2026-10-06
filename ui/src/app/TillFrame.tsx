@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import type { SessionView } from "../generated/SessionView";
 import { CheckoutPage } from "../modules/checkout/pages/CheckoutPage";
+import { TillPreviewPanel } from "../modules/hardware/components/TillPreviewPanel";
 import { CloseShiftDialog } from "../modules/shifts/pages/CloseShiftDialog";
 import { OpenShiftDialog } from "../modules/shifts/pages/OpenShiftDialog";
 import { ShiftMenu } from "../modules/shifts/pages/ShiftMenu";
@@ -20,7 +21,8 @@ type TillFrameProps = {
 };
 
 // Till mode: the checkout screen full width, with the shift dialogs from the shifts
-// module. The two modules don't know each other; this frame joins them.
+// module and the Preview printer's newest printout from the hardware module. The
+// modules don't know each other; this frame joins them.
 export function TillFrame({
   session,
   justLoggedIn,
@@ -57,6 +59,7 @@ export function TillFrame({
         onLock={lock}
         onBackOffice={onBackOffice}
       />
+      <TillPreviewPanel />
       {shiftDialog === "open" ? (
         <OpenShiftDialog onOpened={reload} onClose={() => setShiftDialog(null)} />
       ) : null}

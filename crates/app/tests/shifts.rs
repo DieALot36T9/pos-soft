@@ -105,7 +105,7 @@ fn shf_02_one_open_shift_per_till() {
         "shift_already_open"
     );
     assert_eq!(
-        code_of(shift_commands::shift_close(&state, &[], None)),
+        code_of(shift_commands::shift_close(&state, devices(), &[], None)),
         "shift_not_yours"
     );
 }
@@ -116,13 +116,13 @@ fn shf_03_cash_in_and_out_need_an_admin_and_a_reason() {
     as_cashier(&state);
     open_shift(&state, 100_000);
     let paid_out = move_cash(CashMoveKind::CashOut, 20_000, "Delivery man");
-    let result = shift_commands::shift_cash_move(&state, &paid_out, None);
+    let result = shift_commands::shift_cash_move(&state, devices(), &paid_out, None);
     assert!(
         matches!(result, Err(AppError::OverrideRequired { .. })),
         "{result:?}"
     );
     let token = approval(&state, Permission::ShiftCashInOut);
-    shift_commands::shift_cash_move(&state, &paid_out, Some(&token)).expect("paid out");
+    shift_commands::shift_cash_move(&state, devices(), &paid_out, Some(&token)).expect("paid out");
     let (user, approved_by, details) = last_audit(&state, "shift.cash_move");
     assert_eq!(user, Some(user_id(&state, "rina").to_string()));
     assert_eq!(approved_by, Some(user_id(&state, "owner").to_string()));
@@ -135,22 +135,30 @@ fn shf_03_cash_in_and_out_need_an_admin_and_a_reason() {
     sign_in(&state, "owner", ADMIN_PASSWORD);
     let no_reason = move_cash(CashMoveKind::CashIn, 5_000, "  ");
     assert_eq!(
-        code_of(shift_commands::shift_cash_move(&state, &no_reason, None)),
+        code_of(shift_commands::shift_cash_move(
+            &state,
+            devices(),
+            &no_reason,
+            None
+        )),
         "reason_missing"
     );
     shift_commands::shift_cash_move(
         &state,
+        devices(),
         &move_cash(CashMoveKind::CashIn, 5_000, "Change"),
         None,
     )
     .expect("cash in");
     shift_commands::shift_cash_move(
         &state,
+        devices(),
         &move_cash(CashMoveKind::CashDrop, 30_000, "Safe"),
         None,
     )
     .expect("drop");
-    let closed = shift_commands::shift_force_close(&state, &[], None, None).expect("closed");
+    let closed =
+        shift_commands::shift_force_close(&state, devices(), &[], None, None).expect("closed");
     // 1,000.00 float − 200.00 paid out + 50.00 in − 300.00 to the safe.
     assert_eq!(closed.expected_cash, Money(55_000));
 }
@@ -160,13 +168,14 @@ fn shf_04_the_no_sale_drawer_is_audited_with_its_reason() {
     let (_folder, state) = shop();
     as_cashier(&state);
     open_shift(&state, 0);
-    let result = shift_commands::shift_no_sale(&state, "Change for a note", None);
+    let result = shift_commands::shift_no_sale(&state, devices(), "Change for a note", None);
     assert!(
         matches!(result, Err(AppError::OverrideRequired { .. })),
         "{result:?}"
     );
     let token = approval(&state, Permission::ShiftNoSaleDrawer);
-    shift_commands::shift_no_sale(&state, "Change for a note", Some(&token)).expect("opened");
+    shift_commands::shift_no_sale(&state, devices(), "Change for a note", Some(&token))
+        .expect("opened");
     let (_, approved_by, details) = last_audit(&state, "drawer.no_sale");
     assert!(approved_by.is_some());
     assert!(details.contains("Change for a note"));
@@ -179,12 +188,13 @@ fn shf_06_close_with_the_count_and_its_shortage() {
     open_shift(&state, 50_000);
     for _ in 0..3 {
         till::checkout_scan(&state, "ITEM-1").expect("scan");
-        till::checkout_complete(&state, &[cash(&state, 10_000)]).expect("sold");
+        till::checkout_complete(&state, devices(), &[cash(&state, 10_000)]).expect("sold");
     }
     till::checkout_scan(&state, "ITEM-1").expect("an open cart");
     assert_eq!(
         code_of(shift_commands::shift_close(
             &state,
+            devices(),
             &[count(10_000, 8)],
             None
         )),
@@ -192,13 +202,17 @@ fn shf_06_close_with_the_count_and_its_shortage() {
     );
     till::checkout_hold(&state, None).expect("held");
     assert_eq!(
-        code_of(shift_commands::shift_close(&state, &[], None)),
+        code_of(shift_commands::shift_close(&state, devices(), &[], None)),
         "count_missing"
     );
     // Expected 800.00 (500.00 float + 300.00 sales); counted 750.00.
-    let closed =
-        shift_commands::shift_close(&state, &[count(50_000, 1), count(25_000, 1)], Some("short"))
-            .expect("closed");
+    let closed = shift_commands::shift_close(
+        &state,
+        devices(),
+        &[count(50_000, 1), count(25_000, 1)],
+        Some("short"),
+    )
+    .expect("closed");
     assert_eq!(closed.expected_cash, Money(80_000));
     assert_eq!(closed.counted_cash, Some(Money(75_000)));
     assert_eq!(closed.difference, Some(Money(-5_000)));
@@ -232,7 +246,7 @@ fn shf_07_an_admin_force_closes_and_the_cart_is_held() {
     till::checkout_scan(&state, "2*ITEM-1").expect("scan");
     session::logout(&state).expect("out");
     sign_in(&state, "owner", ADMIN_PASSWORD);
-    let closed = shift_commands::shift_force_close(&state, &[], Some("went home"), None)
+    let closed = shift_commands::shift_force_close(&state, devices(), &[], Some("went home"), None)
         .expect("force closed");
     assert!(closed.forced);
     assert_eq!(closed.counted_cash, None);

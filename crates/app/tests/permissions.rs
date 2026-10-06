@@ -11,7 +11,9 @@ use app::commands::{
     inventory as stock_commands, settings as settings_commands, tax as tax_commands,
     users as user_commands,
 };
-use app::commands::{payment_methods as payment_commands, shifts as shift_commands};
+use app::commands::{
+    payment_methods as payment_commands, receipts as receipt_commands, shifts as shift_commands,
+};
 use app::devices::Devices;
 use app::session;
 use app::state::AppState;
@@ -115,6 +117,7 @@ fn calls() -> Vec<(&'static str, Call)> {
     calls.extend(stock_calls());
     calls.extend(till_calls());
     calls.extend(shift_calls());
+    calls.extend(receipt_calls());
     calls
 }
 
@@ -463,6 +466,7 @@ fn till_calls() -> Vec<(&'static str, Call)> {
             a_line(state).ok();
             ok(till_commands::checkout_complete(
                 state,
+                devices(),
                 &[cash(state, 5_000)],
             ))
         }),
@@ -501,11 +505,21 @@ fn shift_calls() -> Vec<(&'static str, Call)> {
                 amount: Money(1_000),
                 reason: "Change".into(),
             };
-            ok(shift_commands::shift_cash_move(state, &input, None))
+            ok(shift_commands::shift_cash_move(
+                state,
+                devices(),
+                &input,
+                None,
+            ))
         }),
         ("shift_no_sale", |state, _| {
             ensure_shift(state);
-            ok(shift_commands::shift_no_sale(state, "Change", None))
+            ok(shift_commands::shift_no_sale(
+                state,
+                devices(),
+                "Change",
+                None,
+            ))
         }),
         ("shift_close", |state, _| {
             ensure_shift(state);
@@ -514,11 +528,60 @@ fn shift_calls() -> Vec<(&'static str, Call)> {
                 denomination: Money(10_000),
                 count: 1,
             };
-            ok(shift_commands::shift_close(state, &[counted], None))
+            ok(shift_commands::shift_close(
+                state,
+                devices(),
+                &[counted],
+                None,
+            ))
         }),
         ("shift_force_close", |state, _| {
             ensure_shift(state);
-            ok(shift_commands::shift_force_close(state, &[], None, None))
+            ok(shift_commands::shift_force_close(
+                state,
+                devices(),
+                &[],
+                None,
+                None,
+            ))
+        }),
+    ]
+}
+
+/// Makes sure the till has a sale to reprint, without permission checks.
+fn ensure_sale(state: &AppState) {
+    let Some(user) = me(state) else {
+        return;
+    };
+    ensure_shift(state);
+    app::workflows::cart_lines::scan(state, &user, "BREAD-1").expect("scanned");
+    app::workflows::complete_sale::complete(state, &user, &[cash(state, 5_000)]).expect("sold");
+}
+
+/// Printing, reprinting and the X report (C-M7).
+fn receipt_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("hardware_test_print", |state, _| {
+            ok(app::commands::hardware::hardware_test_print(
+                state,
+                devices(),
+                settings::PaperWidth::Mm80,
+            ))
+        }),
+        ("shift_x_report", |state, _| {
+            ensure_shift(state);
+            ok(shift_commands::shift_x_report(state, devices()))
+        }),
+        ("receipt_reprint_last", |state, _| {
+            ensure_sale(state);
+            ok(receipt_commands::receipt_reprint_last(state, devices()))
+        }),
+        ("receipt_reprint", |state, _| {
+            ok(receipt_commands::receipt_reprint(
+                state,
+                devices(),
+                "T1-000001",
+            ))
         }),
     ]
 }

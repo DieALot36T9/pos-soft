@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { currentSession } from "../../shared/bridge/mock/people";
-import { resetFakeShop } from "../../shared/bridge/mock/shop";
+import { resetFakeShop, shopHandlers } from "../../shared/bridge/mock/shop";
 import { tillHandlers } from "../../shared/bridge/mock/till";
 import { TooltipProvider } from "../../shared/ui/tooltip";
 import { CheckoutPage } from "./pages/CheckoutPage";
@@ -163,5 +163,68 @@ describe("CheckoutPage (fake bridge)", () => {
     await userEvent.type(within(dialog).getByRole("textbox", { name: "Card" }), "90");
     await userEvent.keyboard("{Enter}");
     expect(await within(dialog).findByText(/Type the reference/)).toBeVisible();
+  });
+
+  async function sellMilkForCash() {
+    await scan("8901234567890");
+    await userEvent.keyboard("[F10]");
+    await screen.findByRole("dialog", { name: "Payment" });
+    await userEvent.keyboard("{Enter}");
+    await screen.findByText("Sale complete · Invoice T1-000001");
+  }
+
+  it("pay_09: a printer that is offline keeps the sale and offers Retry and the system printer", async () => {
+    const hardware = shopHandlers.settings_get().hardware;
+    shopHandlers.settings_save({
+      change: {
+        section: "hardware",
+        value: { ...hardware, receipt_printer: { kind: "tcp", host: "10.0.0.9", port: 9100 } },
+      },
+    });
+    renderTill();
+    await screen.findByText("Scan an item to start the sale.");
+    await sellMilkForCash();
+    expect(await screen.findByText("Receipt not printed. The sale is saved.")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Print to system printer/ })).toBeVisible();
+    // Still offline: Retry keeps the banner.
+    await userEvent.click(screen.getByRole("button", { name: /Retry/ }));
+    expect(await screen.findByText("Receipt not printed. The sale is saved.")).toBeVisible();
+    // Back on the Preview printer, Retry prints and the banner goes.
+    shopHandlers.settings_save({ change: { section: "hardware", value: hardware } });
+    await userEvent.click(screen.getByRole("button", { name: /Retry/ }));
+    await vi.waitFor(() =>
+      expect(screen.queryByText("Receipt not printed. The sale is saved.")).toBeNull(),
+    );
+  });
+
+  it("pay_10: Ctrl+P reprints the last receipt, marked COPY", async () => {
+    renderTill();
+    await screen.findByText("Scan an item to start the sale.");
+    await userEvent.keyboard("{Control>}p{/Control}");
+    expect(
+      await screen.findByText("No sale on this till yet, so there is no receipt to reprint."),
+    ).toBeVisible();
+    await sellMilkForCash();
+    expect(screen.queryByText("Receipt not printed. The sale is saved.")).toBeNull();
+    await userEvent.keyboard("{Control>}p{/Control}");
+    expect(
+      await screen.findByText("The last receipt was printed again, marked COPY."),
+    ).toBeVisible();
+  });
+
+  it("pay_10: Old receipt reprints by invoice number and names an unknown one", async () => {
+    renderTill();
+    await screen.findByText("Scan an item to start the sale.");
+    await sellMilkForCash();
+    await userEvent.click(screen.getByRole("button", { name: /Old receipt/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Reprint a receipt" });
+    await userEvent.type(within(dialog).getByRole("textbox"), "T1-000009{Enter}");
+    expect(await screen.findByText("No sale with invoice number T1-000009.")).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: /Old receipt/ }));
+    const again = await screen.findByRole("dialog", { name: "Reprint a receipt" });
+    await userEvent.type(within(again).getByRole("textbox"), "T1-000001{Enter}");
+    expect(
+      await screen.findByText("Receipt T1-000001 was printed again, marked COPY."),
+    ).toBeVisible();
   });
 });

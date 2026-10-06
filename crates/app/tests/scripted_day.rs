@@ -83,6 +83,7 @@ fn m6_a_random_day_keeps_every_rule() {
     let drawer = FLOAT + expected.cash_kept + expected.cash_moves;
     let closed = shift_commands::shift_close(
         &state,
+        devices(),
         &[CountLine {
             denomination: Money(1),
             count: u32::try_from(drawer).expect("fits"),
@@ -142,7 +143,7 @@ fn one_step(state: &AppState, random: &mut StdRng, expected: &mut Expected, card
                 amount: Money(amount),
                 reason: "float top-up".into(),
             };
-            shift_commands::shift_cash_move(state, &input, None).expect("cash move");
+            shift_commands::shift_cash_move(state, devices(), &input, None).expect("cash move");
             expected.cash_moves += if kind == CashMoveKind::CashIn {
                 amount
             } else {
@@ -192,7 +193,7 @@ fn pay(state: &AppState, random: &mut StdRng, expected: &mut Expected, card: &Id
         .filter(|each| each.method_id != *card)
         .map(|each| each.amount.0)
         .sum();
-    match till::checkout_complete(state, &payments) {
+    match till::checkout_complete(state, devices(), &payments) {
         Ok(done) => {
             expected.sales += 1;
             assert_eq!(done.invoice_no, format!("T1-{:06}", expected.sales));

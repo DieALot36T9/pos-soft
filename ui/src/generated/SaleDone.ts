@@ -2,6 +2,7 @@
 import type { CartView } from "./CartView";
 import type { Id } from "./Id";
 import type { Money } from "./Money";
+import type { PrintResult } from "./PrintResult";
 
 /**
  * A completed sale, and the empty cart for the next customer.
@@ -12,6 +13,11 @@ export type SaleDone = { sale_id: Id,
  */
 invoice_no: string, total: Money, paid: Money, change: Money, 
 /**
- * True when cash was taken: the drawer opens (C-M7).
+ * True when cash was taken: the drawer opens (HW-04).
  */
-cash_taken: boolean, cart: CartView, };
+cash_taken: boolean, cart: CartView, 
+/**
+ * How the receipt printed, after the sale was saved (PAY-09). None only inside
+ * `complete`, before printing.
+ */
+receipt: PrintResult | null, };

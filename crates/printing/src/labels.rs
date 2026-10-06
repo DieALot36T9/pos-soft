@@ -43,6 +43,8 @@ pub struct ReceiptLabels {
     pub prices_include_tax: String,
     /// "VOID": the heading of a void receipt.
     pub void_heading: String,
+    /// "COPY": the heading of a reprinted receipt (rule PAY-10).
+    pub copy_heading: String,
     /// "Reason": why a sale was voided or items were returned.
     pub reason: String,
     /// "RETURN": the heading of a return receipt.

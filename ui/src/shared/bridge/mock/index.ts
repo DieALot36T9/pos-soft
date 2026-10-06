@@ -2,21 +2,19 @@ import type { AppInfo } from "../../../generated/AppInfo";
 import type { FakeScaleChange } from "../../../generated/FakeScaleChange";
 import type { FakeScaleView } from "../../../generated/FakeScaleView";
 import type { PaperWidth } from "../../../generated/PaperWidth";
-import type { PreviewPrintout } from "../../../generated/PreviewPrintout";
 import type { Reading } from "../../../generated/Reading";
 import type { CurrencyFormat } from "../../../generated/CurrencyFormat";
 import { formatMoney, parseMoney } from "../../format/money";
+import { fakePreviewPrint, printerHandlers } from "./printer";
 import { mockScale, mockScaleRead, mockScaleSet } from "./scale";
 import { shopHandlers } from "./shop";
 import { testReceiptPicture } from "./testReceipt";
-
-// What the fake Preview printer has printed and not yet handed out.
-let waitingPrintouts: PreviewPrintout[] = [];
 
 // The fake Rust side for `pnpm dev:mock` and tests, filled with demo data.
 // Each answer is typed with the generated types, so it can't drift from Rust.
 const handlers = {
   ...shopHandlers,
+  ...printerHandlers,
   money_preview: (args?: Record<string, unknown>): string => {
     const format = args?.format as CurrencyFormat;
     const parsed = parseMoney(
@@ -32,17 +30,12 @@ const handlers = {
   }),
   hardware_test_print: (args?: Record<string, unknown>): null => {
     const paper = args?.paper as PaperWidth;
-    waitingPrintouts.push({
+    fakePreviewPrint({
       pictures: [testReceiptPicture(paper)],
       drawer_opened: false,
       saved_files: [`dev-prints/test-receipt-${paper}.png`],
     });
     return null;
-  },
-  preview_take_printouts: (): PreviewPrintout[] => {
-    const printouts = waitingPrintouts;
-    waitingPrintouts = [];
-    return printouts;
   },
   print_window: (): null => null,
   dev_fake_scale_get: (): FakeScaleView => mockScale(),

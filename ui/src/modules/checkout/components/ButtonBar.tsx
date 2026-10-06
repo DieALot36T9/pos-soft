@@ -3,6 +3,8 @@ import {
   ListRestart,
   Lock,
   PauseCircle,
+  Printer,
+  ReceiptText,
   Search,
   Trash2,
   Wallet,
@@ -18,12 +20,16 @@ type ButtonBarProps = {
   hasLines: boolean;
   hasSelection: boolean;
   heldCount: number;
+  // Shows "Old receipt" only to users who may reprint any receipt (PAY-10).
+  canReprintAny: boolean;
   onSearch: () => void;
   onQty: () => void;
   onHold: () => void;
   onHeld: () => void;
   onRemove: () => void;
   onCancel: () => void;
+  onReprint: () => void;
+  onOldReceipt: () => void;
   onShift: () => void;
   onLock: () => void;
   onBackOffice: () => void;
@@ -96,6 +102,25 @@ export function ButtonBar(props: ButtonBarProps) {
         disabledReason={noItems}
         onClick={props.onCancel}
       />
+      <ActionButton
+        colour="blue"
+        icon={Printer}
+        size="till"
+        label={t("buttons.reprint.label")}
+        tip={t("buttons.reprint.tip")}
+        shortcut={shortcuts.checkoutReprint.label}
+        onClick={props.onReprint}
+      />
+      {props.canReprintAny ? (
+        <ActionButton
+          colour="blue"
+          icon={ReceiptText}
+          size="till"
+          label={t("buttons.oldReceipt.label")}
+          tip={t("buttons.oldReceipt.tip")}
+          onClick={props.onOldReceipt}
+        />
+      ) : null}
       <ActionButton
         colour="grey"
         icon={Wallet}

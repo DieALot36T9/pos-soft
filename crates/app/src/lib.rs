@@ -106,11 +106,11 @@ fn command_handler() -> CommandHandler {
 fn with_dev_commands() -> CommandHandler {
     use commands::{
         audit, auth, backup, catalog, checkout, dev, hardware, inventory, payment_methods,
-        settings, setup, shifts, startup, system, tax, users,
+        receipts, settings, setup, shifts, startup, system, tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
-        hardware::hardware_test_print,
+        hardware::cmd::hardware_test_print,
         hardware::preview_take_printouts,
         hardware::print_window,
         startup::cmd::startup_status,
@@ -213,6 +213,12 @@ fn with_dev_commands() -> CommandHandler {
         shifts::cmd::shift_no_sale,
         shifts::cmd::shift_close,
         shifts::cmd::shift_force_close,
+        shifts::cmd::shift_x_report,
+        receipts::cmd::receipt_reprint_last,
+        receipts::cmd::receipt_reprint,
+        receipts::cmd::print_retry,
+        receipts::cmd::print_system_pictures,
+        receipts::cmd::print_dismiss,
         payment_methods::cmd::payment_method_list,
         payment_methods::cmd::payment_method_save,
         dev::dev_fake_scale_get,
@@ -226,12 +232,12 @@ fn with_dev_commands() -> CommandHandler {
 #[allow(clippy::too_many_lines)]
 fn without_dev_commands() -> CommandHandler {
     use commands::{
-        audit, auth, backup, catalog, checkout, hardware, inventory, payment_methods, settings,
-        setup, shifts, startup, system, tax, users,
+        audit, auth, backup, catalog, checkout, hardware, inventory, payment_methods, receipts,
+        settings, setup, shifts, startup, system, tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
-        hardware::hardware_test_print,
+        hardware::cmd::hardware_test_print,
         hardware::preview_take_printouts,
         hardware::print_window,
         startup::cmd::startup_status,
@@ -334,6 +340,12 @@ fn without_dev_commands() -> CommandHandler {
         shifts::cmd::shift_no_sale,
         shifts::cmd::shift_close,
         shifts::cmd::shift_force_close,
+        shifts::cmd::shift_x_report,
+        receipts::cmd::receipt_reprint_last,
+        receipts::cmd::receipt_reprint,
+        receipts::cmd::print_retry,
+        receipts::cmd::print_system_pictures,
+        receipts::cmd::print_dismiss,
         payment_methods::cmd::payment_method_list,
         payment_methods::cmd::payment_method_save,
     ])

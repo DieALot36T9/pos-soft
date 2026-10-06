@@ -81,7 +81,7 @@ pub fn checkout_read_scale(
     product_id: &Id,
 ) -> Result<ScaleView, AppError> {
     session::require(state, Permission::CheckoutSell)?;
-    let Some(scale) = devices.scale() else {
+    let Some(scale) = devices.scale(&hardware_settings(state)?) else {
         return Ok(ScaleView {
             has_scale: false,
             qty: None,
@@ -135,7 +135,7 @@ pub fn checkout_add_weighed(
     let (qty, source) = match weight {
         WeightInput::Scale => {
             let scale = devices
-                .scale()
+                .scale(&hardware_settings(state)?)
                 .ok_or_else(|| AppError::validation("scale_not_set_up"))?;
             let reading = scale.read(SCALE_WAIT)?;
             (
@@ -189,12 +189,19 @@ pub fn checkout_payment_preview(
     complete_sale::preview(state, &user.id, payments)
 }
 
+/// Completes the sale, then prints the receipt and opens the drawer for cash (PAY-09).
 pub fn checkout_complete(
     state: &AppState,
+    devices: &Devices,
     payments: &[PaymentEntry],
 ) -> Result<SaleDone, AppError> {
     let user = session::require(state, Permission::CheckoutSell)?;
-    complete_sale::complete(state, &user.id, payments)
+    complete_sale::complete_and_print(state, devices, &user.id, payments)
+}
+
+/// The saved device settings: which printer and scale to use.
+fn hardware_settings(state: &AppState) -> Result<settings::HardwareSettings, AppError> {
+    state.db.read(|conn| Ok(settings::get(conn)?))
 }
 
 fn code_of(error: &AppError) -> String {
@@ -373,11 +380,13 @@ pub mod cmd {
     #[tauri::command]
     pub async fn checkout_complete(
         state: State<'_, Arc<AppState>>,
+        devices: State<'_, Arc<Devices>>,
         payments: Vec<PaymentEntry>,
     ) -> Result<SaleDone, AppError> {
         let state = Arc::clone(&state);
+        let devices = Arc::clone(&devices);
         on_worker("checkout_complete", move || {
-            super::checkout_complete(&state, &payments)
+            super::checkout_complete(&state, &devices, &payments)
         })
         .await
     }

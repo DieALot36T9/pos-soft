@@ -13,6 +13,7 @@ pub mod held_carts;
 pub mod payment_amounts;
 pub mod payment_methods;
 pub mod products;
+pub mod receipts;
 pub mod sale_snapshot;
 pub mod scan_input;
 pub mod settings_change;

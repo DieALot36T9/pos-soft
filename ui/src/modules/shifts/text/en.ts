@@ -34,9 +34,14 @@ export const en = {
     },
     cashDrop: { label: "Cash drop", tip: "Take cash from the drawer to the safe. Needs an admin." },
     noSale: { label: "Open drawer", tip: "Open the drawer without a sale. Needs an admin." },
+    xReport: {
+      label: "X report",
+      tip: "Print the totals of your shift so far. The shift stays open.",
+    },
     close: { label: "Close shift", tip: "Count the drawer and close your shift." },
     back: { label: "Back", tip: "Go back to the till." },
     done: "Saved.",
+    xPrinted: "X report printed.",
   },
   move: {
     titleCashIn: "Cash in",
@@ -72,6 +77,7 @@ export const en = {
     over: "Over",
     exact: "Exact",
     notCounted: "Not counted",
+    zPrinted: "Z report printed.",
     ok: { label: "Done", tip: "Close this summary." },
   },
 };

@@ -20,6 +20,13 @@ use pos_core::{
 use settings::{BackupSettings, Setting, ShopProfile};
 use tax::NewRate;
 
+/// The devices every test shares: fonts, the Preview printer and the fake scale.
+/// Each test runs in its own process, so tests never see each other's printouts.
+pub fn devices() -> &'static app::devices::Devices {
+    static DEVICES: std::sync::OnceLock<app::devices::Devices> = std::sync::OnceLock::new();
+    DEVICES.get_or_init(|| app::devices::Devices::new(None))
+}
+
 /// 2026-10-05 08:00 UTC, 14:00 in Dhaka.
 pub const START_MS: i64 = 1_791_187_200_000;
 
@@ -256,4 +263,45 @@ pub fn cash(state: &AppState, amount_minor: i64) -> app::workflows::complete_sal
         amount: Money(amount_minor),
         reference: None,
     }
+}
+
+/// Compares a printout with its approved picture in `tests/golden/`, dot for dot, or
+/// saves it when UPDATE_GOLDEN=1. A changed picture is saved as `<name>.new.png` (not
+/// committed) to compare; it needs the product owner's approval.
+pub fn check_golden(name: &str, picture: &pos_core::Bitmap1) {
+    let folder = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("golden");
+    let png = printing::to_png(picture).expect("the picture saves as PNG");
+    let approved_path = folder.join(format!("{name}.png"));
+    let new_path = folder.join(format!("{name}.new.png"));
+    if std::env::var("UPDATE_GOLDEN").is_ok_and(|value| value == "1") {
+        std::fs::write(&approved_path, &png).expect("the approved picture saves");
+        let _ = std::fs::remove_file(&new_path);
+        return;
+    }
+    let Ok(approved_png) = std::fs::read(&approved_path) else {
+        std::fs::write(&new_path, &png).expect("the new picture saves");
+        panic!("{name}: no approved picture yet. The new one is at {new_path:?}");
+    };
+    if &picture_from_png(&approved_png) != picture {
+        std::fs::write(&new_path, &png).expect("the new picture saves");
+        panic!("{name}: the picture changed. Compare {new_path:?} with {approved_path:?}");
+    }
+    let _ = std::fs::remove_file(&new_path);
+}
+
+/// Reads a PNG back into a 1-bit picture (black = 0 in the PNG).
+pub fn picture_from_png(png: &[u8]) -> pos_core::Bitmap1 {
+    let gray = image::load_from_memory(png)
+        .expect("the picture is a PNG")
+        .to_luma8();
+    let mut picture = pos_core::Bitmap1::new(gray.width(), gray.height());
+    let bytes_per_row = gray.width().div_ceil(8);
+    for (x, y, pixel) in gray.enumerate_pixels() {
+        if pixel.0[0] < 128 {
+            picture.bits[(y * bytes_per_row + x / 8) as usize] |= 0x80 >> (x % 8);
+        }
+    }
+    picture
 }

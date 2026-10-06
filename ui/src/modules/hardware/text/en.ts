@@ -2,7 +2,8 @@
 export const en = {
   page: {
     title: "Printer and devices",
-    intro: "Try the printer without a real one. Printouts show here exactly as they would print.",
+    intro:
+      "Test print goes to the receipt printer chosen in Settings. With the Preview printer, printouts show here exactly as they would print.",
   },
   testPrint: {
     heading: "Test print",
@@ -21,6 +22,11 @@ export const en = {
     },
     busy: "Printing…",
     sent: "The test receipt was sent to the printer.",
+  },
+  tillPreview: {
+    heading: "Preview printer",
+    pictureAlt: "The newest printout",
+    close: { label: "Close", tip: "Hide the printout. The next one shows here again." },
   },
   preview: {
     heading: "Preview printer",

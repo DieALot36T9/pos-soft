@@ -5,6 +5,7 @@ import type { CashMoveInput } from "../../../generated/CashMoveInput";
 import type { CheckoutView } from "../../../generated/CheckoutView";
 import type { CountLine } from "../../../generated/CountLine";
 import type { CurrencyFormat } from "../../../generated/CurrencyFormat";
+import type { PrintResult } from "../../../generated/PrintResult";
 import type { HeldCartView } from "../../../generated/HeldCartView";
 import type { PaymentEntry } from "../../../generated/PaymentEntry";
 import type { PaymentMethodRow } from "../../../generated/PaymentMethodRow";
@@ -21,6 +22,7 @@ import type { ShiftView } from "../../../generated/ShiftView";
 import type { WeightInput } from "../../../generated/WeightInput";
 import { fakeCatalog, searchFakeCatalog } from "./catalog";
 import { currentSession, recordFakeEvent, requireOrApproval, requirePermission } from "./people";
+import { fakeDrawer, fakePrint, pictures } from "./printer";
 import { mockScale } from "./scale";
 import { fakeTillPricing } from "./tillPricing";
 
@@ -38,6 +40,8 @@ let shift: (ShiftView & { cash: number }) | null = null;
 let lines: FakeLine[] = [];
 let held: FakeHeld[] = [];
 let invoices = 0;
+// Every sale's invoice number and id, oldest first, for reprints (PAY-10).
+let sales: { id: string; invoice_no: string }[] = [];
 let nextId = 1;
 let methods: PaymentMethodRow[] = [];
 let currency: () => CurrencyFormat = () => {
@@ -55,6 +59,7 @@ export function resetTill() {
   lines = [];
   held = [];
   invoices = 0;
+  sales = [];
   nextId = 1;
   methods = [
     method("00000000000000000000000001", "Cash", "cash", true),
@@ -269,15 +274,28 @@ function complete(payments: PaymentEntry[]): SaleDone {
         .reduce((sum, each) => sum + each.amount, 0);
   }
   lines = [];
+  const sale = { id: fakeId("01FAKESALE"), invoice_no: `T1-${String(invoices).padStart(6, "0")}` };
+  sales.push(sale);
+  const cashTaken = answer.change > 0 || answer.cash_to_pay > 0;
   return {
-    sale_id: fakeId("01FAKESALE"),
-    invoice_no: `T1-${String(invoices).padStart(6, "0")}`,
+    sale_id: sale.id,
+    invoice_no: sale.invoice_no,
     total: answer.due,
     paid: answer.paid,
     change: answer.change,
-    cash_taken: answer.change > 0 || answer.cash_to_pay > 0,
+    cash_taken: cashTaken,
     cart: cartView(),
+    receipt: fakePrint({ kind: "receipt", sale_id: sale.id }, pictures.receipt, cashTaken),
   };
+}
+
+// A reprint is marked COPY and never opens the drawer (PAY-10).
+function reprint(sale: { id: string } | undefined): PrintResult {
+  if (!sale) {
+    return clash("no_sale_to_reprint");
+  }
+  recordFakeEvent("receipt.reprint", currentSession()?.user_id ?? null);
+  return fakePrint({ kind: "receipt", sale_id: sale.id }, pictures.receiptCopy, false);
 }
 
 function closeShift(counts: CountLine[], forced: boolean): ShiftClosed {
@@ -293,6 +311,7 @@ function closeShift(counts: CountLine[], forced: boolean): ShiftClosed {
     counted_cash: counts.length > 0 ? counted : null,
     difference: counts.length > 0 ? counted - open.cash : null,
     forced,
+    report: fakePrint({ kind: "shift_report", shift_id: open.shift_id }, pictures.zReport, false),
   };
 }
 
@@ -433,7 +452,7 @@ export const tillHandlers = {
     recordFakeEvent("shift.open", currentSession()?.user_id ?? null);
     return shift;
   },
-  shift_cash_move: (args?: Args): null => {
+  shift_cash_move: (args?: Args): PrintResult => {
     requireOrApproval("shift_cash_in_out", args?.approval);
     const input = args?.input as CashMoveInput;
     if (input.reason.trim() === "") {
@@ -443,12 +462,29 @@ export const tillHandlers = {
       shift.cash += input.kind === "cash_in" ? input.amount : -input.amount;
     }
     recordFakeEvent("shift.cash_move", currentSession()?.user_id ?? null);
-    return null;
+    return fakeDrawer();
   },
-  shift_no_sale: (args?: Args): null => {
+  shift_no_sale: (args?: Args): PrintResult => {
     requireOrApproval("shift_no_sale_drawer", args?.approval);
     recordFakeEvent("drawer.no_sale", currentSession()?.user_id ?? null);
-    return null;
+    return fakeDrawer();
+  },
+  shift_x_report: (): PrintResult => {
+    requirePermission("shift_open_close_own");
+    const open = mySelling();
+    return fakePrint({ kind: "shift_report", shift_id: open.shift_id }, pictures.xReport, false);
+  },
+  receipt_reprint_last: (): PrintResult => {
+    requirePermission("receipt_reprint_last");
+    return reprint(sales.at(-1));
+  },
+  receipt_reprint: (args?: Args): PrintResult => {
+    requirePermission("receipt_reprint_any");
+    const invoice = String(args?.invoiceNo).trim();
+    const sale =
+      sales.find((each) => each.invoice_no === invoice) ??
+      fail({ kind: "not_found", entity: "sale", key: invoice });
+    return reprint(sale);
   },
   shift_close: (args?: Args): ShiftClosed => {
     requirePermission("shift_open_close_own");

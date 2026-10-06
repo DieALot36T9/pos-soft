@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import type { CashMoveKind } from "../../../generated/CashMoveKind";
 import type { CurrencyFormat } from "../../../generated/CurrencyFormat";
+import type { PrintResult } from "../../../generated/PrintResult";
 import { errorMessage } from "../../../shared/bridge";
 import { useApproval } from "../../../shared/approval/useApproval";
 import { parseMoney } from "../../../shared/format/money";
@@ -27,7 +28,8 @@ const titles = {
 type CashMoveDialogProps = {
   action: DrawerAction;
   currency: CurrencyFormat;
-  onSaved: () => void;
+  // Gets how the drawer pulse went (HW-04, HW-08).
+  onSaved: (drawer: PrintResult) => void;
   onClose: () => void;
 };
 
@@ -42,7 +44,7 @@ export function CashMoveDialog({ action, currency, onSaved, onClose }: CashMoveD
   const [problem, setProblem] = useState<string | null>(null);
 
   const save = () => {
-    let work: (approval: string | null) => Promise<null>;
+    let work: (approval: string | null) => Promise<PrintResult>;
     if (action === "no_sale") {
       work = (approval) => noSale(reason, approval);
     } else {

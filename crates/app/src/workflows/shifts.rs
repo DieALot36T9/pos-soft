@@ -1,6 +1,7 @@
 //! Opening and closing shifts, cash in and out, and the no-sale drawer
 //! (Req - Shifts and Cash, Workflows "Open / close shift"). Each change is one
-//! transaction with its audit event. The drawer and the Z report come with C-M7.
+//! transaction with its audit event. After the commit the drawer opens for cash in and
+//! out and the no-sale, and closing prints the Z report (HW-04, SHF-06).
 
 use pos_core::{AppError, Clock, Id, Money, business_date};
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,9 @@ use crate::audit_actions::{
     DRAWER_NO_SALE, SHIFT_CASH_MOVE, SHIFT_CLOSE, SHIFT_FORCE_CLOSE, SHIFT_OPEN,
 };
 use crate::audit_log;
+use crate::devices::Devices;
 use crate::state::AppState;
+use crate::workflows::receipts::{self, PrintResult};
 use crate::workflows::till::{conflict, conflict_with, shift_view, till_settings, till_shift};
 
 /// How many of one note or coin were counted. Example: 12 × 500.00.
@@ -57,6 +60,9 @@ pub struct ShiftClosed {
     pub counted_cash: Option<Money>,
     pub difference: Option<Money>,
     pub forced: bool,
+    /// How the Z report printed, after the shift was closed. None only inside the
+    /// close functions, before printing.
+    pub report: Option<PrintResult>,
 }
 
 /// Adds up a count by denomination, so the screen never does money maths.
@@ -254,6 +260,65 @@ pub fn force_close(
     })
 }
 
+/// Cash in, paid-out or cash drop, then the drawer opens (SHF-03, HW-04).
+pub fn cash_move_and_open(
+    state: &AppState,
+    devices: &Devices,
+    user: &Id,
+    approved_by: Option<&Id>,
+    input: &CashMoveInput,
+) -> Result<PrintResult, AppError> {
+    cash_move(state, user, approved_by, input)?;
+    Ok(receipts::open_drawer(state, devices))
+}
+
+/// The no-sale, then the drawer opens (SHF-04, HW-04).
+pub fn no_sale_and_open(
+    state: &AppState,
+    devices: &Devices,
+    user: &Id,
+    approved_by: Option<&Id>,
+    reason: &str,
+) -> Result<PrintResult, AppError> {
+    no_sale(state, user, approved_by, reason)?;
+    Ok(receipts::open_drawer(state, devices))
+}
+
+/// Closes the user's shift, then prints the Z report (SHF-06).
+pub fn close_and_print(
+    state: &AppState,
+    devices: &Devices,
+    user: &Id,
+    counts: &[CountLine],
+    note: Option<&str>,
+) -> Result<ShiftClosed, AppError> {
+    let mut closed = close(state, user, counts, note)?;
+    closed.report = Some(receipts::print_shift_report(
+        state,
+        devices,
+        &closed.shift_id,
+    ));
+    Ok(closed)
+}
+
+/// Force-closes the till's shift, then prints the Z report (SHF-07).
+pub fn force_close_and_print(
+    state: &AppState,
+    devices: &Devices,
+    user: &Id,
+    approved_by: Option<&Id>,
+    counts: &[CountLine],
+    note: Option<&str>,
+) -> Result<ShiftClosed, AppError> {
+    let mut closed = force_close(state, user, approved_by, counts, note)?;
+    closed.report = Some(receipts::print_shift_report(
+        state,
+        devices,
+        &closed.shift_id,
+    ));
+    Ok(closed)
+}
+
 /// Throws away the user's open cart on this till when it has no items, so a closed
 /// shift never leaves an empty cart behind.
 fn drop_empty_cart(conn: &rusqlite::Transaction, till_id: &Id, user: &Id) -> Result<(), AppError> {
@@ -296,6 +361,7 @@ fn closed_view(shift: &Shift, result: shifts::CloseResult, forced: bool) -> Shif
         counted_cash: result.counted_cash,
         difference: result.difference,
         forced,
+        report: None,
     }
 }
 

@@ -3,6 +3,7 @@ import type { CheckoutView } from "../../generated/CheckoutView";
 import type { HeldCartView } from "../../generated/HeldCartView";
 import type { PaymentEntry } from "../../generated/PaymentEntry";
 import type { PaymentPreview } from "../../generated/PaymentPreview";
+import type { PrintResult } from "../../generated/PrintResult";
 import type { ResumedCart } from "../../generated/ResumedCart";
 import type { SaleDone } from "../../generated/SaleDone";
 import type { SaleHit } from "../../generated/SaleHit";
@@ -42,6 +43,12 @@ export const cancelCart = () => call<CartView>("checkout_cancel");
 // What is due, paid, left and the change for the payments typed so far (PAY-01, PAY-03, PAY-06).
 export const previewPayment = (payments: PaymentEntry[]) =>
   call<PaymentPreview>("checkout_payment_preview", { payments });
-// Completes the sale in one transaction (PAY-07).
+// Completes the sale in one transaction (PAY-07), then prints the receipt and opens
+// the drawer for cash. A printer problem comes back in `receipt`; the sale stays (PAY-09).
 export const completeSale = (payments: PaymentEntry[]) =>
   call<SaleDone>("checkout_complete", { payments });
+// Reprints this till's last receipt, marked COPY (PAY-10).
+export const reprintLast = () => call<PrintResult>("receipt_reprint_last");
+// Reprints any receipt by its invoice number, marked COPY. Needs ReceiptReprintAny (PAY-10).
+export const reprintInvoice = (invoiceNo: string) =>
+  call<PrintResult>("receipt_reprint", { invoiceNo });

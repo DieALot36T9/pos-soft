@@ -79,8 +79,30 @@ export const en = {
       label: "Cancel sale",
       tip: "Throw away this whole sale. Nothing is charged.",
     },
-    shift: { label: "Shift", tip: "Cash in and out, no-sale drawer, and closing the shift." },
+    reprint: {
+      label: "Reprint",
+      tip: "Print the last receipt of this till again. It is marked COPY.",
+    },
+    oldReceipt: {
+      label: "Old receipt",
+      tip: "Reprint an older receipt by its invoice number. It is marked COPY.",
+    },
+    shift: {
+      label: "Shift",
+      tip: "Cash in and out, no-sale drawer, X report, and closing the shift.",
+    },
     lock: { label: "Lock", tip: "Lock the till. The sale stays as it is." },
+  },
+  reprint: {
+    title: "Reprint a receipt",
+    invoice: {
+      label: "Invoice number",
+      tip: "The number on the receipt. Example: T1-000123. Scanning the receipt's barcode also works.",
+    },
+    back: { label: "Back", tip: "Close without printing." },
+    print: { label: "Reprint", tip: "Print this receipt again, marked COPY." },
+    done: "Receipt {{invoice}} was printed again, marked COPY.",
+    doneLast: "The last receipt was printed again, marked COPY.",
   },
   noShift: {
     title: "Open a shift to start selling",

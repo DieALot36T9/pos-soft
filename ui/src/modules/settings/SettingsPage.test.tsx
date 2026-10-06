@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { resetFakeShop } from "../../shared/bridge/mock/shop";
+import { resetFakeShop, shopHandlers } from "../../shared/bridge/mock/shop";
 import { TooltipProvider } from "../../shared/ui/tooltip";
 import { SettingsPage } from "./pages/SettingsPage";
 
@@ -59,5 +59,26 @@ describe("SettingsPage (fake bridge)", () => {
     resetFakeShop("set_up", false);
     renderPage();
     expect(await screen.findByText("Your role can't do this. Ask an admin.")).toBeVisible();
+  });
+
+  it("set_10 hw_05: the printer and scale section saves a network printer and a scale", async () => {
+    renderPage();
+    await userEvent.click(await screen.findByRole("button", { name: "Printer and scale" }));
+    await userEvent.selectOptions(
+      await screen.findByRole("combobox", { name: "Receipt printer" }),
+      "tcp",
+    );
+    await userEvent.type(screen.getByRole("textbox", { name: "IP address" }), "192.168.1.50");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Scale" }), "cas");
+    await userEvent.click(screen.getByRole("button", { name: /^Save/ }));
+    expect(
+      await screen.findAllByText("Type the scale's port and speed. Example: COM3 at 9600."),
+    ).not.toHaveLength(0);
+    await userEvent.type(screen.getByRole("textbox", { name: "Scale port" }), "COM4");
+    await userEvent.click(screen.getByRole("button", { name: /^Save/ }));
+    expect(await screen.findByText("Saved.")).toBeVisible();
+    const hardware = shopHandlers.settings_get().hardware;
+    expect(hardware.receipt_printer).toEqual({ kind: "tcp", host: "192.168.1.50", port: 9100 });
+    expect(hardware.scale).toEqual({ port: "COM4", baud: 9600, profile: "cas" });
   });
 });

@@ -29,6 +29,7 @@ import {
   requirePermission,
   resetPeople,
 } from "./people";
+import { connectPrinter, resetPrinter } from "./printer";
 import { connectStockToShop, resetStock, stockHandlers } from "./stock";
 import { connectTill, resetTill, tillHandlers } from "./till";
 
@@ -62,6 +63,7 @@ export function resetFakeShop(startWith: "fresh" | "set_up" = "fresh", signedIn 
   resetCatalog(startWith === "set_up");
   resetStock(startWith === "set_up");
   resetTill();
+  resetPrinter();
   if (startWith === "set_up") {
     completed = new Set(wizardOrder.filter((step) => step !== "hardware"));
     snapshot.shop_profile.name = "Rahim Store";
@@ -133,6 +135,7 @@ function step(name: SetupStep, save: () => void): SetupStatus {
 // The catalog reads the shop's tax rates and money format.
 connectStockToShop(() => snapshot.currency);
 connectTill(() => snapshot.currency);
+connectPrinter(() => snapshot.hardware);
 
 connectCatalog({
   rates: () => rates,
@@ -335,6 +338,12 @@ function applyChange(change: SettingsChange) {
       break;
     case "backup":
       snapshot.backup = change.value;
+      break;
+    case "hardware":
+      if (change.value.scale !== null && change.value.scale.port.trim() === "") {
+        refuse("scale", "scale_port_missing");
+      }
+      snapshot.hardware = change.value;
       break;
     default:
       break;

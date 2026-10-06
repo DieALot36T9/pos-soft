@@ -143,6 +143,18 @@ fn ret_04_void_receipt_has_a_void_heading_and_reason() {
 }
 
 #[test]
+fn pay_10_a_reprint_is_marked_copy_and_the_original_is_not() {
+    let layout = sample_layout(PaperWidth::Mm80, None);
+    let original = printed_text(&receipt(&sample_sale(), &layout, &english_labels()));
+    assert!(!original.contains("COPY"));
+    let mut reprint = sample_sale();
+    reprint.copy = true;
+    let text = printed_text(&receipt(&reprint, &layout, &english_labels()));
+    assert!(text.contains("COPY"));
+    assert!(text.contains("Invoice | T1-000123"), "the same sale");
+}
+
+#[test]
 fn ret_06_return_receipt_shows_heading_numbers_lines_and_refund() {
     let text = printed_text(&return_receipt(
         &sample_return(),
@@ -274,6 +286,7 @@ fn marked_labels() -> ReceiptLabels {
         tax_amount: mark(&english.tax_amount),
         prices_include_tax: mark(&english.prices_include_tax),
         void_heading: mark(&english.void_heading),
+        copy_heading: mark(&english.copy_heading),
         reason: mark(&english.reason),
         return_heading: mark(&english.return_heading),
         return_no: mark(&english.return_no),
@@ -295,6 +308,7 @@ fn adr_022_every_printed_word_comes_from_receipt_labels() {
     let layout = sample_layout(PaperWidth::Mm80, None);
     let mut void = sample_void();
     void.customer.as_mut().unwrap().credit_balance = Some(Money(1000));
+    void.copy = true;
     // The report's filter names are data from `reports`; mark them too.
     let mut z_report = sample_z_report();
     for filter in &mut z_report.params.filters {
@@ -324,6 +338,7 @@ fn adr_022_every_printed_word_comes_from_receipt_labels() {
         &english.credit_balance,
         &english.tax_summary,
         &english.void_heading,
+        &english.copy_heading,
         &english.return_heading,
         &english.refund_total,
         &english.period,

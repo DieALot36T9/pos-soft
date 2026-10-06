@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 
+import type { PrintResult } from "../../../generated/PrintResult";
 import type { SessionView } from "../../../generated/SessionView";
 import { shortcuts } from "../../../shared/keyboard/shortcuts";
+import { PrintProblem } from "../../../shared/print/PrintProblem";
 import { Alert } from "../../../shared/ui/Alert";
-import { cancelCart, holdCart, resumeCart } from "../api";
+import { cancelCart, holdCart, reprintInvoice, reprintLast, resumeCart } from "../api";
 import { ButtonBar } from "../components/ButtonBar";
 import { CancelDialog } from "../components/CancelDialog";
 import { CartTable } from "../components/CartTable";
@@ -14,6 +16,7 @@ import { HoldDialog } from "../components/HoldDialog";
 import { NoShiftPanel } from "../components/NoShiftPanel";
 import { PaymentDialog } from "../components/PaymentDialog";
 import { QtyDialog } from "../components/QtyDialog";
+import { ReprintDialog } from "../components/ReprintDialog";
 import { SaleDoneBar } from "../components/SaleDoneBar";
 import { ScanBox } from "../components/ScanBox";
 import { TillHeader } from "../components/TillHeader";
@@ -21,7 +24,7 @@ import { TotalsPanel } from "../components/TotalsPanel";
 import { WeightDialog } from "../components/WeightDialog";
 import { useTill } from "../useTill";
 
-type DialogName = "qty" | "hold" | "held" | "cancel" | "payment";
+type DialogName = "qty" | "hold" | "held" | "cancel" | "payment" | "reprint";
 
 type CheckoutPageProps = {
   session: SessionView;
@@ -42,6 +45,10 @@ export function CheckoutPage(props: CheckoutPageProps) {
   const { t } = useTranslation("checkout");
   const till = useTill(props.reloadKey, props.justLoggedIn);
   const [dialog, setDialog] = useState<DialogName | null>(null);
+  // A receipt that didn't print, with Retry and the system printer (PAY-09).
+  const [printFailed, setPrintFailed] = useState<PrintResult | null>(null);
+  // After a reprint that worked: which receipt ("" for the last one).
+  const [reprinted, setReprinted] = useState<string | null>(null);
   const scanRef = useRef<HTMLInputElement | null>(null);
   const { view } = till;
   const cart = view?.cart ?? null;
@@ -92,6 +99,24 @@ export function CheckoutPage(props: CheckoutPageProps) {
   useHotkeys(shortcuts.checkoutShift.keys, props.onShiftMenu, { ...options, enabled: !busy }, deps);
   useHotkeys(shortcuts.lock.keys, props.onLock, { ...options, enabled: !busy }, deps);
 
+  // Shows how a printout went: a short note when it printed, the banner when not.
+  const showPrint = (result: PrintResult | null, reprintOf: string | null) => {
+    setPrintFailed(result && !result.printed ? result : null);
+    setReprinted(result?.printed && reprintOf !== null ? reprintOf : null);
+  };
+  const reprint = (invoiceNo: string | null) => {
+    till.clearProblem();
+    (invoiceNo === null ? reprintLast() : reprintInvoice(invoiceNo))
+      .then((result) => showPrint(result, invoiceNo ?? ""))
+      .catch(till.fail);
+  };
+  useHotkeys(
+    shortcuts.checkoutReprint.keys,
+    () => reprint(null),
+    { ...options, enabled: !busy },
+    deps,
+  );
+
   const afterHeld = (heldCount: number) =>
     till.setView((old) => (old ? { ...old, held_count: heldCount } : old));
 
@@ -136,6 +161,20 @@ export function CheckoutPage(props: CheckoutPageProps) {
             {till.problem ? <Alert kind="problem">{till.problem}</Alert> : null}
             {till.restored ? <Alert kind="info">{t("restored")}</Alert> : null}
             {till.lastSale ? <SaleDoneBar done={till.lastSale} currency={view.currency} /> : null}
+            {printFailed ? (
+              <PrintProblem
+                key={JSON.stringify(printFailed.printable)}
+                result={printFailed}
+                onGone={() => setPrintFailed(null)}
+              />
+            ) : null}
+            {reprinted !== null ? (
+              <Alert kind="done">
+                {reprinted === ""
+                  ? t("reprint.doneLast")
+                  : t("reprint.done", { invoice: reprinted })}
+              </Alert>
+            ) : null}
             <div className="flex-1 overflow-auto rounded-ui border border-border bg-panel">
               <CartTable
                 lines={lines}
@@ -161,12 +200,15 @@ export function CheckoutPage(props: CheckoutPageProps) {
         hasLines={hasLines}
         hasSelection={selectedLine !== null}
         heldCount={view.held_count}
+        canReprintAny={props.session.permissions.includes("receipt_reprint_any")}
         onSearch={() => scanRef.current?.focus()}
         onQty={open("qty", selectedLine !== null)}
         onHold={open("hold", hasLines)}
         onHeld={open("held", view.held_count > 0)}
         onRemove={removeSelected}
         onCancel={open("cancel", hasLines)}
+        onReprint={() => reprint(null)}
+        onOldReceipt={open("reprint", true)}
         onShift={props.onShiftMenu}
         onLock={props.onLock}
         onBackOffice={props.onBackOffice}
@@ -231,6 +273,16 @@ export function CheckoutPage(props: CheckoutPageProps) {
           onDone={(done) => {
             close();
             till.saleDone(done);
+            showPrint(done.receipt, null);
+          }}
+        />
+      ) : null}
+      {dialog === "reprint" ? (
+        <ReprintDialog
+          onClose={close}
+          onReprint={(invoiceNo) => {
+            close();
+            reprint(invoiceNo);
           }}
         />
       ) : null}
