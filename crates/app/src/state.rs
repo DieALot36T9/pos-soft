@@ -2,12 +2,12 @@
 
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use auth::SessionUser;
 use db::Db;
 use pos_core::{AppError, Clock};
 
 use crate::logging::LogSwitch;
 use crate::paths::AppPaths;
+use crate::session::{Approval, Session};
 
 /// Whether the database passed the startup check (rule BAK-06).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,8 +23,12 @@ pub struct AppState {
     pub clock: Arc<dyn Clock>,
     pub db: Db,
     pub health: DbHealth,
-    /// The signed-in user. Only in memory: restarting the app signs everyone out.
-    pub session: Mutex<Option<SessionUser>>,
+    /// The signed-in user and whether the till is locked. Only in memory:
+    /// restarting the app signs everyone out.
+    pub session: Mutex<Option<Session>>,
+    /// Admin approvals not used yet: single-use tokens, each good for one
+    /// permission for 60 seconds (USR-05). Only in memory.
+    pub approvals: Mutex<Vec<Approval>>,
     /// The database's change marker at the last backup, so the timer can skip a backup.
     pub backed_up_at_marker: Mutex<u64>,
     /// The last backup problem to show in the warning banner, as an error code.
@@ -35,7 +39,7 @@ pub struct AppState {
 
 impl AppState {
     /// The signed-in user, if any.
-    pub fn session(&self) -> Result<MutexGuard<'_, Option<SessionUser>>, AppError> {
+    pub fn session(&self) -> Result<MutexGuard<'_, Option<Session>>, AppError> {
         lock(&self.session)
     }
 }

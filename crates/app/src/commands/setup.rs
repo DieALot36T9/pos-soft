@@ -54,7 +54,7 @@ pub fn setup_finish(state: &AppState) -> Result<SetupStatus, AppError> {
 /// "Restore from a backup" on the welcome screen: moving to a new PC (Setup Wizard).
 pub fn setup_restore_backup(state: &AppState, file: &str) -> Result<(), AppError> {
     session::require_setup_open(state)?;
-    backup::request_restore(state, Path::new(file), None)
+    backup::request_restore(state, Path::new(file), None, None)
 }
 
 /// The Tauri commands. Each runs its handler above on a worker thread.

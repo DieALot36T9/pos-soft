@@ -13,14 +13,17 @@ mod users;
 use pos_core::{Migration, ModuleMigrations};
 
 pub use error::AuthError;
-pub use login::{LoginOutcome, OverrideOutcome, SessionUser, verify_login, verify_override};
+pub use login::{
+    LoginOutcome, OverrideOutcome, SessionUser, session_user, verify_login, verify_override,
+};
 pub use recovery::{create_recovery_code, reset_with_recovery};
 pub use roles::{
-    ADMIN_ROLE_ID, CASHIER_ROLE_ID, NewRole, PermissionSet, create_role, permissions_of,
-    set_role_permissions,
+    ADMIN_ROLE_ID, CASHIER_ROLE_ID, NewRole, PermissionSet, RoleSummary, create_role, list_roles,
+    permissions_of, set_role_permissions,
 };
 pub use users::{
-    NewUser, SecretKind, UserTile, UserUpdate, create_user, login_tiles, set_secret, update_user,
+    NewUser, SecretKind, UserSummary, UserTile, UserUpdate, create_user, list_users, login_tiles,
+    set_secret, update_user,
 };
 
 /// This module's database migrations, oldest first. `app` passes them to `db::migrate`.

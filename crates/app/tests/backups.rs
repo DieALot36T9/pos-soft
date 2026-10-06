@@ -48,14 +48,14 @@ fn bak_04_backups_need_a_signed_in_user_with_permission() {
     let folder = tempfile::tempdir().expect("folder");
     let state = start(folder.path());
     finish_setup(&state);
-    app::session::sign_out(&state).expect("out");
+    app::session::logout(&state).expect("out");
 
     assert!(matches!(
         backup_commands::backup_now(&state),
         Err(AppError::PermissionDenied { .. })
     ));
     assert!(matches!(
-        backup_commands::backup_restore(&state, "x.sqlite"),
+        backup_commands::backup_restore(&state, "x.sqlite", None),
         Err(AppError::PermissionDenied { .. })
     ));
 }
@@ -118,7 +118,7 @@ fn bak_05_restore_puts_the_backup_back_at_the_next_start_and_is_audited() {
         let done = backup_commands::backup_now(&state).expect("backed up");
         rename_shop(&state, "Changed Later");
 
-        backup_commands::backup_restore(&state, &done.file).expect("restore asked");
+        backup_commands::backup_restore(&state, &done.file, None).expect("restore asked");
         done.file
     };
 
@@ -144,7 +144,7 @@ fn bak_05_a_file_that_is_not_a_backup_is_refused() {
     let junk = folder.path().join("pos-20261001-120000-manual.sqlite");
     std::fs::write(&junk, b"not a database").expect("file");
 
-    assert!(backup_commands::backup_restore(&state, &junk.to_string_lossy()).is_err());
+    assert!(backup_commands::backup_restore(&state, &junk.to_string_lossy(), None).is_err());
     assert!(!state.paths.restore_marker().exists());
 }
 

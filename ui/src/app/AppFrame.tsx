@@ -3,15 +3,17 @@ import { useTranslation } from "react-i18next";
 
 import type { AppInfo } from "../generated/AppInfo";
 import type { StartupView } from "../generated/StartupView";
+import { LockScreen } from "../modules/auth/pages/LockScreen";
+import { LoginPage } from "../modules/auth/pages/LoginPage";
 import { RecoveryPage } from "../modules/backup/pages/RecoveryPage";
 import { SetupWizard } from "../modules/setup/pages/SetupWizard";
 import { Alert } from "../shared/ui/Alert";
 import { OfficeFrame } from "./OfficeFrame";
-import { SignInPage } from "./SignInPage";
 import { getAppInfo, getStartup } from "./api";
 
 // The app window. Which screen shows depends on Rust's startup answer: the recovery
-// screen (damaged data, BAK-06), the setup wizard (SET-01), sign-in, or the back office.
+// screen (damaged data, BAK-06), the setup wizard (SET-01), the login tiles (USR-01),
+// the lock screen (USR-03), or the back office.
 export function AppFrame() {
   const { t: tCommon } = useTranslation("common");
   const { t } = useTranslation("app");
@@ -55,13 +57,19 @@ export function AppFrame() {
         </div>
       ) : startup.session === null ? (
         <div className="p-6">
-          <SignInPage onSignedIn={(session) => setStartup({ ...startup, session })} />
+          <LoginPage onLoggedIn={(session) => setStartup({ ...startup, session })} />
+        </div>
+      ) : startup.session.locked ? (
+        <div className="p-6">
+          <LockScreen session={startup.session} onUnlocked={reload} onLoggedOut={reload} />
         </div>
       ) : (
         <OfficeFrame
           session={startup.session}
           devTools={info?.dev_tools ?? false}
           backupWarning={startup.backup_warning}
+          idleLockMinutes={startup.idle_lock_min}
+          onLocked={(session) => setStartup({ ...startup, session })}
           onSignedOut={reload}
         />
       )}

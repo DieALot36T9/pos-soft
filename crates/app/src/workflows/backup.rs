@@ -125,7 +125,12 @@ pub fn list_backups(folder: &Path) -> Result<Vec<BackupRow>, AppError> {
 
 /// Checks the file, backs up the current database (`pre-restore`) and asks for
 /// the restore at the next start. The caller restarts the app (BAK-05).
-pub fn request_restore(state: &AppState, file: &Path, by: Option<Id>) -> Result<(), AppError> {
+pub fn request_restore(
+    state: &AppState,
+    file: &Path,
+    by: Option<Id>,
+    approved_by: Option<Id>,
+) -> Result<(), AppError> {
     db::verify(file, &migrations::all())?;
     if state.health == DbHealth::Ok {
         make_backup(state, "pre-restore")?;
@@ -135,6 +140,7 @@ pub fn request_restore(state: &AppState, file: &Path, by: Option<Id>) -> Result<
         &RestoreRequest {
             file: file.to_path_buf(),
             user_id: by,
+            approved_by,
         },
     )
 }

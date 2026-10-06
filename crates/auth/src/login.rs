@@ -5,7 +5,7 @@
 //! that change nothing (unknown or disabled user).
 
 use pos_core::{Bps, Id, Permission, Secret, Timestamp};
-use rusqlite::Transaction;
+use rusqlite::{Connection, Transaction};
 use serde::Serialize;
 use ts_rs::TS;
 
@@ -92,7 +92,7 @@ pub fn verify_login(
     }
     let hashes = [row.pin_hash.as_deref(), row.password_hash.as_deref()];
     let outcome = match attempt(transaction, &row, &hashes, &secret, now)? {
-        Attempt::Matched => LoginOutcome::LoggedIn(session_user(transaction, row)?),
+        Attempt::Matched => LoginOutcome::LoggedIn(session_user_of(transaction, row)?),
         Attempt::Wrong { attempts_left } => LoginOutcome::WrongSecret { attempts_left },
         Attempt::LockedNow { until } => LoginOutcome::LockedNow { until },
         Attempt::StillLocked { until } => LoginOutcome::StillLocked { until },
@@ -168,8 +168,18 @@ fn attempt(
     }
 }
 
-fn session_user(transaction: &Transaction, row: UserRow) -> Result<SessionUser, AuthError> {
-    let role = role_info(transaction, &row.role_id)?;
+/// Reads a signed-in user again, with their role as it is now. `app` calls this
+/// before each permission check, so a changed role or a disabled user counts at once.
+pub fn session_user(connection: &Connection, user: &Id) -> Result<SessionUser, AuthError> {
+    let row = load_user(connection, user)?;
+    if !row.active {
+        return Err(AuthError::UserInactive);
+    }
+    session_user_of(connection, row)
+}
+
+fn session_user_of(connection: &Connection, row: UserRow) -> Result<SessionUser, AuthError> {
+    let role = role_info(connection, &row.role_id)?;
     let role_id = Id::parse(&row.role_id).map_err(|_| AuthError::RoleNotFound {
         role: row.role_id.clone(),
     })?;

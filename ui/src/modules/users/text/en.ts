@@ -1,0 +1,97 @@
+// All screen text for the Users and Roles screens, in plain English (ADR-022).
+export const en = {
+  users: {
+    title: "Users",
+    intro:
+      "Everyone who logs in. Disable a user instead of deleting them, because they have history.",
+    table: {
+      name: "Name",
+      username: "Username",
+      role: "Role",
+      logsInWith: "Logs in with",
+      status: "Status",
+      actions: "Actions",
+      pin: "PIN",
+      password: "Password",
+      pinAndPassword: "PIN and password",
+      active: "Active",
+      activeTip: "Can log in.",
+      disabled: "Disabled",
+      disabledTip: "Can't log in. Their history is kept.",
+      locked: "Locked",
+      lockedTip: "Five wrong tries in a row. It ends by itself after 60 seconds.",
+    },
+    edit: { tip: "Change this user's name or role, reset their PIN or password, or disable them." },
+  },
+  userForm: {
+    addHeading: "Add a user",
+    editHeading: "Change {{name}}",
+    username: {
+      label: "Username",
+      tip: "A short name, typed when approving actions. Example: rina",
+      fixed: "Usernames can't change.",
+    },
+    displayName: {
+      label: "Name on screen",
+      tip: "The name on the login tile. Example: Rina Akter",
+    },
+    role: { label: "Role", tip: "What this user may do. Roles are set on the Roles screen." },
+    pin: { label: "PIN", tip: "4 to 8 digits. Leave empty to keep it as it is." },
+    password: { label: "Password", tip: "At least 8 characters. Leave empty to keep it as it is." },
+    newPin: { label: "PIN", tip: "4 to 8 digits. Cashiers usually log in with a PIN." },
+    newPassword: {
+      label: "Password",
+      tip: "At least 8 characters. Admins need one to approve actions.",
+    },
+    active: { label: "Can log in", tip: "Untick to disable this user. They are never deleted." },
+    save: { label: "Save user", tip: "Save this user." },
+    cancel: { label: "Cancel", tip: "Stop changing this user. Nothing is saved." },
+    saved: "The user was saved.",
+  },
+  roles: {
+    title: "Roles",
+    intro:
+      "A role is a set of permissions. Admin always has every permission. Make your own roles, such as Supervisor.",
+    table: {
+      name: "Role",
+      permissions: "Permissions",
+      discount: "Biggest discount",
+      kind: "Kind",
+      actions: "Actions",
+      system: "Comes with the app",
+      systemTip: "Admin and Cashier come with the app and can't be deleted.",
+      custom: "Your own",
+      customTip: "A role made in this shop.",
+      count: "{{count}} of {{all}}",
+      fixed: "Fixed",
+    },
+    edit: { tip: "Change this role's permissions and discount limit." },
+    adminFixed: "Admin always has every permission and can't be changed.",
+  },
+  roleForm: {
+    addHeading: "Add a role",
+    editHeading: "Change {{name}}",
+    name: { label: "Role name", tip: "Example: Supervisor", fixed: "Role names can't change." },
+    discount: {
+      label: "Biggest discount (%)",
+      tip: "The biggest discount without an admin, up to 2 decimals. Example: 10",
+      invalid: "Type a percentage from 0 to 100, with at most 2 decimals. Example: 10",
+    },
+    permissionTip: "Tick to allow this role to do this.",
+    save: { label: "Save role", tip: "Save this role." },
+    cancel: { label: "Cancel", tip: "Stop changing this role. Nothing is saved." },
+    saved: "The role was saved.",
+  },
+  areas: {
+    checkout: "Checkout",
+    returns: "Returns and voids",
+    shifts: "Shifts and cash",
+    customers: "Customers",
+    stock: "Stock",
+    products: "Products and prices",
+    purchasing: "Purchasing",
+    office: "Back office",
+  },
+};
+
+export type UsersText = typeof en;

@@ -11,7 +11,7 @@ use settings::{
 };
 use ts_rs::TS;
 
-use crate::session::{self, SessionView, SignInResult};
+use crate::session::{self, SessionView};
 use crate::state::AppState;
 use crate::workflows::folders::check_backup_folders;
 
@@ -127,7 +127,7 @@ pub fn save_admin(state: &AppState, step: AdminStep) -> Result<AdminCreated, App
     }
     let now = state.clock.now();
     let admin_role = Id::parse(ADMIN_ROLE_ID)?;
-    let recovery_code = state.db.write(|tx| {
+    let (admin, recovery_code) = state.db.write(|tx| {
         if settings::setup_status(tx)?
             .completed
             .contains(&SetupStep::Admin)
@@ -144,18 +144,15 @@ pub fn save_admin(state: &AppState, step: AdminStep) -> Result<AdminCreated, App
             password: Some(Secret::new(step.password.clone())),
             pin: None,
         };
-        auth::create_user(tx, user, now)?;
+        let admin = auth::create_user(tx, user, now)?;
         let code = auth::create_recovery_code(tx, now)?;
         settings::complete_step(tx, SetupStep::Admin, now)?;
-        Ok(code)
+        Ok((admin, code))
     })?;
-    match session::sign_in(state, &step.username, step.password)? {
-        SignInResult::SignedIn { session } => Ok(AdminCreated {
-            recovery_code: recovery_code.expose().clone(),
-            session,
-        }),
-        _ => Err(AppError::internal("the new admin could not sign in")),
-    }
+    Ok(AdminCreated {
+        recovery_code: recovery_code.expose().clone(),
+        session: session::start_session(state, &admin)?,
+    })
 }
 
 /// Step 5: till code and business-day cutoff. The till gets its id here, once.

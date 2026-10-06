@@ -19,14 +19,14 @@ tags: [architecture, security]
 - Lockout: 5 failures → 60 s, per user.
 - The session lives only in Rust memory. Restarting the app logs everyone out (an open cart is kept in the database).
 
-**Until C-M3** an admin signs in with username and password on a plain sign-in form (`session_sign_in` → `auth::verify_login`, same lockout). The admin made in the setup wizard is signed in straight away. C-M3 adds the login tiles, PINs, lock screen and auditing of logins.
+**Login (C-M3):** the login screen shows a tile for each active user; the user types their PIN or password (`login` → `auth::verify_login`). Logins, logouts and lockouts are audited. The admin made in the setup wizard is signed in straight away. F12, the Lock button or the idle timer lock the till: the session stays, but every guarded command answers `till_locked` until the same user (or an admin) unlocks it. Before each permission check the user is read again from `auth`, so a disabled user or a changed role counts at once.
 
 ## Authorization
 - `Permission` is a Rust enum in `core`. Roles map to sets of permissions in `auth`.
-- Every Tauri command starts with `ctx.require(Permission::X)?` or `ctx.require_or_override(Permission::X, override_token)?`.
-- A unit test lists **every command** and asserts the permission it requires, so a new command can't be added without deciding its permission.
+- Every Tauri command starts with `session::require(state, Permission::X)?` or `session::require_or_approval(state, Permission::X, approval)?` (the second gives `OverrideRequired` so the screen can ask an admin).
+- `commands::COMMANDS` lists **every command** with the permission it requires, so a new command can't be added without deciding its permission. `crates/app/tests/permissions.rs` calls every guarded command for real: signed out, as a cashier (refused exactly where the Cashier role lacks the permission), as an admin, and on a locked till.
 - Setup commands need no sign-in (nobody exists yet), but work only until setup is complete. Settings and tax rate commands also work without sign-in during setup, because the wizard uses them; afterwards they need `SettingsManage` / `TaxManage`. The recovery commands work only while the database is damaged.
-- Override tokens: created by `auth::verify_override(admin_username, secret, permission)`, random 128-bit, **single use**, tied to one permission, expire after 60 s, kept in memory only.
+- Override tokens: created by `request_override` after `auth::verify_override(admin_username, password, permission)`, random 128-bit, **single use**, tied to one permission and the user who asked, expire after 60 s, kept in memory only and dropped at logout or lock.
 
 ## Audit
 - `audit_events` is append-only (triggers abort UPDATE/DELETE).

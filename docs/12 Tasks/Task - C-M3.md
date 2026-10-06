@@ -5,7 +5,7 @@ model: claude-opus-5-5
 effort: medium
 phase: C
 depends_on: [C-M2, B-auth, B-audit]
-status: waiting
+status: done
 ---
 # Task C-M3: Login, roles, admin approval and audit
 

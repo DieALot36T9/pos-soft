@@ -20,6 +20,9 @@ use crate::state::{AppState, DbHealth};
 pub struct RestoreRequest {
     pub file: PathBuf,
     pub user_id: Option<Id>,
+    /// The admin who approved a restore asked for by someone without `BackupRestore`.
+    #[serde(default)]
+    pub approved_by: Option<Id>,
 }
 
 /// Opens everything the app needs. A damaged database doesn't stop the start:
@@ -42,6 +45,7 @@ pub fn start(paths: AppPaths, clock: Arc<dyn Clock>) -> Result<AppState, AppErro
         db: database,
         health,
         session: Mutex::new(None),
+        approvals: Mutex::new(Vec::new()),
         backed_up_at_marker: Mutex::new(marker),
         backup_warning: Mutex::new(None),
         log: None,
@@ -135,12 +139,13 @@ fn record_restore(
         .map(|name| name.to_string_lossy().into_owned())
         .unwrap_or_default();
     database.write(|tx| {
-        audit_log::record(
+        audit_log::record_approved(
             tx,
             clock,
             BACKUP_RESTORE,
             serde_json::json!({ "file": file_name }),
             request.user_id.clone(),
+            request.approved_by.clone(),
         )
     })
 }

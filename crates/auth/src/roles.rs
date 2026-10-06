@@ -65,6 +65,20 @@ impl PermissionSet {
     }
 }
 
+/// One row of the roles screen.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct RoleSummary {
+    pub id: Id,
+    pub name: String,
+    /// Admin and Cashier come with the app and can't be deleted.
+    pub is_system: bool,
+    /// The Admin role: every permission, and it can't be edited.
+    pub is_admin: bool,
+    pub max_discount: Bps,
+    pub permissions: PermissionSet,
+}
+
 /// A role's name and discount limit, read with its permissions.
 pub(crate) struct RoleInfo {
     pub name: String,
@@ -134,6 +148,36 @@ pub fn set_role_permissions(
         named_params! { ":id": role.as_str() },
     )?;
     store_permissions(transaction, role, permissions)
+}
+
+/// Every role with its permissions: Admin first, then Cashier, then custom roles by name.
+pub fn list_roles(connection: &Connection) -> Result<Vec<RoleSummary>, AuthError> {
+    let mut statement = connection.prepare(
+        "SELECT id, name, is_system, max_discount_bps FROM auth_roles
+         ORDER BY is_system DESC, id = :admin DESC, name COLLATE NOCASE",
+    )?;
+    let rows = statement.query_map(named_params! { ":admin": ADMIN_ROLE_ID }, |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, bool>(2)?,
+            row.get::<_, u32>(3)?,
+        ))
+    })?;
+    let mut roles = Vec::new();
+    for row in rows {
+        let (id, name, is_system, max_discount) = row?;
+        let permissions = role_permissions(connection, &id)?;
+        roles.push(RoleSummary {
+            is_admin: id == ADMIN_ROLE_ID,
+            id: Id::parse(&id).map_err(|_| AuthError::RoleNotFound { role: id.clone() })?,
+            name,
+            is_system,
+            max_discount: Bps(max_discount),
+            permissions,
+        });
+    }
+    Ok(roles)
 }
 
 /// What a user may do. Admin gets every permission; a disabled user gets none.

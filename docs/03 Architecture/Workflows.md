@@ -123,7 +123,7 @@ Backup (`pre-import`) → `io::read_table` → map rows to `catalog::NewProduct`
 `workflows::backup::make_backup(state, reason)`: main folder (settings, or the app's `backups` folder) → `db::backup_to` (VACUUM INTO + check; a failed check sets the `backup_check_failed` banner) → `db::prune_backups` (newest `keep_last` + last of each day for 30 days) → copy to the second folder and prune there (a failure only sets the `backup_second_folder_failed` banner, BAK-02). A second backup in the same second gets `-2` after its reason. The timer (`jobs.rs`, every 30 s it checks whether `interval_min` has passed) calls `backup_if_changed`, which skips when `db::has_changed_since` is false. Closing the app always backs up (`close`) once setup is complete. "Back up now" audits `backup.manual`.
 
 ## Restore backup
-`db::verify(file)` → backup current (`pre-restore`, skipped when the database is damaged) → write `restore-pending.json` (file, user) → restart. The swap happens at the next start (see Startup), and the audit event is written into the restored database there.
+`db::verify(file)` → backup current (`pre-restore`, skipped when the database is damaged) → write `restore-pending.json` (file, user, and the admin who approved it if the user lacked `BackupRestore`) → restart. The swap happens at the next start (see Startup), and the audit event is written into the restored database there.
 
 ## Test print
 `workflows::test_print::run(printer, paper, fonts)`: sample receipt data (sample shop, a sample logo, a Code 128 barcode from `barcode::bitmap`, a QR code) → `printing::receipt` with the English `ReceiptLabels` (`app::receipt_words`) → `printing::rasterize` → `printing::escpos::encode` (cut, no drawer) → `printer.send`. Saves nothing, so there is no transaction. A printer error comes back as `AppError::Hardware` (HW-08). Until printer settings are saved (C-M2, C-M7) the printer is always the Preview printer, and the shop details are samples.
@@ -133,3 +133,24 @@ Each wizard step saves through `settings` (and `tax`, `auth`) in its own transac
 
 ## Settings change
 `workflows::settings_change::save`: one section per call, in one transaction; each setting saved is audited (`settings.change`, details `{key, old, new}`, the old value being the one in use, the default if never saved). Money: refused with `minor_digits_locked` when the number of decimals changes and `sales::has_any_sale` (SET-05). Tax: the default rate must exist. Till: keeps its id. Backup: folders must be writable. Detailed logging is saved, audited (`logging.switch`) and applied at once.
+
+## Login (C-M3)
+`session::login(state, user_id, secret)`: refused with `till_locked` while another user's till is locked → in one transaction `auth::verify_login` (PIN **or** password) and its audit event: `session.login` when it worked, `user.lockout` on the fifth wrong try (USR-02). The transaction is committed for every outcome, so the failure count is kept. Then the session is set in memory and any unused approvals are dropped. `logout` audits `session.logout` (also "Switch user" on the lock screen). Login, the tiles and recovery need a finished setup (`setup_not_done`).
+
+## Lock and unlock (C-M3)
+`lock` (F12, the Lock button or the idle timer, `checkout.idle_lock_min`) only marks the session locked; nothing is saved. While locked every guarded command answers `till_locked`. `unlock(secret)` checks the locked user's own PIN or password like a login (lockout audited). `unlock_by_admin(username, password)` uses `auth::verify_override` with `UsersManage` and audits `session.unlock_by_admin` (user = the locked user, approved by = the admin); the same user stays signed in (USR-03).
+
+## Admin approval (C-M3)
+`request_override(permission, username, password)` → `auth::verify_override` (password only, the approver needs the permission) → audit `approval.granted` (user, approved by, permission) → a random 128-bit token in memory: one permission, the requesting user, 60 seconds. A command that accepts approvals calls `session::require_or_approval(state, permission, token)`: with the permission it runs; otherwise a fitting token is used up (single use, even when it doesn't fit) and the action runs with `approved_by`; otherwise `OverrideRequired`, and the screen shows the approval dialog and runs the action again with the token (USR-05). Logging in, out or locking drops unused tokens. So far only `backup_restore` takes a token.
+
+## Users and roles (C-M3)
+`workflows::users::save_user`: new user → `auth::create_user` (+ disable if not active), audit `user.create`; existing → `auth::update_user` + `auth::set_secret` for a typed PIN or password, audit `user.change` (details: name, role, active, `pin_reset`, `password_reset`; never the secrets). `save_role`: `auth::create_role` / `auth::set_role_permissions`, audit `role.create` / `role.change`. One transaction each, so a refusal (`last_active_admin`, `pin_format`, `admin_role_fixed`, …) saves nothing. Every permission check reads the user again (`auth::session_user`), so a changed role or a disabled user counts at once.
+
+## Change own PIN or password (C-M3)
+`change_own_secret(kind, current, new)`: `auth::verify_login` with the current one, then `auth::set_secret`, and audit `user.own_secret_change` (details: `kind`), in one transaction (USR-07). Wrong tries count toward the lockout.
+
+## Recovery code (C-M3)
+`recover_admin(code, username, password, password_again)`: the two passwords must match → the username must belong to a user → `auth::reset_with_recovery` (an active admin only; the new password; a new code) + audit `recovery.used`, in one transaction. The new code is shown once (USR-09).
+
+## Audit log (C-M3)
+`audit_query(filter, page)` → `audit::query` plus every user's name and every action name (`audit_actions::ALL`). `audit_export(filter, file)` pages through every matching event (500 at a time) and writes one sheet with `io::write_xlsx`: local time, business date, till, user and approver names, action, item, details (USR-08). Read only.

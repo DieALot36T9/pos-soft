@@ -50,6 +50,25 @@ export const errors = {
   password_too_short: "Use at least 8 characters for the password.",
   passwords_differ: "The two passwords are different. Type the same password twice.",
   admin_already_created: "The admin was already created. Go to the next step.",
+  // Users, roles, login and approvals (USR-01 to USR-09).
+  role_name_missing: "Type the role's name. Example: Supervisor",
+  role_name_in_use: "Another role already has this name. Pick a different name.",
+  max_discount_too_high: "The discount limit can be at most 100%.",
+  admin_role_fixed: "The Admin role always has every permission and can't be changed.",
+  pin_format: "Use 4 to 8 digits for the PIN. Example: 4821",
+  secret_missing: "Give the user a PIN, a password, or both.",
+  last_active_admin:
+    "This is the only active admin. Make another user an admin first, then try again.",
+  user_inactive: "This user is disabled. Ask an admin to enable them.",
+  override_user_unknown: "There is no active user with this username.",
+  recovery_code_wrong: "The recovery code is wrong. Check the paper copy and type it again.",
+  recovery_user_not_admin: "Type the username of an active admin.",
+  not_signed_in: "Nobody is logged in. Log in first.",
+  till_locked: "The till is locked. Unlock it first.",
+  till_not_locked: "The till isn't locked.",
+  setup_not_done: "Finish setup first.",
+  io_file_not_saved:
+    "The file could not be saved. Pick another folder, or close the file in Excel.",
   // Backups (BAK-01 to BAK-06).
   backup_second_folder_failed:
     "The backup was saved, but not copied to the second folder. Check the USB drive or folder.",
