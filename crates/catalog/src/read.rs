@@ -96,6 +96,7 @@ const LIST_FROM_WHERE: &str = "
     WHERE (:include_archived = 1 OR p.archived_at IS NULL)
       AND (:kind IS NULL OR p.kind = :kind)
       AND (:brand_id IS NULL OR p.brand_id = :brand_id)
+      AND (:parent_id IS NULL OR p.parent_id = :parent_id)
       AND (:pattern IS NULL OR p.name LIKE :pattern ESCAPE '\\' OR p.sku LIKE :pattern ESCAPE '\\')
       AND (:category_id IS NULL OR p.category_id IN (
             WITH RECURSIVE wanted(id) AS (
@@ -119,10 +120,12 @@ pub fn list(
     let kind = filter.kind.map(ProductKind::as_str);
     let category_id = filter.category_id.as_ref().map(Id::as_str);
     let brand_id = filter.brand_id.as_ref().map(Id::as_str);
+    let parent_id = filter.parent_id.as_ref().map(Id::as_str);
     let params = named_params! {
         ":include_archived": filter.include_archived,
         ":kind": kind,
         ":brand_id": brand_id,
+        ":parent_id": parent_id,
         ":pattern": pattern,
         ":category_id": category_id,
     };

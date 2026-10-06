@@ -40,6 +40,22 @@ pub const ROLE_CREATE: &str = "role.create";
 pub const ROLE_CHANGE: &str = "role.change";
 /// The recovery code set a new admin password (USR-09).
 pub const RECOVERY_USED: &str = "recovery.used";
+/// A product was added (CAT-01).
+pub const PRODUCT_CREATE: &str = "product.create";
+/// A product's fields, prices, barcodes, variants, kit parts or picture changed (CAT-01 to CAT-11).
+pub const PRODUCT_CHANGE: &str = "product.change";
+/// A product was archived: hidden from sale and search (CAT-08).
+pub const PRODUCT_ARCHIVE: &str = "product.archive";
+/// An archived product was brought back (CAT-08).
+pub const PRODUCT_UNARCHIVE: &str = "product.unarchive";
+/// A product that was never used was deleted for good (CAT-08).
+pub const PRODUCT_DELETE: &str = "product.delete";
+/// A unit was added, changed or archived (CAT-02).
+pub const UNIT_CHANGE: &str = "unit.change";
+/// A category was added, changed or archived (CAT-03).
+pub const CATEGORY_CHANGE: &str = "category.change";
+/// A brand was added, renamed or archived (CAT-03).
+pub const BRAND_CHANGE: &str = "brand.change";
 
 /// Every action name, for the action filter on the audit screen (USR-08).
 pub const ALL: &[&str] = &[
@@ -62,6 +78,14 @@ pub const ALL: &[&str] = &[
     ROLE_CREATE,
     ROLE_CHANGE,
     RECOVERY_USED,
+    PRODUCT_CREATE,
+    PRODUCT_CHANGE,
+    PRODUCT_ARCHIVE,
+    PRODUCT_UNARCHIVE,
+    PRODUCT_DELETE,
+    UNIT_CHANGE,
+    CATEGORY_CHANGE,
+    BRAND_CHANGE,
 ];
 
 #[cfg(test)]

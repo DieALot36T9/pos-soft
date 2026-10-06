@@ -196,6 +196,38 @@ fn list_filters_by_text_category_and_kind_and_pages() {
 }
 
 #[test]
+fn list_filters_by_parent_to_show_a_parents_variants() {
+    let mut db = test_db();
+    let tx = db.transaction().unwrap();
+    let parent = NewProduct::new(
+        ProductKind::VariantParent,
+        "Shampoo",
+        id(catalog::UNIT_PIECE),
+        vat(),
+    );
+    let parent = catalog::create_product(&tx, parent, NOW).unwrap();
+    let sizes = vec![(
+        "Size".to_string(),
+        vec!["200 ml".to_string(), "400 ml".to_string()],
+    )];
+    catalog::generate_variants(&tx, &parent, &sizes, NOW).unwrap();
+    catalog::create_product(&tx, standard("Soap", 100), NOW).unwrap();
+    tx.commit().unwrap();
+
+    let variants = ProductFilter {
+        parent_id: Some(parent),
+        ..ProductFilter::default()
+    };
+    let page = ProductPage {
+        offset: 0,
+        limit: 10,
+    };
+    let found = catalog::list(&db, &variants, page).unwrap();
+    let names: Vec<&str> = found.rows.iter().map(|row| row.name.as_str()).collect();
+    assert_eq!(names, vec!["Shampoo 200 ml", "Shampoo 400 ml"]);
+}
+
+#[test]
 fn get_returns_every_field_and_unknown_ids_are_not_found() {
     let mut db = test_db();
     let milk = create_with_barcode(&mut db, "Milk", "111", 9000);

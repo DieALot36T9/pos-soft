@@ -1,14 +1,18 @@
 import {
   DatabaseBackup,
+  FolderTree,
   History,
   Home,
   KeyRound,
   Lock,
   LogOut,
+  Package,
   Percent,
   Printer,
+  Ruler,
   Settings,
   ShieldCheck,
+  Tag,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -21,6 +25,10 @@ import type { SessionView } from "../generated/SessionView";
 import { AuditLogPage } from "../modules/audit/pages/AuditLogPage";
 import { MyAccountPage } from "../modules/auth/pages/MyAccountPage";
 import { BackupsPage } from "../modules/backup/pages/BackupsPage";
+import { BrandsPage } from "../modules/catalog/pages/BrandsPage";
+import { CategoriesPage } from "../modules/catalog/pages/CategoriesPage";
+import { ProductsPage } from "../modules/catalog/pages/ProductsPage";
+import { UnitsPage } from "../modules/catalog/pages/UnitsPage";
 import { HardwarePage } from "../modules/hardware/pages/HardwarePage";
 import { SettingsPage } from "../modules/settings/pages/SettingsPage";
 import { TaxRatesPage } from "../modules/tax/pages/TaxRatesPage";
@@ -35,12 +43,28 @@ import { HomePage } from "./HomePage";
 import { lockTill, logOut } from "./api";
 
 type Page =
-  "home" | "hardware" | "settings" | "tax" | "backups" | "users" | "roles" | "audit" | "account";
+  | "home"
+  | "products"
+  | "categories"
+  | "brands"
+  | "units"
+  | "hardware"
+  | "settings"
+  | "tax"
+  | "backups"
+  | "users"
+  | "roles"
+  | "audit"
+  | "account";
 
 // Each menu entry, and the permission it needs. The menu hides what the user's role
 // can't open, as a convenience: Rust checks every command anyway.
 const menu: { page: Page; icon: LucideIcon; needs: Permission | null }[] = [
   { page: "home", icon: Home, needs: null },
+  { page: "products", icon: Package, needs: "stock_view" },
+  { page: "categories", icon: FolderTree, needs: "catalog_manage" },
+  { page: "brands", icon: Tag, needs: "catalog_manage" },
+  { page: "units", icon: Ruler, needs: "catalog_manage" },
   { page: "hardware", icon: Printer, needs: null },
   { page: "settings", icon: Settings, needs: "settings_manage" },
   { page: "tax", icon: Percent, needs: "tax_manage" },
@@ -160,6 +184,10 @@ export function OfficeFrame({
         ) : null}
         {problem ? <Alert kind="problem">{problem}</Alert> : null}
         {page === "home" ? <HomePage /> : null}
+        {page === "products" ? <ProductsPage /> : null}
+        {page === "categories" ? <CategoriesPage /> : null}
+        {page === "brands" ? <BrandsPage /> : null}
+        {page === "units" ? <UnitsPage /> : null}
         {page === "hardware" ? <HardwarePage devTools={devTools} /> : null}
         {page === "settings" ? <SettingsPage /> : null}
         {page === "tax" ? <TaxRatesPage /> : null}

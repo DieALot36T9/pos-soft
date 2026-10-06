@@ -183,3 +183,30 @@ fn pur_05_balance_of_an_unknown_supplier_is_not_found() {
         Err(PurchasingError::NotFound { .. })
     ));
 }
+
+#[test]
+fn cat_08_a_product_on_an_order_or_grn_is_used() {
+    let mut connection = test_db();
+    let tx = connection.transaction().unwrap();
+    let supplier = add_supplier(&tx, "Fresh Farms", 0);
+    let ordered = common::order_line("Rice", 5, 9000);
+    let ordered_id = ordered.product_id.clone();
+    purchasing::create_order(
+        &tx,
+        &common::order_for(&supplier, vec![ordered]),
+        &ctx("2026-01-10"),
+    )
+    .unwrap();
+    let received = grn_line("Milk", 10, 5000);
+    let received_id = received.product_id.clone();
+    purchasing::record_grn(
+        &tx,
+        &direct_grn(&supplier, vec![received], 50_000),
+        &ctx("2026-01-10"),
+    )
+    .unwrap();
+
+    assert!(purchasing::is_product_used(&tx, &ordered_id).unwrap());
+    assert!(purchasing::is_product_used(&tx, &received_id).unwrap());
+    assert!(!purchasing::is_product_used(&tx, &Id::new()).unwrap());
+}

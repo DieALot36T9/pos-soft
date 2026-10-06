@@ -76,6 +76,7 @@ pub fn update_supplier(tx, &Id, &SupplierInput, now) -> Result<()>;
 pub fn archive_supplier(tx, &Id, now) -> Result<()>;            // archived: no new orders or GRNs
 pub fn list_suppliers(conn, include_archived: bool) -> Result<Vec<Supplier>>;   // by name
 pub fn get_supplier(conn, &Id) -> Result<Supplier>;
+pub fn is_product_used(conn, product: &Id) -> Result<bool>;   // on any PO, GRN or supplier return: archive only (CAT-08, C-M4)
 
 // PUR-02 purchase orders (status: Draft → Sent → Partial → Received, or Cancelled)
 pub fn create_order(tx, &NewOrder, &PurchasingCtx) -> Result<OrderRef>;   // draft, number PO-000001
@@ -137,7 +138,7 @@ Each test name starts with the requirement (`pur_02_…`) or the [[Module Rules]
 | `tests/order_receiving.rs` | `pur_03_receiving_form_is_prefilled_with_remaining_quantities`, `pur_03_cancelled_or_received_orders_cannot_be_received_again`, `pur_03_grn_lines_must_belong_to_the_order`, `pur_03_order_must_be_from_the_same_supplier`, `pur_03_order_line_without_an_order_is_refused` |
 | `tests/receiving.rs` | `pur_03_grn_without_an_order_gets_a_number_and_totals`, `pur_03_invoice_total_different_from_lines_is_flagged`, `pur_03_grn_raises_the_balance_by_the_invoice_total_with_a_due_date`, `pur_03_grn_keeps_batch_expiry_and_inventory_batch`, `pur_03_grn_checks_its_lines`, `pur_04_supplier_return_lowers_the_balance_by_its_value`, `pur_04_return_against_a_grn_must_be_the_same_supplier`, `pur_04_return_needs_lines_with_a_positive_quantity` |
 | `tests/payables.rs` | **`pur_05_balance_after_invoice_payment_and_return`**, **`pur_05_ledger_is_append_only`**, `pur_05_payment_must_be_positive_and_have_a_method`, `pur_05_adjustment_moves_the_balance_either_way`, **`pur_05_aging_buckets_with_a_fixed_clock`**, `pur_06_statement_has_opening_and_closing_balances`, `pur_06_statement_refuses_a_backwards_date_range` |
-| `tests/contract.rs` | `r4_migrations_belong_to_this_module_and_count_up_from_one`, `r2_every_table_and_view_has_the_module_prefix`, `r2_payables_view_has_the_published_columns`, `r2_ledger_view_has_the_published_columns`, `r2_grn_lines_view_has_the_published_columns`, `pur_05_payables_view_shows_zero_for_a_supplier_with_no_ledger_rows`, `pur_03_grn_lines_view_lists_each_received_line_with_its_grn`, `pur_05_balance_of_an_unknown_supplier_is_not_found`, `r3_errors_turn_into_app_errors_with_codes` |
+| `tests/contract.rs` | `r4_migrations_belong_to_this_module_and_count_up_from_one`, `r2_every_table_and_view_has_the_module_prefix`, `r2_payables_view_has_the_published_columns`, `r2_ledger_view_has_the_published_columns`, `r2_grn_lines_view_has_the_published_columns`, `pur_05_payables_view_shows_zero_for_a_supplier_with_no_ledger_rows`, `pur_03_grn_lines_view_lists_each_received_line_with_its_grn`, `pur_05_balance_of_an_unknown_supplier_is_not_found`, `r3_errors_turn_into_app_errors_with_codes`, `cat_08_a_product_on_an_order_or_grn_is_used` |
 | `src/aging.rs` (unit) | `pur_05_bucket_edges_are_0_30_60_90_days`, `pur_05_credits_pay_off_the_oldest_amounts_first`, `pur_05_overpayment_shows_as_negative_current` |
 
 The three tests the plan asked for are in **bold**: PO status transitions (partial → received, over-receiving allowed but flagged), ledger balance after an invoice, payment and return (append-only), and aging buckets with a fixed clock.

@@ -14,6 +14,7 @@ mod sql;
 mod statement;
 mod suggest;
 mod suppliers;
+mod usage;
 
 pub use aging::{AgingRow, aging};
 pub use context::PurchasingCtx;
@@ -31,6 +32,7 @@ pub use suppliers::{
     Supplier, SupplierInput, archive_supplier, create_supplier, get_supplier, list_suppliers,
     update_supplier,
 };
+pub use usage::is_product_used;
 
 use pos_core::{Migration, ModuleMigrations};
 

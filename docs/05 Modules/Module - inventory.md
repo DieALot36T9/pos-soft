@@ -106,6 +106,7 @@ pub struct ReorderRule { pub level: Qty, pub qty: Qty }
 pub fn set_reorder_rule(tx, product: &Id, level: Qty, qty: Qty) -> Result<()>;
 pub fn reorder_rule(conn, product: &Id) -> Result<Option<ReorderRule>>;
 pub fn remove_reorder_rule(tx, product: &Id) -> Result<()>;
+pub fn is_product_used(conn, product: &Id) -> Result<bool>;   // any ledger row or count line: archive only (CAT-08, C-M4)
 pub struct Page { pub offset: u32, pub limit: u32 }                          // Page::first(limit)
 pub struct LowStockRow { product_id, on_hand, reorder_level, reorder_qty }
 pub fn low_stock(conn, page: Page) -> Result<Vec<LowStockRow>>;             // biggest shortfall first
@@ -173,7 +174,7 @@ pub fn migrations() -> ModuleMigrations;
 | `tests/history_and_verify.rs` | **INV-07** running balance (true even when filtered), date filter, link to the document; **INV-10** `verify` reports wrong levels and batches without fixing them |
 | `tests/append_only.rs` | **INV-01** append-only triggers refuse UPDATE and DELETE |
 | `tests/properties.rs` | **INV-10** proptest: random sequences of receives, FEFO and plain sales, batch adjustments, voids and counts (with negative stock on and off) → `verify()` is empty and every level equals its ledger sum |
-| `tests/contract.rs` | Migrations numbered from 1; every table, view, index and trigger has the `inventory_` prefix; the three views' columns; `inventory_v_levels` includes rule-only products; enum texts |
+| `tests/contract.rs` | Migrations numbered from 1; every table, view, index and trigger has the `inventory_` prefix; the three views' columns; `inventory_v_levels` includes rule-only products; enum texts; `cat_08_a_product_that_moved_in_stock_is_used` |
 
 ## Working on this module
 *Everything needed to work on this module on its own. Read this page, [[Module Rules]] and [[Module - core]]. Nothing else is required. The same instructions are in `crates/inventory/CLAUDE.md`, which points back here.*

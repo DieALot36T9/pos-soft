@@ -6,16 +6,19 @@
 mod common;
 
 use app::commands::{
-    COMMANDS, audit as audit_commands, backup as backup_commands, settings as settings_commands,
-    tax as tax_commands, users as user_commands,
+    COMMANDS, audit as audit_commands, backup as backup_commands, catalog as catalog_commands,
+    settings as settings_commands, tax as tax_commands, users as user_commands,
 };
 use app::session;
 use app::state::AppState;
+use app::workflows::catalog_lists::{BrandInput, CategoryInput, UnitInput};
+use app::workflows::products::{ProductInput, VariantAttribute};
 use app::workflows::settings_change::SettingsChange;
 use app::workflows::users::{RoleInput, UserInput};
 use audit::{AuditFilter, AuditPage};
+use catalog::{CategoryFields, ProductFilter, ProductKind, ProductPage, UnitFields};
 use common::*;
-use pos_core::{AppError, Bps, Id, Permission};
+use pos_core::{AppError, Bps, Id, Money, Permission};
 use settings::{CreditSettings, Setting};
 
 type Call = fn(&AppState, &str) -> Result<(), AppError>;
@@ -26,7 +29,7 @@ fn ok<T>(result: Result<T, AppError>) -> Result<(), AppError> {
 
 /// One real call for each command that needs a permission. `file` is a backup file.
 fn calls() -> Vec<(&'static str, Call)> {
-    vec![
+    let mut calls: Vec<(&'static str, Call)> = vec![
         ("settings_get", |state, _| {
             ok(settings_commands::settings_get(state))
         }),
@@ -97,7 +100,150 @@ fn calls() -> Vec<(&'static str, Call)> {
                 &target.to_string_lossy(),
             ))
         }),
+    ];
+    calls.extend(catalog_calls());
+    calls
+}
+
+/// The product, unit, category and brand commands (C-M4).
+fn catalog_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("product_list", |state, _| {
+            let page = ProductPage {
+                offset: 0,
+                limit: 10,
+            };
+            ok(catalog_commands::product_list(
+                state,
+                &ProductFilter::default(),
+                page,
+            ))
+        }),
+        ("product_search", |state, _| {
+            ok(catalog_commands::product_search(state, "milk", 10))
+        }),
+        ("product_get", |state, _| {
+            ok(catalog_commands::product_get(state, &first_product(state)))
+        }),
+        ("product_choices", |state, _| {
+            ok(catalog_commands::product_choices(state))
+        }),
+        ("product_save", |state, _| {
+            ok(catalog_commands::product_save(state, new_product("Bread")))
+        }),
+        ("product_archive", |state, _| {
+            ok(catalog_commands::product_archive(state, &Id::new()))
+        }),
+        ("product_unarchive", |state, _| {
+            ok(catalog_commands::product_unarchive(state, &Id::new()))
+        }),
+        ("product_delete", |state, _| {
+            ok(catalog_commands::product_delete(state, &Id::new()))
+        }),
+        ("barcode_generate", |state, _| {
+            ok(catalog_commands::barcode_generate(state, &Id::new()))
+        }),
+        ("variants_generate", |state, _| {
+            let size = VariantAttribute {
+                name: "Size".into(),
+                values: vec!["Small".into()],
+            };
+            ok(catalog_commands::variants_generate(
+                state,
+                &Id::new(),
+                &[size],
+            ))
+        }),
+        ("kit_save", |state, _| {
+            ok(catalog_commands::kit_save(state, &Id::new(), &[]))
+        }),
+        ("product_image_set", |state, file| {
+            ok(catalog_commands::product_image_set(state, &Id::new(), file))
+        }),
+        ("unit_list", |state, _| {
+            ok(catalog_commands::unit_list(state, false))
+        }),
+        ("unit_save", |state, _| {
+            let input = UnitInput {
+                id: None,
+                fields: UnitFields {
+                    name: "Dozen".into(),
+                    symbol: "dz".into(),
+                    unit_code: None,
+                    decimals: 0,
+                },
+            };
+            ok(catalog_commands::unit_save(state, input))
+        }),
+        ("unit_archive", |state, _| {
+            ok(catalog_commands::unit_archive(state, &Id::new()))
+        }),
+        ("category_list", |state, _| {
+            ok(catalog_commands::category_list(state, false))
+        }),
+        ("category_save", |state, _| {
+            let input = CategoryInput {
+                id: None,
+                fields: CategoryFields::new("Dairy"),
+            };
+            ok(catalog_commands::category_save(state, input))
+        }),
+        ("category_archive", |state, _| {
+            ok(catalog_commands::category_archive(state, &Id::new()))
+        }),
+        ("brand_list", |state, _| {
+            ok(catalog_commands::brand_list(state, false))
+        }),
+        ("brand_save", |state, _| {
+            let input = BrandInput {
+                id: None,
+                name: "Aarong".into(),
+            };
+            ok(catalog_commands::brand_save(state, input))
+        }),
+        ("brand_archive", |state, _| {
+            ok(catalog_commands::brand_archive(state, &Id::new()))
+        }),
     ]
+}
+
+/// A new product with no prices, so only `CatalogManage` is needed to save it.
+fn new_product(name: &str) -> ProductInput {
+    ProductInput {
+        id: None,
+        kind: ProductKind::Standard,
+        name: name.into(),
+        sku: String::new(),
+        category_id: None,
+        brand_id: None,
+        unit_id: Id::parse(catalog::UNIT_PIECE).expect("id"),
+        sale_price: Money(0),
+        cost_price: Money(0),
+        tax_rate_id: None,
+        is_weighed: false,
+        scale_item_code: None,
+        track_stock: true,
+        track_expiry: false,
+        preferred_supplier_id: None,
+        description: None,
+        barcodes: Vec::new(),
+        reorder: None,
+    }
+}
+
+/// The product `shop()` made, read straight from the catalog (no permission check).
+fn first_product(state: &AppState) -> Id {
+    let page = ProductPage {
+        offset: 0,
+        limit: 1,
+    };
+    state
+        .db
+        .read(|conn| Ok(catalog::list(conn, &ProductFilter::default(), page)?))
+        .expect("list")
+        .rows[0]
+        .id
+        .clone()
 }
 
 fn needed(name: &str) -> Permission {
@@ -137,6 +283,7 @@ fn shop() -> (tempfile::TempDir, AppState, String) {
     let state = start(folder.path());
     finish_setup(&state);
     add_cashier(&state);
+    catalog_commands::product_save(&state, new_product("Milk")).expect("a product");
     let file = backup_commands::backup_now(&state).expect("backed up").file;
     (folder, state, file)
 }

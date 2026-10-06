@@ -138,6 +138,7 @@ pub fn returnable_qty(conn, sale: &Id) -> Result<HashMap<Id /*line*/, Qty>>;
 pub fn void(tx, sale: &Id, by: &Id, approved_by: Option<&Id>, reason: &str, now) -> Result<()>;
 pub fn sales_summary(conn) -> Result<SalesSummary>;                                  // BAK-05: sale count + last invoice no
 pub fn has_any_sale(conn) -> Result<bool>;                                             // true once any sale or return exists
+pub fn is_product_used(conn, product: &Id) -> Result<bool>;                            // in any cart, sale or return: archive only (CAT-08, C-M4)
 // returns (returns.rs, return_read.rs)
 pub fn refund_amounts(conn, sale: &Id, &[ReturnQty]) -> Result<Vec<LineRefund>>;      // preview, saves nothing
 pub fn record_return(tx, NewReturn) -> Result<ReturnRef>;                             // assigns return_no
@@ -201,6 +202,7 @@ Every test names its requirement. `cargo nextest run -p sales` (84 tests).
 | Backup restore list (sale count, last invoice number) | `backup_summary::bak_05_a_database_without_sales_shows_none`, `bak_05_a_backup_made_before_the_sales_tables_existed_shows_none`, `bak_05_counts_every_sale_and_gives_the_last_invoice_number`, `bak_05_works_on_a_backup_opened_read_only` |
 | The views return the expected columns (contract, [[Module Rules]] R2) | `contract::sales_v_sales_has_the_sale_columns`, `sales_v_lines_has_the_line_and_header_columns`, `sales_v_return_lines_has_the_line_and_header_columns`, `sales_v_payments_has_the_payment_columns_and_the_document_date`, `views_show_sales_returns_and_voids_for_reports` |
 | Migrations and names ([[Module Rules]] R2, R4); errors ([[Errors and Logging]]) | `contract::migrations_belong_to_this_module`, `every_table_view_index_and_trigger_is_prefixed_with_sales`, `errors_turn_into_app_errors_with_stable_codes`, `error::*` (3) |
+| A product in a cart, sale or return can't be deleted (CAT-08, used by `app` in C-M4) | `contract::cat_08_a_product_in_a_cart_or_sale_is_used` |
 
 Test helpers live in `crates/sales/tests/support/mod.rs`: `test_db()` (in-memory SQLite with foreign keys on and this module's migrations), a `Till`, and `priced_line`/`sale_of_cart`/`sell`, which stand in for pricing and tax.
 

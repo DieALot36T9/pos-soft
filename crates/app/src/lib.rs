@@ -103,7 +103,7 @@ fn command_handler() -> CommandHandler {
 /// Every command, plus the dev-only ones.
 fn with_dev_commands() -> CommandHandler {
     use commands::{
-        audit, auth, backup, dev, hardware, settings, setup, startup, system, tax, users,
+        audit, auth, backup, catalog, dev, hardware, settings, setup, startup, system, tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -151,6 +151,27 @@ fn with_dev_commands() -> CommandHandler {
         users::cmd::role_save,
         audit::cmd::audit_query,
         audit::cmd::audit_export,
+        catalog::cmd::product_list,
+        catalog::cmd::product_search,
+        catalog::cmd::product_get,
+        catalog::cmd::product_choices,
+        catalog::cmd::product_save,
+        catalog::cmd::product_archive,
+        catalog::cmd::product_unarchive,
+        catalog::cmd::product_delete,
+        catalog::cmd::barcode_generate,
+        catalog::cmd::variants_generate,
+        catalog::cmd::kit_save,
+        catalog::cmd::product_image_set,
+        catalog::cmd::unit_list,
+        catalog::cmd::unit_save,
+        catalog::cmd::unit_archive,
+        catalog::cmd::category_list,
+        catalog::cmd::category_save,
+        catalog::cmd::category_archive,
+        catalog::cmd::brand_list,
+        catalog::cmd::brand_save,
+        catalog::cmd::brand_archive,
         dev::dev_fake_scale_get,
         dev::dev_fake_scale_set,
         dev::dev_fake_scale_read,
@@ -159,7 +180,9 @@ fn with_dev_commands() -> CommandHandler {
 
 /// Every command, without the dev-only ones.
 fn without_dev_commands() -> CommandHandler {
-    use commands::{audit, auth, backup, hardware, settings, setup, startup, system, tax, users};
+    use commands::{
+        audit, auth, backup, catalog, hardware, settings, setup, startup, system, tax, users,
+    };
     boxed(tauri::generate_handler![
         system::app_info,
         hardware::hardware_test_print,
@@ -206,6 +229,27 @@ fn without_dev_commands() -> CommandHandler {
         users::cmd::role_save,
         audit::cmd::audit_query,
         audit::cmd::audit_export,
+        catalog::cmd::product_list,
+        catalog::cmd::product_search,
+        catalog::cmd::product_get,
+        catalog::cmd::product_choices,
+        catalog::cmd::product_save,
+        catalog::cmd::product_archive,
+        catalog::cmd::product_unarchive,
+        catalog::cmd::product_delete,
+        catalog::cmd::barcode_generate,
+        catalog::cmd::variants_generate,
+        catalog::cmd::kit_save,
+        catalog::cmd::product_image_set,
+        catalog::cmd::unit_list,
+        catalog::cmd::unit_save,
+        catalog::cmd::unit_archive,
+        catalog::cmd::category_list,
+        catalog::cmd::category_save,
+        catalog::cmd::category_archive,
+        catalog::cmd::brand_list,
+        catalog::cmd::brand_save,
+        catalog::cmd::brand_archive,
     ])
 }
 

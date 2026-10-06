@@ -3,7 +3,9 @@
 
 pub mod audit_view;
 pub mod backup;
+pub mod catalog_lists;
 pub mod folders;
+pub mod products;
 pub mod settings_change;
 pub mod setup;
 pub mod tax_rates;

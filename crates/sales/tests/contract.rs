@@ -234,3 +234,17 @@ fn rpt_11_reports_read_sale_lines_from_one_covering_index() {
         "{plan:?}"
     );
 }
+
+#[test]
+fn cat_08_a_product_in_a_cart_or_sale_is_used() {
+    let mut conn = test_db();
+    let till = Till::new("T1");
+    let sold = Id::new();
+    let in_cart = Id::new();
+    sell(&mut conn, &till, &[(&sold, 1000)]);
+    support::cart_with(&mut conn, &till, &[(&in_cart, 1000)]);
+
+    assert!(sales::is_product_used(&conn, &sold).unwrap());
+    assert!(sales::is_product_used(&conn, &in_cart).unwrap());
+    assert!(!sales::is_product_used(&conn, &Id::new()).unwrap());
+}

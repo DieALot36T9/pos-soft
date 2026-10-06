@@ -5,6 +5,10 @@ export const shortcuts = {
   help: "F1",
   // Locks the till; the cart is kept (USR-03).
   lock: { label: "F12", keys: "f12" },
+  // Saves the form on screen (back office).
+  save: { label: "Ctrl+S", keys: "ctrl+s" },
+  // Leaves a back-office form without saving.
+  back: { label: "Esc", keys: "escape" },
   // Dev builds only (Dev Environment Setup, "Working without hardware").
   scanSimulator: { label: "Ctrl+Shift+S", keys: "ctrl+shift+s" },
 };

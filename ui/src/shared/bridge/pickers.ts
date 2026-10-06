@@ -42,3 +42,19 @@ export async function pickSaveFile(title: string, suggestedName: string): Promis
   });
   return picked ?? null;
 }
+
+export const FAKE_IMAGE_FILE = "/fake/pictures/mango.png";
+
+// Lets the user pick a product picture (PNG, JPEG or WebP, CAT-10). Null if cancelled.
+export async function pickImageFile(title: string): Promise<string | null> {
+  if (useFakeBridge) {
+    return FAKE_IMAGE_FILE;
+  }
+  const picked = await open({
+    title,
+    multiple: false,
+    directory: false,
+    filters: [{ name: "Picture", extensions: ["png", "jpg", "jpeg", "webp"] }],
+  });
+  return typeof picked === "string" ? picked : null;
+}
