@@ -1,4 +1,5 @@
 import {
+  BadgePercent,
   Boxes,
   ShoppingCart,
   ClipboardList,
@@ -33,6 +34,7 @@ import { CategoriesPage } from "../modules/catalog/pages/CategoriesPage";
 import { ProductsPage } from "../modules/catalog/pages/ProductsPage";
 import { UnitsPage } from "../modules/catalog/pages/UnitsPage";
 import { HardwarePage } from "../modules/hardware/pages/HardwarePage";
+import { PricingPage } from "../modules/pricing/pages/PricingPage";
 import { StockCountsPage } from "../modules/inventory/pages/StockCountsPage";
 import { StockLevelsPage } from "../modules/inventory/pages/StockLevelsPage";
 import { SettingsPage } from "../modules/settings/pages/SettingsPage";
@@ -57,6 +59,7 @@ type Page =
   | "categories"
   | "brands"
   | "units"
+  | "pricing"
   | "hardware"
   | "settings"
   | "tax"
@@ -77,6 +80,7 @@ const menu: { page: Page; icon: LucideIcon; needs: Permission | null }[] = [
   { page: "categories", icon: FolderTree, needs: "catalog_manage" },
   { page: "brands", icon: Tag, needs: "catalog_manage" },
   { page: "units", icon: Ruler, needs: "catalog_manage" },
+  { page: "pricing", icon: BadgePercent, needs: "pricing_manage" },
   { page: "hardware", icon: Printer, needs: null },
   { page: "settings", icon: Settings, needs: "settings_manage" },
   { page: "tax", icon: Percent, needs: "tax_manage" },
@@ -200,6 +204,7 @@ export function OfficeFrame({
         {page === "categories" ? <CategoriesPage /> : null}
         {page === "brands" ? <BrandsPage /> : null}
         {page === "units" ? <UnitsPage /> : null}
+        {page === "pricing" ? <PricingPage /> : null}
         {page === "hardware" ? <HardwarePage devTools={devTools} /> : null}
         {page === "settings" ? <SettingsPage /> : null}
         {page === "tax" ? <TaxRatesPage /> : null}
