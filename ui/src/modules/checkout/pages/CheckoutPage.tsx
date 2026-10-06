@@ -2,19 +2,37 @@ import { useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 
+import type { CartView } from "../../../generated/CartView";
 import type { PrintResult } from "../../../generated/PrintResult";
 import type { SessionView } from "../../../generated/SessionView";
+import { useApproval } from "../../../shared/approval/useApproval";
 import { shortcuts } from "../../../shared/keyboard/shortcuts";
 import { PrintProblem } from "../../../shared/print/PrintProblem";
 import { Alert } from "../../../shared/ui/Alert";
-import { cancelCart, holdCart, reprintInvoice, reprintLast, resumeCart } from "../api";
+import {
+  cancelCart,
+  holdCart,
+  overridePrice,
+  reprintInvoice,
+  reprintLast,
+  resumeCart,
+  setCustomer,
+  setInvoiceDiscount,
+  setLineDiscount,
+  setPriceList,
+} from "../api";
 import { ButtonBar } from "../components/ButtonBar";
 import { CancelDialog } from "../components/CancelDialog";
 import { CartTable } from "../components/CartTable";
+import { CustomerBar } from "../components/CustomerBar";
+import { CustomerDialog } from "../components/CustomerDialog";
+import { DiscountDialog } from "../components/DiscountDialog";
 import { HeldListDialog } from "../components/HeldListDialog";
 import { HoldDialog } from "../components/HoldDialog";
 import { NoShiftPanel } from "../components/NoShiftPanel";
 import { PaymentDialog } from "../components/PaymentDialog";
+import { PriceDialog } from "../components/PriceDialog";
+import { PriceListDialog } from "../components/PriceListDialog";
 import { QtyDialog } from "../components/QtyDialog";
 import { ReprintDialog } from "../components/ReprintDialog";
 import { SaleDoneBar } from "../components/SaleDoneBar";
@@ -24,7 +42,18 @@ import { TotalsPanel } from "../components/TotalsPanel";
 import { WeightDialog } from "../components/WeightDialog";
 import { useTill } from "../useTill";
 
-type DialogName = "qty" | "hold" | "held" | "cancel" | "payment" | "reprint";
+type DialogName =
+  | "qty"
+  | "hold"
+  | "held"
+  | "cancel"
+  | "payment"
+  | "reprint"
+  | "customer"
+  | "discount"
+  | "invoiceDiscount"
+  | "price"
+  | "priceList";
 
 type CheckoutPageProps = {
   session: SessionView;
@@ -50,11 +79,13 @@ export function CheckoutPage(props: CheckoutPageProps) {
   // After a reprint that worked: which receipt ("" for the last one).
   const [reprinted, setReprinted] = useState<string | null>(null);
   const scanRef = useRef<HTMLInputElement | null>(null);
+  // Discounts above the limit, typed prices and price lists may need an admin (USR-05).
+  const { withApproval, dialog: approvalDialog } = useApproval();
   const { view } = till;
   const cart = view?.cart ?? null;
   const lines = cart?.lines ?? [];
   const selectedLine = lines.find((line) => line.line_id === till.selected) ?? null;
-  const busy = dialog !== null || till.weighing !== null;
+  const busy = dialog !== null || till.weighing !== null || approvalDialog !== null;
 
   // The scan box always has the focus when no dialog is open.
   useEffect(() => {
@@ -64,6 +95,18 @@ export function CheckoutPage(props: CheckoutPageProps) {
   });
 
   const close = () => setDialog(null);
+  // Sends a cart change to Rust, asking an admin first when Rust says so, and shows the
+  // cart that comes back. `lineId` is the line to keep selected.
+  const changeCart = (
+    work: (approval: string | null) => Promise<CartView>,
+    lineId: string | null = null,
+  ) => {
+    close();
+    till.clearProblem();
+    withApproval(work)
+      .then((fresh) => till.showCart(fresh, lineId))
+      .catch(till.fail);
+  };
   const open = (name: DialogName, allowed: boolean) => () => {
     if (allowed) {
       setDialog(name);
@@ -85,6 +128,20 @@ export function CheckoutPage(props: CheckoutPageProps) {
   const deps = [selectedLine, hasLines, view, busy];
   useHotkeys(shortcuts.checkoutSearch.keys, () => scanRef.current?.focus(), options, deps);
   useHotkeys(shortcuts.checkoutQty.keys, open("qty", selectedLine !== null), options, deps);
+  useHotkeys(shortcuts.checkoutCustomer.keys, open("customer", true), options, deps);
+  useHotkeys(
+    shortcuts.checkoutDiscount.keys,
+    open("discount", selectedLine !== null),
+    options,
+    deps,
+  );
+  useHotkeys(
+    shortcuts.checkoutInvoiceDiscount.keys,
+    open("invoiceDiscount", hasLines),
+    options,
+    deps,
+  );
+  useHotkeys(shortcuts.checkoutPrice.keys, open("price", selectedLine !== null), options, deps);
   useHotkeys(shortcuts.checkoutHold.keys, open("hold", hasLines), options, deps);
   useHotkeys(shortcuts.checkoutHeld.keys, open("held", (view?.held_count ?? 0) > 0), options, deps);
   useHotkeys(shortcuts.checkoutCancel.keys, open("cancel", hasLines), options, deps);
@@ -159,6 +216,7 @@ export function CheckoutPage(props: CheckoutPageProps) {
               }}
             />
             {till.problem ? <Alert kind="problem">{till.problem}</Alert> : null}
+            <CustomerBar cart={cart} currency={view.currency} />
             {till.restored ? <Alert kind="info">{t("restored")}</Alert> : null}
             {till.lastSale ? <SaleDoneBar done={till.lastSale} currency={view.currency} /> : null}
             {printFailed ? (
@@ -199,10 +257,16 @@ export function CheckoutPage(props: CheckoutPageProps) {
       <ButtonBar
         hasLines={hasLines}
         hasSelection={selectedLine !== null}
+        hasPriceLists={view.price_lists.length > 0}
         heldCount={view.held_count}
         canReprintAny={props.session.permissions.includes("receipt_reprint_any")}
         onSearch={() => scanRef.current?.focus()}
+        onCustomer={open("customer", cart !== null)}
         onQty={open("qty", selectedLine !== null)}
+        onDiscount={open("discount", selectedLine !== null)}
+        onInvoiceDiscount={open("invoiceDiscount", hasLines)}
+        onPrice={open("price", selectedLine !== null)}
+        onPriceList={open("priceList", view.price_lists.length > 0)}
         onHold={open("hold", hasLines)}
         onHeld={open("held", view.held_count > 0)}
         onRemove={removeSelected}
@@ -223,6 +287,61 @@ export function CheckoutPage(props: CheckoutPageProps) {
           }}
         />
       ) : null}
+      {dialog === "customer" ? (
+        <CustomerDialog
+          currency={view.currency}
+          hasCustomer={cart?.customer !== null && cart?.customer !== undefined}
+          onClose={close}
+          onPick={(customerId) => changeCart(() => setCustomer(customerId))}
+        />
+      ) : null}
+      {dialog === "discount" && selectedLine ? (
+        <DiscountDialog
+          lineName={selectedLine.name}
+          current={selectedLine.manual_discount}
+          limit={view.max_discount}
+          currency={view.currency}
+          onClose={close}
+          onSave={(discount) =>
+            changeCart(
+              (approval) => setLineDiscount(selectedLine.line_id, discount, approval),
+              selectedLine.line_id,
+            )
+          }
+        />
+      ) : null}
+      {dialog === "invoiceDiscount" ? (
+        <DiscountDialog
+          lineName={null}
+          current={cart?.invoice_discount ?? null}
+          limit={view.max_discount}
+          currency={view.currency}
+          onClose={close}
+          onSave={(discount) => changeCart((approval) => setInvoiceDiscount(discount, approval))}
+        />
+      ) : null}
+      {dialog === "price" && selectedLine ? (
+        <PriceDialog
+          line={selectedLine}
+          currency={view.currency}
+          onClose={close}
+          onSave={(price) =>
+            changeCart(
+              (approval) => overridePrice(selectedLine.line_id, price, approval),
+              selectedLine.line_id,
+            )
+          }
+        />
+      ) : null}
+      {dialog === "priceList" ? (
+        <PriceListDialog
+          lists={view.price_lists}
+          current={cart?.price_list?.id ?? null}
+          onClose={close}
+          onPick={(priceListId) => changeCart((approval) => setPriceList(priceListId, approval))}
+        />
+      ) : null}
+      {approvalDialog}
       {dialog === "hold" ? (
         <HoldDialog
           onClose={close}

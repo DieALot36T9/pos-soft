@@ -7,6 +7,7 @@ import type { CountLine } from "../../../generated/CountLine";
 import type { CurrencyFormat } from "../../../generated/CurrencyFormat";
 import type { PrintResult } from "../../../generated/PrintResult";
 import type { HeldCartView } from "../../../generated/HeldCartView";
+import type { ManualDiscount } from "../../../generated/ManualDiscount";
 import type { PaymentEntry } from "../../../generated/PaymentEntry";
 import type { PaymentMethodRow } from "../../../generated/PaymentMethodRow";
 import type { PaymentMethodSave } from "../../../generated/PaymentMethodSave";
@@ -18,10 +19,28 @@ import type { ScaleView } from "../../../generated/ScaleView";
 import type { ScanResult } from "../../../generated/ScanResult";
 import type { ShiftClosed } from "../../../generated/ShiftClosed";
 import type { ShiftState } from "../../../generated/ShiftState";
+import type { SettingsSnapshot } from "../../../generated/SettingsSnapshot";
 import type { ShiftView } from "../../../generated/ShiftView";
 import type { WeightInput } from "../../../generated/WeightInput";
 import { fakeCatalog, searchFakeCatalog } from "./catalog";
-import { currentSession, recordFakeEvent, requireOrApproval, requirePermission } from "./people";
+import {
+  connectCustomersToTill,
+  fakeActiveLists,
+  fakeAttachable,
+  fakeCartCustomer,
+  fakeCheckList,
+  fakeCustomerSale,
+  fakeListChoice,
+  fakeListPrice,
+  fakeTierDiscount,
+} from "./customers";
+import {
+  currentSession,
+  recordFakeEvent,
+  requireOrApproval,
+  requirePermission,
+  takeFakeApproval,
+} from "./people";
 import { fakeDrawer, fakePrint, pictures } from "./printer";
 import { mockScale } from "./scale";
 import { fakeTillPricing } from "./tillPricing";
@@ -31,7 +50,13 @@ import { fakeTillPricing } from "./tillPricing";
 // retail × quantity, 15% tax inside, and rounding to whole units for cash.
 
 type Args = Record<string, unknown>;
-type FakeLine = { id: string; product_id: string; qty: number };
+type FakeLine = {
+  id: string;
+  product_id: string;
+  qty: number;
+  discount?: ManualDiscount | null;
+  price?: number | null;
+};
 type FakeHeld = { id: string; lines: FakeLine[]; note: string | null; at: number; cashier: string };
 
 const DENOMINATIONS = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100];
@@ -44,14 +69,44 @@ let invoices = 0;
 let sales: { id: string; invoice_no: string }[] = [];
 let nextId = 1;
 let methods: PaymentMethodRow[] = [];
+// The cart's customer, price list and whole-cart discount (C-M8).
+let customerId: string | null = null;
+let priceListId: string | null = null;
+let invoiceDiscount: ManualDiscount | null = null;
 let currency: () => CurrencyFormat = () => {
   throw new Error("The fake till isn't connected to the fake shop.");
 };
+let settings: () => SettingsSnapshot = () => {
+  throw new Error("The fake till isn't connected to the fake shop.");
+};
 
-// shop.ts calls this once, so amounts use the shop's money format.
-export function connectTill(shopCurrency: () => CurrencyFormat) {
+// shop.ts calls this once, so amounts use the shop's money format and settings.
+export function connectTill(
+  shopCurrency: () => CurrencyFormat,
+  shopSettings: () => SettingsSnapshot,
+) {
   currency = shopCurrency;
+  settings = shopSettings;
 }
+
+connectCustomersToTill(
+  (amount) => {
+    if (!shift || shift.user_id !== currentSession()?.user_id) {
+      return false;
+    }
+    shift.cash += amount;
+    return true;
+  },
+  () =>
+    methods
+      .filter((each) => each.active && ["cash", "card", "wallet", "other"].includes(each.kind))
+      .map((each) => ({
+        id: each.id,
+        name: each.name,
+        kind: each.kind,
+        requires_reference: each.requires_reference,
+      })),
+);
 
 // Starts the pretend till again: no shift, an empty cart, cash only.
 export function resetTill() {
@@ -61,11 +116,36 @@ export function resetTill() {
   invoices = 0;
   sales = [];
   nextId = 1;
+  freshCart();
   methods = [
     method("00000000000000000000000001", "Cash", "cash", true),
     method("01FAKEMETHOD00000000000002", "Card", "card", false, true),
     method("01FAKEMETHOD00000000000003", "bKash", "wallet", false, true),
+    method(CREDIT_METHOD, "Customer credit", "credit", true),
+    method(POINTS_METHOD, "Loyalty points", "points", true),
   ];
+}
+
+const CREDIT_METHOD = "00000000000000000000000002";
+const POINTS_METHOD = "00000000000000000000000003";
+
+// A new cart starts with no customer, normal prices and no whole-cart discount.
+function freshCart() {
+  customerId = null;
+  priceListId = null;
+  invoiceDiscount = null;
+}
+
+// The methods the till offers: credit only with selling on credit on, points only with
+// loyalty on (PAY-04, PAY-05), as Rust's `payment_methods` does.
+function tillMethods() {
+  const now = settings();
+  return methods.filter(
+    (each) =>
+      each.active &&
+      (each.kind !== "credit" || now.credit.enabled) &&
+      (each.kind !== "points" || now.loyalty.enabled),
+  );
 }
 
 function method(
@@ -140,9 +220,29 @@ function product(id: string) {
   );
 }
 
+// One line priced the fake way: the typed price, else the price list's, else retail;
+// then the tier discount, then the cashier's discount (PRC-01 order, much simplified).
+function priceLine(line: FakeLine) {
+  const each = product(line.product_id);
+  const unitPrice = line.price ?? fakeListPrice(priceListId, each.id) ?? each.sale_price;
+  const base = Math.round((unitPrice * line.qty) / 1000);
+  const tier = Math.round((base * fakeTierDiscount(customerId)) / 10000);
+  const manual = manualOff(line.discount ?? null, base - tier);
+  return { each, unitPrice, base, tier, manual };
+}
+
+function manualOff(discount: ManualDiscount | null, before: number): number {
+  if (!discount) {
+    return 0;
+  }
+  const off =
+    discount.kind === "percent" ? Math.round((before * discount.value) / 10000) : discount.value;
+  return Math.min(Math.max(off, 0), before);
+}
+
 function cartView(from: FakeLine[] = lines): CartView {
   const priced: CartLineView[] = from.map((line, index) => {
-    const each = product(line.product_id);
+    const { each, unitPrice, base, tier, manual } = priceLine(line);
     return {
       line_id: line.id,
       seq: index + 1,
@@ -153,16 +253,77 @@ function cartView(from: FakeLine[] = lines): CartView {
       unit_decimals: each.unit_decimals,
       is_weighed: each.is_weighed,
       qty: line.qty,
-      unit_price: each.sale_price,
-      base: Math.round((each.sale_price * line.qty) / 1000),
+      unit_price: unitPrice,
+      base,
       promotion_name: null,
-      discount: 0,
-      amount: Math.round((each.sale_price * line.qty) / 1000),
+      discount: tier + manual,
+      amount: base - tier - manual,
       sticker_price: false,
+      price_overridden: (line.price ?? null) !== null,
+      manual_discount: line.discount ?? null,
       stock_warning: null,
     };
   });
-  return { cart_id: "01FAKECART0000000000000001", lines: priced, ...fakeTillPricing(priced) };
+  const forThisCart = from === lines;
+  const subtotal = priced.reduce((sum, line) => sum + line.amount, 0);
+  const invoiceOff = forThisCart ? manualOff(invoiceDiscount, subtotal) : 0;
+  return {
+    cart_id: "01FAKECART0000000000000001",
+    customer: forThisCart ? fakeCartCustomer(customerId) : null,
+    price_list: forThisCart ? fakeListChoice(priceListId) : null,
+    invoice_discount: forThisCart ? invoiceDiscount : null,
+    lines: priced,
+    ...fakeTillPricing(priced, invoiceOff),
+  };
+}
+
+// The biggest manual discount on the cart, in hundredths of a percent (PRC-07).
+function biggestDiscount(): number {
+  let highest = 0;
+  let afterManual = 0;
+  for (const line of lines) {
+    const { base, tier, manual } = priceLine(line);
+    const before = base - tier;
+    if (manual > 0 && before > 0) {
+      highest = Math.max(highest, Math.ceil((manual * 10000) / before));
+    }
+    afterManual += before - manual;
+  }
+  const invoiceOff = manualOff(invoiceDiscount, afterManual);
+  if (invoiceOff > 0 && afterManual > 0) {
+    highest = Math.max(highest, Math.ceil((invoiceOff * 10000) / afterManual));
+  }
+  return highest;
+}
+
+// Changes a discount, then checks the user's limit like `cart_pricing::set_discount`:
+// above it, an admin's approval for `discount_apply` is needed; nothing is kept without.
+function changeDiscount(change: () => void, approval: unknown): CartView {
+  requirePermission("checkout_sell");
+  mySelling();
+  const before = biggestDiscount();
+  const keptLines = structuredClone(lines);
+  const keptInvoice = invoiceDiscount;
+  change();
+  const after = biggestDiscount();
+  const session = currentSession();
+  const limit = session?.is_admin ? Number.MAX_SAFE_INTEGER : (session?.max_discount ?? 0);
+  if (after > before && after > limit) {
+    if (!takeFakeApproval("discount_apply", approval)) {
+      lines = keptLines;
+      invoiceDiscount = keptInvoice;
+      return fail({ kind: "override_required", permission: "discount_apply" });
+    }
+    recordFakeEvent("discount.over_limit", session?.user_id ?? null);
+  }
+  return cartView();
+}
+
+function lineOf(lineId: unknown): FakeLine {
+  return (
+    lines.find((each) => each.id === lineId) ??
+    fail({ kind: "not_found", entity: "cart_line", key: String(lineId) })
+  );
 }
 
 function add(productId: string, qty: number): ScanResult {
@@ -247,10 +408,67 @@ function preview(payments: PaymentEntry[]): PaymentPreview {
     change: Math.max(offered - due, 0),
     cash_to_pay: restInCash,
     quick_cash: restInCash > 0 ? quick : [],
+    points_offer: pointsOffer(due),
+    credit_available: creditAvailable(),
   };
 }
 
-function complete(payments: PaymentEntry[]): SaleDone {
+function pointsOffer(due: number): PaymentPreview["points_offer"] {
+  const customer = fakeCartCustomer(customerId);
+  const loyalty = settings().loyalty;
+  if (!customer || !loyalty.enabled) {
+    return null;
+  }
+  const value = loyalty.value_per_point_minor;
+  const usable = customer.points >= loyalty.min_redeem ? Math.max(customer.points, 0) : 0;
+  const maxPoints = value > 0 ? Math.min(usable, Math.floor(due / value)) : 0;
+  return {
+    balance: customer.points,
+    max_points: maxPoints,
+    max_amount: maxPoints * value,
+    value_per_point: value,
+  };
+}
+
+function creditAvailable(): number | null {
+  const customer = fakeCartCustomer(customerId);
+  return customer ? Math.max(customer.credit_limit - customer.credit, 0) : null;
+}
+
+const paidWith = (payments: PaymentEntry[], kind: string) =>
+  payments
+    .filter((each) => methods.find((one) => one.id === each.method_id)?.kind === kind)
+    .reduce((sum, each) => sum + each.amount, 0);
+
+// Credit and points need a customer, whole points and the credit limit (PAY-04, PAY-05).
+function checkCustomerPayments(payments: PaymentEntry[], due: number, approval: unknown) {
+  const points = paidWith(payments, "points");
+  const credit = paidWith(payments, "credit");
+  if (points === 0 && credit === 0) {
+    return;
+  }
+  const customer = fakeCartCustomer(customerId) ?? refuse("payment_needs_customer");
+  if (points > 0) {
+    const value = settings().loyalty.value_per_point_minor;
+    if (value <= 0 || points % value !== 0) {
+      refuse("points_whole_only");
+    }
+    const most = pointsOffer(due)?.max_points ?? 0;
+    if (points / value > most) {
+      refuse("points_over_limit", { max_points: String(most) });
+    }
+  }
+  if (credit > 0) {
+    requirePermission("sell_on_credit");
+    const over = customer.credit + credit > customer.credit_limit;
+    const allowed = currentSession()?.permissions.includes("credit_limit_exceed") ?? false;
+    if (over && !allowed && !takeFakeApproval("credit_limit_exceed", approval)) {
+      fail({ kind: "override_required", permission: "credit_limit_exceed" });
+    }
+  }
+}
+
+function complete(payments: PaymentEntry[], approval: unknown = null): SaleDone {
   requirePermission("checkout_sell");
   if (lines.length === 0) {
     refuse("cart_empty");
@@ -265,6 +483,7 @@ function complete(payments: PaymentEntry[]): SaleDone {
   if (answer.remaining > 0) {
     refuse("payment_not_enough", { remaining_minor: String(answer.remaining) });
   }
+  checkCustomerPayments(payments, answer.due, approval);
   invoices += 1;
   if (shift) {
     shift.cash +=
@@ -276,6 +495,20 @@ function complete(payments: PaymentEntry[]): SaleDone {
   lines = [];
   const sale = { id: fakeId("01FAKESALE"), invoice_no: `T1-${String(invoices).padStart(6, "0")}` };
   sales.push(sale);
+  let earned = 0;
+  if (customerId !== null) {
+    const loyalty = settings().loyalty;
+    const points = paidWith(payments, "points");
+    const credit = paidWith(payments, "credit");
+    const eligible = Math.max(answer.due - points - credit, 0);
+    earned =
+      loyalty.enabled && loyalty.spend_unit_minor > 0
+        ? Math.floor(eligible / loyalty.spend_unit_minor) * loyalty.points_per_unit
+        : 0;
+    const used = loyalty.value_per_point_minor > 0 ? points / loyalty.value_per_point_minor : 0;
+    fakeCustomerSale(customerId, { ...sale, total: answer.due }, used, credit, earned);
+  }
+  freshCart();
   const cashTaken = answer.change > 0 || answer.cash_to_pay > 0;
   return {
     sale_id: sale.id,
@@ -284,6 +517,7 @@ function complete(payments: PaymentEntry[]): SaleDone {
     paid: answer.paid,
     change: answer.change,
     cash_taken: cashTaken,
+    points_earned: earned,
     cart: cartView(),
     receipt: fakePrint({ kind: "receipt", sale_id: sale.id }, pictures.receipt, cashTaken),
   };
@@ -323,9 +557,11 @@ export const tillHandlers = {
       shift: shift ? { ...shift, mine } : null,
       cart: mine ? cartView() : null,
       held_count: held.length,
-      payment_methods: methods.filter((each) => each.active),
+      payment_methods: tillMethods(),
       sounds: false,
       currency: currency(),
+      price_lists: fakeActiveLists(),
+      max_discount: currentSession()?.is_admin ? 10000 : (currentSession()?.max_discount ?? 0),
     };
   },
   checkout_scan: (args?: Args): ScanResult => scan(args?.input as string),
@@ -384,6 +620,7 @@ export const tillHandlers = {
       cashier: currentSession()?.display_name ?? "",
     });
     lines = [];
+    freshCart();
     return cartView();
   },
   checkout_held_list: (): HeldCartView[] =>
@@ -413,12 +650,60 @@ export const tillHandlers = {
       recordFakeEvent("cart.cancel", currentSession()?.user_id ?? null);
     }
     lines = [];
+    freshCart();
     return cartView();
   },
   checkout_payment_preview: (args?: Args): PaymentPreview =>
     preview((args?.payments as PaymentEntry[]).filter((each) => each.amount !== 0)),
   checkout_complete: (args?: Args): SaleDone =>
-    complete((args?.payments as PaymentEntry[]).filter((each) => each.amount !== 0)),
+    complete(
+      (args?.payments as PaymentEntry[]).filter((each) => each.amount !== 0),
+      args?.approval,
+    ),
+  checkout_set_discount: (args?: Args): CartView => {
+    const line = lineOf(args?.lineId);
+    return changeDiscount(() => {
+      line.discount = (args?.discount as ManualDiscount | null) ?? null;
+    }, args?.approval);
+  },
+  checkout_set_invoice_discount: (args?: Args): CartView =>
+    changeDiscount(() => {
+      invoiceDiscount = (args?.discount as ManualDiscount | null) ?? null;
+    }, args?.approval),
+  checkout_price_override: (args?: Args): CartView => {
+    requireOrApproval("price_override", args?.approval);
+    requirePermission("checkout_sell");
+    const line = lineOf(args?.lineId);
+    const price = (args?.price as number | null) ?? null;
+    if (price !== null && price < 0) {
+      refuse("price_negative");
+    }
+    line.price = price;
+    recordFakeEvent("price.override", currentSession()?.user_id ?? null);
+    return cartView();
+  },
+  checkout_set_customer: (args?: Args): CartView => {
+    requirePermission("customer_view_create");
+    requirePermission("checkout_sell");
+    mySelling();
+    const id = (args?.customerId as string | null) ?? null;
+    if (id !== null) {
+      fakeAttachable(id);
+    }
+    customerId = id;
+    return cartView();
+  },
+  checkout_set_price_list: (args?: Args): CartView => {
+    requireOrApproval("price_list_switch", args?.approval);
+    requirePermission("checkout_sell");
+    mySelling();
+    const id = (args?.priceListId as string | null) ?? null;
+    if (id !== null) {
+      fakeCheckList(id);
+    }
+    priceListId = id;
+    return cartView();
+  },
   shift_current: (): ShiftState => ({
     shift: shift ? { ...shift, mine: shift.user_id === currentSession()?.user_id } : null,
     denominations: DENOMINATIONS,

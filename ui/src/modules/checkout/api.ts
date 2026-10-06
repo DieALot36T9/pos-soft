@@ -1,6 +1,9 @@
 import type { CartView } from "../../generated/CartView";
 import type { CheckoutView } from "../../generated/CheckoutView";
+import type { CustomerRow } from "../../generated/CustomerRow";
+import type { CustomerSave } from "../../generated/CustomerSave";
 import type { HeldCartView } from "../../generated/HeldCartView";
+import type { ManualDiscount } from "../../generated/ManualDiscount";
 import type { PaymentEntry } from "../../generated/PaymentEntry";
 import type { PaymentPreview } from "../../generated/PaymentPreview";
 import type { PrintResult } from "../../generated/PrintResult";
@@ -45,8 +48,32 @@ export const previewPayment = (payments: PaymentEntry[]) =>
   call<PaymentPreview>("checkout_payment_preview", { payments });
 // Completes the sale in one transaction (PAY-07), then prints the receipt and opens
 // the drawer for cash. A printer problem comes back in `receipt`; the sale stays (PAY-09).
-export const completeSale = (payments: PaymentEntry[]) =>
-  call<SaleDone>("checkout_complete", { payments });
+// `approval` is an admin's token for credit over the customer's limit (PAY-04).
+export const completeSale = (payments: PaymentEntry[], approval: string | null = null) =>
+  call<SaleDone>("checkout_complete", { payments, approval });
+// A discount on one line, or null to take it off (CHK-12). Above the user's limit Rust
+// answers "override_required" and the call is made again with an admin's token.
+export const setLineDiscount = (
+  lineId: string,
+  discount: ManualDiscount | null,
+  approval: string | null,
+) => call<CartView>("checkout_set_discount", { lineId, discount, approval });
+// A discount on the whole cart, or null to take it off (CHK-12). Same limit as above.
+export const setInvoiceDiscount = (discount: ManualDiscount | null, approval: string | null) =>
+  call<CartView>("checkout_set_invoice_discount", { discount, approval });
+// A typed unit price for one line, or null for the normal price (CHK-13).
+export const overridePrice = (lineId: string, price: number | null, approval: string | null) =>
+  call<CartView>("checkout_price_override", { lineId, price, approval });
+// Puts a customer on the sale, or takes them off with null (CHK-11).
+export const setCustomer = (customerId: string | null) =>
+  call<CartView>("checkout_set_customer", { customerId });
+// Sells at another price list, or normal prices with null (CHK-17).
+export const setPriceList = (priceListId: string | null, approval: string | null) =>
+  call<CartView>("checkout_set_price_list", { priceListId, approval });
+// Customers whose phone or name matches what was typed (CUS-02).
+export const findCustomers = (text: string) => call<CustomerRow[]>("customer_lookup", { text });
+// Adds a customer with only a phone and a name (quick create, CUS-02).
+export const quickAddCustomer = (input: CustomerSave) => call<string>("customer_save", { input });
 // Reprints this till's last receipt, marked COPY (PAY-10).
 export const reprintLast = () => call<PrintResult>("receipt_reprint_last");
 // Reprints any receipt by its invoice number, marked COPY. Needs ReceiptReprintAny (PAY-10).

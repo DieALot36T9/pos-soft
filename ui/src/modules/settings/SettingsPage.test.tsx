@@ -27,6 +27,23 @@ describe("SettingsPage (fake bridge)", () => {
     expect(await screen.findByText("Saved.")).toBeVisible();
   });
 
+  it("set_17: switches on loyalty points and selling on credit", async () => {
+    renderPage();
+    await userEvent.click(await screen.findByRole("button", { name: "Loyalty and credit" }));
+    await userEvent.click(
+      await screen.findByRole("checkbox", { name: "Customers collect points" }),
+    );
+    await userEvent.click(screen.getByRole("checkbox", { name: "Customers may buy on credit" }));
+    const limit = screen.getByRole("textbox", { name: "Credit limit for new customers" });
+    await userEvent.clear(limit);
+    await userEvent.type(limit, "500");
+    await userEvent.click(screen.getByRole("button", { name: /^Save/ }));
+    expect(await screen.findByText("Saved.")).toBeVisible();
+    const saved = shopHandlers.settings_get();
+    expect(saved.loyalty.enabled).toBe(true);
+    expect(saved.credit).toEqual({ enabled: true, default_limit_minor: 50000 });
+  });
+
   it("set_05: the money section shows the live preview", async () => {
     renderPage();
     await userEvent.click(await screen.findByRole("button", { name: "Money and rounding" }));

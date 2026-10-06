@@ -183,7 +183,8 @@ Each test name starts with the requirement it covers.
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
 - **Built in task B-pricing:** tables, the engine, loading and admin functions, with tests. Not done here, by design: `app` commands and wiring (C-M6, C-M8) and screens (C-M8).
-- **TypeScript types:** the public structs have `serde` derives but no `ts-rs` derives yet, because no screen uses them. Add `#[derive(TS)] #[ts(export)]` (and `ts-rs` to `Cargo.toml`) when C-M6/C-M8 sends them to the UI, then run `cargo xtask gen-types`.
+- **TypeScript types (done in C-M8):** the structs the screens use derive `ts_rs::TS` and are exported to `ui/src/generated/`.
+- **Connected in C-M8:** `app` saves price lists, their items, tiers and promotions from the "Prices and promotions" screen, passes the customer's tier and the cart's price list to `load_context`, and checks `manual_discount_bps` against the role's limit. The PRC-06 examples also run end to end in `crates/app/tests/prc_06_end_to_end.rs`.
 - **For `app` (C-M6):** map `catalog::price_info` into `PricingProduct` with `category_path` ordered from the top category down. Build `LocalTime` from `clock.now()` and `clock.local_offset_minutes()`. Check `manual_discount_bps` against the role's limit and ask for an override above it.
 - **Product owner to confirm** (decided here, see the PR): (1) a promotion saving on a product split over several lines is shared in proportion to each line's base, not filled line by line; (2) scale sticker and overridden lines still accept manual and invoice discounts; (3) `manual_discount_bps` uses the largest line or invoice percentage.
 - **Speed:** `load_context` reads every switched-on, not-ended promotion and filters in Rust. That is fine for hundreds of promotions. If a shop has thousands, look them up through the `pricing_targets_lookup` index instead.

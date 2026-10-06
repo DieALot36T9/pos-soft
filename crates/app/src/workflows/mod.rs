@@ -4,14 +4,17 @@
 pub mod audit_view;
 pub mod backup;
 pub mod cart_lines;
+pub mod cart_pricing;
 pub mod cart_view;
 pub mod catalog_lists;
 pub mod checkout;
 pub mod complete_sale;
+pub mod customer_records;
 pub mod folders;
 pub mod held_carts;
 pub mod payment_amounts;
 pub mod payment_methods;
+pub mod pricing_admin;
 pub mod products;
 pub mod receipts;
 pub mod sale_snapshot;

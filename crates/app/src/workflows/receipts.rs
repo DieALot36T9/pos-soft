@@ -420,11 +420,11 @@ fn receipt_data(
         cashier: user_names(conn)?
             .remove(&sale.user_id)
             .unwrap_or_else(|| sale.user_id.to_string()),
-        customer: sale.customer.as_ref().map(|customer| CustomerOnReceipt {
-            name: customer.name.clone(),
-            points_balance: None,
-            credit_balance: None,
-        }),
+        customer: sale
+            .customer
+            .as_ref()
+            .map(|customer| customer_on_receipt(conn, &customer.id, &customer.name))
+            .transpose()?,
         lines: items.lines,
         subtotal: items.subtotal,
         discount_total: sale.totals.invoice_discount.checked_neg()?,
@@ -450,6 +450,22 @@ struct ReceiptItems {
     lines: Vec<ReceiptLine>,
     subtotal: Money,
     tax_summary: Vec<TaxSummaryLine>,
+}
+
+/// The customer's name with their points and credit balance as they are when it prints
+/// (CUS-08). The credit balance shows only when they owe something or have a credit limit.
+fn customer_on_receipt(
+    conn: &Connection,
+    id: &Id,
+    name: &str,
+) -> Result<CustomerOnReceipt, AppError> {
+    let found = customers::get(conn, id)?;
+    let has_credit = found.credit != Money::zero() || found.customer.credit_limit > Money::zero();
+    Ok(CustomerOnReceipt {
+        name: name.to_string(),
+        points_balance: Some(found.points),
+        credit_balance: has_credit.then_some(found.credit),
+    })
 }
 
 fn receipt_lines(conn: &Connection, sale: &Sale) -> Result<ReceiptItems, AppError> {

@@ -6,10 +6,12 @@ pub mod auth;
 pub mod backup;
 pub mod catalog;
 pub mod checkout;
+pub mod customers;
 pub mod dev;
 pub mod hardware;
 pub mod inventory;
 pub mod payment_methods;
+pub mod pricing;
 pub mod receipts;
 pub mod settings;
 pub mod setup;
@@ -43,6 +45,13 @@ use pos_core::{AppError, Permission};
 /// - `shift_current` and `shift_count_total` need someone signed in (any role).
 /// - `shift_cash_move`, `shift_no_sale` and `shift_force_close` also take an admin's
 ///   approval token (`require_or_approval`, USR-05).
+/// - `checkout_set_discount` and `checkout_set_invoice_discount` take an admin's
+///   approval token (`DiscountApply`) for a discount above the role's limit (PRC-07).
+/// - `checkout_price_override` and `checkout_set_price_list` also need `CheckoutSell`, and
+///   take an approval token (`require_or_approval`). `checkout_set_customer` also needs
+///   `CheckoutSell`. `checkout_complete` also needs `SellOnCredit` to pay with customer
+///   credit, and takes an approval token for credit over the limit (`CreditLimitExceed`).
+/// - `customer_save` also needs `CustomerManage` to change a customer that exists.
 /// - `count_post` makes a `pre-count-post` backup first, without `BackupRun`: the backup
 ///   is part of posting (Workflows, "Post stock count").
 pub const COMMANDS: &[(&str, Option<Permission>)] = &[
@@ -158,6 +167,36 @@ pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("print_dismiss", None),
     ("payment_method_list", Some(Permission::SettingsManage)),
     ("payment_method_save", Some(Permission::SettingsManage)),
+    ("checkout_set_discount", Some(Permission::CheckoutSell)),
+    (
+        "checkout_set_invoice_discount",
+        Some(Permission::CheckoutSell),
+    ),
+    ("checkout_price_override", Some(Permission::PriceOverride)),
+    (
+        "checkout_set_customer",
+        Some(Permission::CustomerViewCreate),
+    ),
+    ("checkout_set_price_list", Some(Permission::PriceListSwitch)),
+    ("price_list_list", Some(Permission::PricingManage)),
+    ("price_list_save", Some(Permission::PricingManage)),
+    ("price_list_items", Some(Permission::PricingManage)),
+    ("price_list_set_items", Some(Permission::PricingManage)),
+    ("price_list_remove_items", Some(Permission::PricingManage)),
+    ("tier_list", Some(Permission::PricingManage)),
+    ("tier_save", Some(Permission::PricingManage)),
+    ("tier_archive", Some(Permission::PricingManage)),
+    ("promotion_list", Some(Permission::PricingManage)),
+    ("promotion_save", Some(Permission::PricingManage)),
+    ("promotion_set_active", Some(Permission::PricingManage)),
+    ("customer_lookup", Some(Permission::CustomerViewCreate)),
+    ("customer_list", Some(Permission::CustomerViewCreate)),
+    ("customer_get", Some(Permission::CustomerViewCreate)),
+    ("customer_save", Some(Permission::CustomerViewCreate)),
+    ("customer_archive", Some(Permission::CustomerManage)),
+    ("customer_payment", Some(Permission::CustomerReceivePayment)),
+    ("points_adjust", Some(Permission::LoyaltyAdjust)),
+    ("customer_statement", Some(Permission::CustomerViewCreate)),
 ];
 
 /// The dev-only commands (fake scale panel). Registered only when `dev_tools::ON` is true.
@@ -207,7 +246,7 @@ mod tests {
     #[test]
     fn every_command_has_a_permission_decision() {
         let all = names(COMMANDS);
-        assert_eq!(all.len(), 112);
+        assert_eq!(all.len(), 136);
         let mut unique = all.clone();
         unique.sort_unstable();
         unique.dedup();

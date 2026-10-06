@@ -16,6 +16,11 @@ export function SaleDoneBar({ done, currency }: { done: SaleDone; currency: Curr
       <span className="flex items-center gap-2 text-xl font-semibold">
         <CheckCircle aria-hidden="true" />
         {t("done.invoice", { number: done.invoice_no })}
+        {done.points_earned > 0 ? (
+          <span className="ml-2 text-purple">
+            {t("done.points", { points: done.points_earned })}
+          </span>
+        ) : null}
       </span>
       {done.change > 0 ? (
         <span className="text-right">

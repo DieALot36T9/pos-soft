@@ -181,9 +181,9 @@ A zero amount is always refused. Credit limit checks happen in the workflow (it 
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- Built in task B-customers: tables, public API and tests above. No `app` wiring and no screens yet (Phase C, C-M8).
-- **No `ts-rs` derives yet.** The types derive `serde` only. Add `ts_rs::TS` and run `cargo xtask gen-types` when C-M8 builds the screens.
+- Built in task B-customers: tables, public API and tests above.
+- **Connected in C-M8:** `app` attaches customers at the till, records points and credit when a sale completes, takes debt payments, corrects points, and shows the customer screens. The types the screens use derive `ts_rs::TS`.
 - **Not here by design:** purchase history, total spend and visit count (CUS-03) come from `sales`' views, built by `app`/`reports`. The receivables aging report (CUS-05) and receipt fields (CUS-08, masked phone) belong to `reports` and `printing`; aging can use `customers_v_customers.oldest_unpaid_at` or walk `customers_v_credit_ledger`.
-- **Decide in C-M8:** should a back-office payment larger than the debt become store credit (an advance) instead of being refused? Today it is refused with `payment_more_than_debt`. A `return` row may take the balance below zero; the workflow should normally use `store_credit` for that.
-- **Decide in C-M8:** should archived customers be refused for new credit sales or points? Today archiving only hides them from `lookup`.
-- `lookup` has no "include archived" option for the back office list yet.
+- **Decided in C-M8:** a back-office payment larger than the debt stays refused (`payment_more_than_debt`); advances can be added later as store credit if shops ask. A `return` row may take the balance below zero; the workflow should normally use `store_credit` for that (C-M9).
+- **Decided in C-M8:** archived customers can't be attached at the till (`app` refuses with `customer_archived`), so they get no new credit sales or points; their ledgers keep working.
+- `lookup` has no "include archived" option; the back-office list (C-M8) reads `customers_v_customers` in `app` instead.

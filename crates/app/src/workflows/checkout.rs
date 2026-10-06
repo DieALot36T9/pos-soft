@@ -3,7 +3,7 @@
 //! `cart_lines`; paying is in `complete_sale`.
 
 use ::shifts::Shift;
-use pos_core::{AppError, Clock, CurrencyFormat, Id, Money, Qty};
+use pos_core::{AppError, Bps, Clock, CurrencyFormat, Id, Money, Qty};
 use rusqlite::{Connection, Transaction};
 use sales::{Cart, PaymentKind};
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use settings::CheckoutSettings;
 use ts_rs::TS;
 
 use crate::state::AppState;
-use crate::workflows::cart_view::{self, CartView};
+use crate::workflows::cart_view::{self, CartView, PriceListChoice};
 use crate::workflows::till::{self as shifts, ShiftView, conflict};
 
 /// Everything the checkout screen loads when it opens.
@@ -29,6 +29,11 @@ pub struct CheckoutView {
     /// Beeps on a good scan and on errors (CHK-22).
     pub sounds: bool,
     pub currency: CurrencyFormat,
+    /// The switched-on price lists the cart may move to (CHK-17), by name.
+    pub price_lists: Vec<PriceListChoice>,
+    /// The signed-in user's own discount limit, so the screen can say when an admin is
+    /// needed. Rust still checks it (PRC-07).
+    pub max_discount: Bps,
 }
 
 /// The kind of a payment method, as the screen colours it (Design System).
@@ -103,7 +108,7 @@ pub struct SaleHit {
 #[ts(export)]
 pub enum ScanResult {
     /// The product is in the cart. `line_id` is the line it went into (select it).
-    Added { cart: CartView, line_id: Id },
+    Added { cart: Box<CartView>, line_id: Id },
     /// A weighed product: the screen opens the weight dialog.
     NeedsWeight { product: WeighProduct },
     /// The text wasn't a code: pick one of these.
@@ -158,7 +163,7 @@ pub(crate) fn current_cart(
 
 /// What the checkout screen shows when it opens. The cart comes back exactly as it
 /// was saved, also after a crash or restart (CHK-19).
-pub fn load(state: &AppState, user: &Id) -> Result<CheckoutView, AppError> {
+pub fn load(state: &AppState, user: &Id, max_discount: Bps) -> Result<CheckoutView, AppError> {
     let clock = state.clock.as_ref();
     state.db.write(|tx| {
         let shift = shifts::till_shift(tx)?;
@@ -181,16 +186,33 @@ pub fn load(state: &AppState, user: &Id) -> Result<CheckoutView, AppError> {
             payment_methods: payment_methods(tx)?,
             sounds: checkout.sounds,
             currency: settings::get(tx)?,
+            price_lists: pricing::price_lists(tx)?
+                .into_iter()
+                .filter(|list| list.active)
+                .map(|list| PriceListChoice {
+                    id: list.id,
+                    name: list.name,
+                })
+                .collect(),
+            max_discount,
         })
     })
 }
 
-/// The active payment methods the till can take now. Credit, points and exchange credit
-/// need a customer or a return, which come in later milestones (C-M8, C-M9).
+/// The active payment methods the till can take. Customer credit shows when selling on
+/// credit is switched on, loyalty points when loyalty is on; both need an attached
+/// customer when paying (PAY-04, PAY-05). Exchange credit needs a return (C-M9).
 pub(crate) fn payment_methods(conn: &Connection) -> Result<Vec<PaymentMethodView>, AppError> {
+    let credit: settings::CreditSettings = settings::get(conn)?;
+    let loyalty: settings::LoyaltySettings = settings::get(conn)?;
     Ok(sales::payment_methods(conn)?
         .into_iter()
-        .filter(|method| method.active && takes_payment_now(method.kind))
+        .filter(|method| {
+            method.active
+                && (takes_payment_now(method.kind)
+                    || (method.kind == PaymentKind::Credit && credit.enabled)
+                    || (method.kind == PaymentKind::Points && loyalty.enabled))
+        })
         .map(|method| PaymentMethodView {
             id: method.id,
             name: method.name,

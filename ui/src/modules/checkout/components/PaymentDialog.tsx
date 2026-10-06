@@ -8,6 +8,7 @@ import type { PaymentEntry } from "../../../generated/PaymentEntry";
 import type { PaymentMethodView } from "../../../generated/PaymentMethodView";
 import type { PaymentPreview } from "../../../generated/PaymentPreview";
 import type { SaleDone } from "../../../generated/SaleDone";
+import { useApproval } from "../../../shared/approval/useApproval";
 import { errorMessage } from "../../../shared/bridge";
 import { formatMoney, parseMoney } from "../../../shared/format/money";
 import { shortcuts } from "../../../shared/keyboard/shortcuts";
@@ -36,6 +37,8 @@ export function PaymentDialog({ methods, currency, onDone, onClose }: PaymentDia
   const [preview, setPreview] = useState<PaymentPreview | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const cash = methods.find((method) => method.kind === "cash");
+  // Credit over the customer's limit needs an admin (PAY-04).
+  const { withApproval, dialog: approvalDialog } = useApproval();
   // Amounts as plain numbers for typing: "1377.00", no symbol or separators.
   const plain = (minor: number) =>
     formatMoney(minor, { ...currency, symbol: "", group_sep: "", decimal_sep: "." });
@@ -88,7 +91,7 @@ export function PaymentDialog({ methods, currency, onDone, onClose }: PaymentDia
     if (typed === null || preview === null || preview.remaining > 0) {
       return;
     }
-    completeSale(typed)
+    withApproval((approval) => completeSale(typed, approval))
       .then(onDone)
       .catch((error: unknown) => setProblem(errorMessage(error, tErrors)));
   };
@@ -101,8 +104,9 @@ export function PaymentDialog({ methods, currency, onDone, onClose }: PaymentDia
   // An amount that isn't a number is shown at once; Rust is asked again once it is fixed.
   const typingProblem = entries() === null ? tErrors("money_not_a_number") : null;
   const options = { enableOnFormTags: true, preventDefault: true };
-  useHotkeys("enter", complete, options, [preview, amounts, references]);
-  useHotkeys("escape", onClose, { enableOnFormTags: true });
+  const asking = approvalDialog !== null;
+  useHotkeys("enter", complete, { ...options, enabled: !asking }, [preview, amounts, references]);
+  useHotkeys("escape", onClose, { enableOnFormTags: true, enabled: !asking });
   useHotkeys(
     "f1,f2,f3,f4",
     (_, handler) => {
@@ -115,6 +119,34 @@ export function PaymentDialog({ methods, currency, onDone, onClose }: PaymentDia
     options,
     [preview],
   );
+  // What the customer's account allows, next to the credit and points rows (PAY-04, PAY-05).
+  const noteFor = (kind: string) => {
+    if (kind === "credit" && preview?.credit_available != null) {
+      return {
+        text: t("payment.creditNote", { amount: money(preview.credit_available) }),
+        tip: t("payment.creditTip"),
+      };
+    }
+    const offer = preview?.points_offer;
+    if (kind === "points" && offer) {
+      return {
+        text: t("payment.pointsNote", {
+          points: offer.max_points,
+          amount: money(offer.max_amount),
+        }),
+        tip: t("payment.pointsTip", { value: money(offer.value_per_point) }),
+        use:
+          offer.max_points > 0
+            ? {
+                label: t("payment.pointsUse"),
+                tip: t("payment.pointsUseTip"),
+                amount: offer.max_amount,
+              }
+            : undefined,
+      };
+    }
+    return undefined;
+  };
   const focusRow = (index: number) => document.getElementById(`pay-row-${index}`)?.focus();
 
   return (
@@ -144,6 +176,8 @@ export function PaymentDialog({ methods, currency, onDone, onClose }: PaymentDia
             }}
             onReference={(text) => setReferences((old) => ({ ...old, [method.id]: text }))}
             onArrow={(step) => focusRow(Math.min(Math.max(index + step, 0), methods.length - 1))}
+            note={noteFor(method.kind)}
+            onUse={(minor) => setAmounts((old) => ({ ...old, [method.id]: plain(minor) }))}
           />
         ))}
         {preview && preview.quick_cash.length > 0 ? (
@@ -202,6 +236,7 @@ export function PaymentDialog({ methods, currency, onDone, onClose }: PaymentDia
           onClick={complete}
         />
       </div>
+      {approvalDialog}
     </Dialog>
   );
 }

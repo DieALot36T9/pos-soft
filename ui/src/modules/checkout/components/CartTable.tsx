@@ -1,4 +1,4 @@
-import { AlertTriangle, RefreshCw, Scale, Tag } from "lucide-react";
+import { AlertTriangle, PenLine, RefreshCw, Scale, Tag } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { CartLineView } from "../../../generated/CartLineView";
@@ -81,6 +81,14 @@ export function CartTable({
                       icon={Tag}
                       word={t("table.stickerWord")}
                       tip={t("table.sticker")}
+                    />
+                  ) : null}
+                  {line.price_overridden ? (
+                    <Badge
+                      colour="purple"
+                      icon={PenLine}
+                      word={t("table.priceTypedWord")}
+                      tip={t("table.priceTyped")}
                     />
                   ) : null}
                   {priceChanged.includes(line.line_id) ? (

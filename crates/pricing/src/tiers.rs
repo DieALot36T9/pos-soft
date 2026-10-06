@@ -3,12 +3,14 @@
 use pos_core::{Bps, Id, Timestamp};
 use rusqlite::{Connection, OptionalExtension, Transaction, named_params};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::error::{PricingError, invalid, not_found, stored_id};
 use crate::price_lists::require_price_list;
 
 /// A saved tier.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Tier {
     pub id: Id,
     pub name: String,
@@ -22,7 +24,8 @@ pub struct Tier {
 }
 
 /// What the admin enters to make or change a tier.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct TierInput {
     pub name: String,
     pub price_list_id: Option<Id>,

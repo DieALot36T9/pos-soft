@@ -2,10 +2,12 @@
 
 use pos_core::{BusinessDate, Id, Money, Timestamp};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 /// What the user types for a customer. Used to create and to edit one.
 /// The phone is cleaned by `normalize_phone`; empty optional text is stored as nothing.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct CustomerDetails {
     pub phone: String,
     pub name: String,
@@ -36,7 +38,8 @@ impl CustomerDetails {
 }
 
 /// A saved customer record.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Customer {
     pub id: Id,
     /// In E.164 form. Example: "+8801711123456".
@@ -55,7 +58,8 @@ pub struct Customer {
 }
 
 /// A customer with their current points and credit balance.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct CustomerWithBalances {
     pub customer: Customer,
     pub points: i64,
@@ -66,7 +70,8 @@ pub struct CustomerWithBalances {
 }
 
 /// One line in the till's customer search results.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct CustomerHit {
     pub id: Id,
     pub phone: String,
@@ -99,8 +104,9 @@ pub struct PaymentMethod {
 }
 
 /// The kinds of points ledger rows.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "snake_case")]
+#[ts(export)]
 pub enum PointsKind {
     /// Points earned on a sale. Always positive.
     Earn,
@@ -113,8 +119,9 @@ pub enum PointsKind {
 }
 
 /// The kinds of credit ledger rows. Positive means the customer owes more.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "snake_case")]
+#[ts(export)]
 pub enum CreditKind {
     /// A sale paid "on credit" (baki). Positive.
     CreditSale,
@@ -154,7 +161,8 @@ pub struct CreditSplit {
 }
 
 /// A customer's credit statement for a date range (rule CUS-05).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Statement {
     pub customer_id: Id,
     pub from: BusinessDate,
@@ -167,7 +175,8 @@ pub struct Statement {
 }
 
 /// One credit ledger row on a statement, with the running balance after it.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct StatementLine {
     pub id: Id,
     pub at: Timestamp,

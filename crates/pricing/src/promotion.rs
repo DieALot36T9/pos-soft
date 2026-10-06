@@ -3,6 +3,7 @@
 
 use pos_core::{AppError, Bps, Id, Money, Qty, Timestamp, mul_qty, percent_of};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::{PricingProduct, TierRule};
 
@@ -10,8 +11,9 @@ use crate::{PricingProduct, TierRule};
 pub const EVERY_DAY: u8 = 0b111_1111;
 
 /// What a promotion gives (PRC-04). Quantities in `BuyXGetY` and `MultiBuy` are whole units.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[ts(export)]
 pub enum PromoRule {
     /// A percentage off. Example: 10% off all detergents.
     PercentOff { percent: Bps },
@@ -42,8 +44,9 @@ impl PromoRule {
 }
 
 /// What a promotion covers: one product, a category (with its subcategories) or a brand.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, TS)]
 #[serde(tag = "type", content = "id", rename_all = "snake_case")]
+#[ts(export)]
 pub enum PromoTarget {
     Product(Id),
     Category(Id),
@@ -69,7 +72,8 @@ impl PromoTarget {
 }
 
 /// A saved promotion with its limits and targets.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Promotion {
     pub id: Id,
     pub name: String,
@@ -121,7 +125,8 @@ impl Promotion {
 }
 
 /// What the admin enters to make or change a promotion.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct PromotionInput {
     pub name: String,
     pub rule: PromoRule,

@@ -48,7 +48,7 @@ fn selling_shop() -> (tempfile::TempDir, AppState, Id) {
 
 fn added(result: ScanResult) -> (CartView, Id) {
     match result {
-        ScanResult::Added { cart, line_id } => (cart, line_id),
+        ScanResult::Added { cart, line_id } => (*cart, line_id),
         other => panic!("expected an added line, got {other:?}"),
     }
 }

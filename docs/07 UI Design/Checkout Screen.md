@@ -59,6 +59,7 @@ The screen cashiers use all day. Requirements: [[Req - Checkout]], [[Req - Payme
 - Arrow keys ↑/↓ move the blue selection. The last added line is selected automatically.
 - TOTAL is the largest text on the screen.
 - All amounts come from the cart sent by Rust (`CartView`).
+- As built in C-M8: the customer strip sits between the scan box and the cart (customer, tier, points, debt or store credit, price list, sale discount). The button bar also has **Sale discount** (`Shift+F7`) and **Price list** (no key; it lists the switched-on lists). A line with a typed price shows a purple "Price typed" badge. Anything above the user's rights opens the admin approval dialog and runs again once allowed.
 
 ## Payment dialog
 ```

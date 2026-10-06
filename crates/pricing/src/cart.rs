@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Datelike};
 use pos_core::{AppError, Bps, Id, Money, Qty, Timestamp};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::{PromoRule, Promotion};
 
@@ -43,8 +44,9 @@ impl LocalTime {
 }
 
 /// A discount the cashier types in: a percentage or an amount (CHK-12).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(tag = "kind", content = "value", rename_all = "snake_case")]
+#[ts(export)]
 pub enum ManualDiscount {
     /// Example: `Percent(Bps(500))` is 5% off.
     Percent(Bps),
