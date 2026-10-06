@@ -19,7 +19,11 @@ cash_taken: boolean,
 /**
  * Loyalty points the customer earned on this sale (CUS-04). 0 without a customer.
  */
-points_earned: number, cart: CartView, 
+points_earned: number, 
+/**
+ * An exchange's credit beyond this sale, given back in cash (RET-05).
+ */
+exchange_cash_back: Money, cart: CartView, 
 /**
  * How the receipt printed, after the sale was saved (PAY-09). None only inside
  * `complete`, before printing.

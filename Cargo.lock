@@ -87,6 +87,7 @@ dependencies = [
  "pos-core",
  "pricing",
  "printing",
+ "proptest",
  "purchasing",
  "rand 0.10.3",
  "reports",

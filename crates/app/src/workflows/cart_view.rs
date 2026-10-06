@@ -15,6 +15,8 @@ use settings::TaxSettings;
 use tax::{LineTax, RateWithComponents};
 use ts_rs::TS;
 
+use crate::workflows::returns::{ExchangeView, exchange_view};
+
 /// A stock problem shown on a cart line as an amber strip (CHK-21). Never blocks here.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, TS)]
 #[serde(rename_all = "snake_case")]
@@ -122,6 +124,8 @@ pub struct CartView {
     pub tax_label: String,
     /// Inclusive: prices already contain tax, shown as "VAT (incl.)".
     pub tax_mode: TaxMode,
+    /// The new half of an exchange: the return's credit that pays for this cart (RET-05).
+    pub exchange: Option<ExchangeView>,
 }
 
 /// One cart line with everything pricing, tax and catalog said about it.
@@ -351,6 +355,7 @@ pub(crate) fn view(
         },
         tax_label: priced.tax.label.clone(),
         tax_mode: priced.tax.mode,
+        exchange: exchange_view(conn, &priced.cart)?,
     })
 }
 

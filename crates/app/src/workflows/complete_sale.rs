@@ -8,10 +8,11 @@ use std::collections::HashMap;
 use auth::SessionUser;
 use customers::{CustomerWithBalances, LedgerRef, PointsKind};
 use pos_core::{
-    AppError, Clock, Id, Money, Permission, RoundingRule, business_date, round_half_away,
+    AppError, Clock, Id, Money, Permission, RoundingRule, business_date, cash_round,
+    round_half_away,
 };
 use rusqlite::{Connection, Transaction};
-use sales::{EnteredPayment, PaymentKind, Settlement};
+use sales::{Cart, EnteredPayment, PaymentKind, Settlement};
 use serde::{Deserialize, Serialize};
 use settings::{CreditSettings, Denominations, InventorySettings};
 use shifts::{MovementKind, ShiftMovement};
@@ -25,6 +26,7 @@ use crate::workflows::checkout::{Selling, current_cart, selling, takes_payment_n
 use crate::workflows::customer_records::{ledger_ctx, loyalty_view};
 use crate::workflows::payment_amounts::{amount_due, quick_cash};
 use crate::workflows::receipts::{self, PrintResult};
+use crate::workflows::returns::{exchange_view, record_cash_refund};
 use crate::workflows::sale_snapshot::completed_sale;
 
 /// One row of the payment dialog as typed. For cash, `amount` is what the customer
@@ -63,6 +65,10 @@ pub struct PaymentPreview {
     /// With a customer: how much more may go on credit before the limit (PAY-04).
     /// Store credit counts too. None without a customer.
     pub credit_available: Option<Money>,
+    /// The new half of an exchange: the return's credit that pays for this sale (RET-05).
+    pub exchange_credit: Money,
+    /// The return's credit beyond this sale, given back in cash (RET-05).
+    pub exchange_cash_back: Money,
 }
 
 /// What the customer's points can pay (PAY-05). Example: 1,200 points at 0.10 → 120.00.
@@ -91,6 +97,8 @@ pub struct SaleDone {
     pub cash_taken: bool,
     /// Loyalty points the customer earned on this sale (CUS-04). 0 without a customer.
     pub points_earned: i64,
+    /// An exchange's credit beyond this sale, given back in cash (RET-05).
+    pub exchange_cash_back: Money,
     pub cart: CartView,
     /// How the receipt printed, after the sale was saved (PAY-09). None only inside
     /// `complete`, before printing.
@@ -109,8 +117,9 @@ pub fn preview(
         let cart = current_cart(tx, clock, &selling, user)?;
         let priced = cart_view::price_cart(tx, clock, cart)?;
         let gross = priced.gross()?;
-        let entered = entered_payments(tx, entries, priced.customer.as_ref())?;
+        let mut entered = entered_payments(tx, entries, priced.customer.as_ref())?;
         let rule: RoundingRule = settings::get(tx)?;
+        let exchange = use_exchange(tx, &priced.cart, gross, &mut entered, &rule)?;
         let due = amount_due(gross, &entered, &rule)?;
         let settled = sales::settle_payments(due.due, &entered)?;
         let denominations: Denominations = settings::get(tx)?;
@@ -144,6 +153,8 @@ pub fn preview(
             quick_cash: quick_cash(due.cash_to_pay, &denominations.0),
             points_offer,
             credit_available,
+            exchange_credit: exchange.applied,
+            exchange_cash_back: exchange.cash_back,
         })
     })
 }
@@ -167,8 +178,9 @@ pub fn complete(
         }
         let priced = cart_view::price_cart(tx, clock, cart)?;
         let gross = priced.gross()?;
-        let entered = entered_payments(tx, entries, priced.customer.as_ref())?;
+        let mut entered = entered_payments(tx, entries, priced.customer.as_ref())?;
         let rule: RoundingRule = settings::get(tx)?;
+        let exchange = use_exchange(tx, &priced.cart, gross, &mut entered, &rule)?;
         let due = amount_due(gross, &entered, &rule)?;
         let settled = sales::settle_payments(due.due, &entered)?;
         let by_customer = customer_payments(&entered, &settled)?;
@@ -191,7 +203,13 @@ pub fn complete(
         let total = sale.totals.total;
         let saved = sales::complete(tx, sale)?;
         record_stock(tx, clock, &selling, user, &priced, &saved.id)?;
-        let cash_taken = record_payments(tx, clock, &selling, user, &entered, &settled, &saved.id)?;
+        let mut cash_taken =
+            record_payments(tx, clock, &selling, user, &entered, &settled, &saved.id)?;
+        if let Some(return_id) = &exchange.return_id {
+            let shift = &selling.shift.id;
+            record_cash_refund(tx, clock, shift, user, exchange.cash_back, return_id)?;
+            cash_taken |= exchange.cash_back.0 > 0;
+        }
         let points_earned = match &priced.customer {
             Some(customer) => {
                 record_customer(tx, clock, user, customer, &by_customer, total, &saved.id)?
@@ -207,6 +225,7 @@ pub fn complete(
             change: settled.change,
             cash_taken,
             points_earned,
+            exchange_cash_back: exchange.cash_back,
             cart: cart_view::cart_view(tx, clock, fresh)?,
             receipt: None,
         })
@@ -245,9 +264,65 @@ pub fn uses_credit(state: &AppState, entries: &[PaymentEntry]) -> Result<bool, A
     })
 }
 
+/// How an exchange's credit pays for the new sale (RET-05).
+struct ExchangeUse {
+    return_id: Option<Id>,
+    /// The part of the credit this sale uses.
+    applied: Money,
+    /// The rest, given back in cash after cash rounding.
+    cash_back: Money,
+}
+
+/// Rule RET-05: on the new half of an exchange, the return's credit pays first. Only the
+/// difference is paid; credit beyond the sale goes back in cash. The credit row is put
+/// first among the payments, so the cashier never types it.
+fn use_exchange(
+    conn: &Connection,
+    cart: &Cart,
+    gross: Money,
+    entered: &mut Vec<EnteredPayment>,
+    rule: &RoundingRule,
+) -> Result<ExchangeUse, AppError> {
+    let Some(exchange) = exchange_view(conn, cart)? else {
+        return Ok(ExchangeUse {
+            return_id: None,
+            applied: Money::zero(),
+            cash_back: Money::zero(),
+        });
+    };
+    let method = sales::system_payment_method(conn, PaymentKind::ExchangeCredit)?;
+    let mut applied = exchange.credit.min(gross).max(Money::zero());
+    if applied.0 > 0 {
+        entered.insert(
+            0,
+            EnteredPayment {
+                method_id: method.id,
+                kind: PaymentKind::ExchangeCredit,
+                offered: applied,
+                reference: None,
+            },
+        );
+        // Cash rounding for all payments may make the amount due less than the gross.
+        let due = amount_due(gross, entered, rule)?.due;
+        if applied > due {
+            applied = due.max(Money::zero());
+            if applied.0 > 0 {
+                entered[0].offered = applied;
+            } else {
+                entered.remove(0);
+            }
+        }
+    }
+    Ok(ExchangeUse {
+        return_id: Some(exchange.return_id),
+        applied,
+        cash_back: cash_round(exchange.credit.checked_sub(applied)?, rule)?,
+    })
+}
+
 /// The typed payments with their method's kind. Blank rows are skipped. Customer credit
 /// and points need an attached customer and their feature switched on (PAY-04, PAY-05);
-/// exchange credit needs a return (C-M9).
+/// exchange credit is never typed: it comes from the cart's return (RET-05).
 fn entered_payments(
     conn: &Connection,
     entries: &[PaymentEntry],
@@ -366,7 +441,8 @@ fn record_payments(
         if typed.kind == PaymentKind::Cash {
             cash_taken = true;
         }
-        if payment.amount.0 == 0 {
+        // Exchange credit is no money in the drawer: the return gave it, this sale spends it.
+        if payment.amount.0 == 0 || typed.kind == PaymentKind::ExchangeCredit {
             continue;
         }
         shifts::record(

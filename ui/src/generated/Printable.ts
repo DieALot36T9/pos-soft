@@ -4,4 +4,4 @@ import type { Id } from "./Id";
 /**
  * Something the receipt printer prints, named so it can be printed again.
  */
-export type Printable = { "kind": "receipt", sale_id: Id, } | { "kind": "shift_report", shift_id: Id, };
+export type Printable = { "kind": "receipt", sale_id: Id, } | { "kind": "shift_report", shift_id: Id, } | { "kind": "return", return_id: Id, };

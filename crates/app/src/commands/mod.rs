@@ -13,6 +13,7 @@ pub mod inventory;
 pub mod payment_methods;
 pub mod pricing;
 pub mod receipts;
+pub mod returns;
 pub mod settings;
 pub mod setup;
 pub mod shifts;
@@ -52,6 +53,11 @@ use pos_core::{AppError, Permission};
 ///   `CheckoutSell`. `checkout_complete` also needs `SellOnCredit` to pay with customer
 ///   credit, and takes an approval token for credit over the limit (`CreditLimitExceed`).
 /// - `customer_save` also needs `CustomerManage` to change a customer that exists.
+/// - `return_complete` and `exchange_start` need `ReturnWithoutReceipt` instead for a
+///   return without a receipt; `exchange_start` also needs `CheckoutSell`. Both, and
+///   `sale_void`, take an admin's approval token (`require_or_approval`, USR-05). A typed
+///   price on a return without a receipt also needs `PriceOverride` (the user's or the
+///   approving admin's).
 /// - `count_post` makes a `pre-count-post` backup first, without `BackupRun`: the backup
 ///   is part of posting (Workflows, "Post stock count").
 pub const COMMANDS: &[(&str, Option<Permission>)] = &[
@@ -197,6 +203,12 @@ pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("customer_payment", Some(Permission::CustomerReceivePayment)),
     ("points_adjust", Some(Permission::LoyaltyAdjust)),
     ("customer_statement", Some(Permission::CustomerViewCreate)),
+    ("return_lookup", Some(Permission::CheckoutSell)),
+    ("return_preview", Some(Permission::CheckoutSell)),
+    ("return_complete", Some(Permission::ReturnWithReceipt)),
+    ("exchange_start", Some(Permission::ReturnWithReceipt)),
+    ("exchange_cash_out", Some(Permission::CheckoutSell)),
+    ("sale_void", Some(Permission::SaleVoid)),
 ];
 
 /// The dev-only commands (fake scale panel). Registered only when `dev_tools::ON` is true.
@@ -246,7 +258,7 @@ mod tests {
     #[test]
     fn every_command_has_a_permission_decision() {
         let all = names(COMMANDS);
-        assert_eq!(all.len(), 136);
+        assert_eq!(all.len(), 142);
         let mut unique = all.clone();
         unique.sort_unstable();
         unique.dedup();

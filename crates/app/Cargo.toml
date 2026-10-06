@@ -64,6 +64,8 @@ base64 = "0.22"
 # Reads approved golden pictures back in tests.
 image.workspace = true
 tempfile.workspace = true
+# Money and tax reverse exactly however a sale is returned (RET-02, M9).
+proptest.workspace = true
 
 [lints]
 workspace = true
