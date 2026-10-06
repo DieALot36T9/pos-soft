@@ -5,12 +5,14 @@ use std::collections::HashMap;
 use pos_core::{Id, Money, Timestamp};
 use rusqlite::{Connection, OptionalExtension, Transaction, named_params};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::PricingProduct;
 use crate::error::{PricingError, invalid, not_found, stored_id};
 
 /// A saved price list.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct PriceList {
     pub id: Id,
     pub name: String,
@@ -20,14 +22,16 @@ pub struct PriceList {
 }
 
 /// What the admin can change on a price list.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct PriceListUpdate {
     pub name: String,
     pub active: bool,
 }
 
 /// One product's price in a price list.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct PriceListItem {
     pub product_id: Id,
     /// The price for one unit. Example: 95.00.
