@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Contact,
   Tag,
+  Truck,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -37,6 +38,7 @@ import { ProductsPage } from "../modules/catalog/pages/ProductsPage";
 import { UnitsPage } from "../modules/catalog/pages/UnitsPage";
 import { HardwarePage } from "../modules/hardware/pages/HardwarePage";
 import { PricingPage } from "../modules/pricing/pages/PricingPage";
+import { PurchasingPage } from "../modules/purchasing/pages/PurchasingPage";
 import { StockCountsPage } from "../modules/inventory/pages/StockCountsPage";
 import { StockLevelsPage } from "../modules/inventory/pages/StockLevelsPage";
 import { SettingsPage } from "../modules/settings/pages/SettingsPage";
@@ -63,6 +65,7 @@ type Page =
   | "brands"
   | "units"
   | "pricing"
+  | "purchasing"
   | "hardware"
   | "settings"
   | "tax"
@@ -85,6 +88,7 @@ const menu: { page: Page; icon: LucideIcon; needs: Permission | null }[] = [
   { page: "brands", icon: Tag, needs: "catalog_manage" },
   { page: "units", icon: Ruler, needs: "catalog_manage" },
   { page: "pricing", icon: BadgePercent, needs: "pricing_manage" },
+  { page: "purchasing", icon: Truck, needs: "purchasing_manage" },
   { page: "hardware", icon: Printer, needs: null },
   { page: "settings", icon: Settings, needs: "settings_manage" },
   { page: "tax", icon: Percent, needs: "tax_manage" },
@@ -210,6 +214,7 @@ export function OfficeFrame({
         {page === "brands" ? <BrandsPage /> : null}
         {page === "units" ? <UnitsPage /> : null}
         {page === "pricing" ? <PricingPage /> : null}
+        {page === "purchasing" ? <PurchasingPage permissions={session.permissions} /> : null}
         {page === "hardware" ? <HardwarePage devTools={devTools} /> : null}
         {page === "settings" ? <SettingsPage /> : null}
         {page === "tax" ? <TaxRatesPage /> : null}

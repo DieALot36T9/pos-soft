@@ -27,6 +27,8 @@ Price lists (list + item grid with bulk paste), Tiers, Promotions (form: kind, v
 ## Purchasing
 Suppliers (list, detail with balance, ledger, statement) · Purchase orders (list by status, editor with "suggest from low stock", Print/PDF/Excel) · **Receive goods** (choose a PO or a supplier; grid: product, qty, cost, batch, expiry; header: supplier invoice no and total; difference warning; Save → offer labels) · Supplier returns · Payments.
 
+As built in C-M10: one "Purchasing" page with tabs Suppliers, Purchase orders, Receive goods, Supplier returns and What we owe. The supplier page holds the payment and the statement. Orders export to Excel ("Send"); printing on A4 and "offer labels" after a delivery come later (see Module - app, open items). Before saving a delivery the grid shows each line's value and the product's cost change, the lines total and a warning when the invoice total differs.
+
 ## Customers
 List (phone, name, tier, points, balance) · Profile (details, purchase history, points ledger, credit ledger, statement, take payment).
 

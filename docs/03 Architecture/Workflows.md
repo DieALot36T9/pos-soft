@@ -115,8 +115,12 @@ As built in C-M9 (`workflows::voids`): `SaleVoid` or an approval token; the sale
 4. `purchasing::record_grn` → updates PO received quantities/status; payables ledger `invoice` row.
 5. `audit`. COMMIT. Offer label printing.
 
+As built in C-M10 (`workflows::receiving::save`, one transaction): each line's product must keep stock (`product_keeps_no_stock`) and, when it tracks expiry, have an expiry date (`expiry_needed`); a line with a batch number or expiry date gets its batch first (`inventory::create_batch` at the received cost) → `purchasing::record_grn` (GRN number, order lines and status, the supplier's `invoice` row of the invoice total, due after the payment terms) → for each line, in order: the product's cost is read again (an earlier line of the same product may have changed it), `inventory::on_hand` before this line, the new cost by the shop's cost method (`settings::InventorySettings.cost_method`: `core::moving_average` by default, the received cost with "last cost", ADR-018) → `catalog::set_cost(reason "grn")` when it changed → `inventory::record` `receive` (the batch, or none) pointing at `("grn", id)` → audit `grn.save` with the cost changes → COMMIT. `grn_preview` works the same out without saving (line values, lines total, the difference from the invoice total, each cost change). `grn_start` fills the form from an order with what is still to come. Label printing after a delivery is not offered yet (C-M12).
+
 ## Supplier return
 `purchasing::record_supplier_return` → `inventory::record` `supplier_return` → payables ledger `return_credit` → audit.
+
+As built in C-M10 (`workflows::receiving::send_back`): the function is `purchasing::record_return`. Each product must keep stock; the value of one unit is the one typed or the product's cost now → `purchasing::record_return` (SR number, `return_credit` row of −total) → `inventory::record` `supplier_return` from the chosen batch (a delivery's line keeps its batch) or first expiry first, with `allow_negative` from the settings → audit `supplier_return.save` → COMMIT.
 
 ## Adjust stock
 `workflows::stock::adjust` (C-M5), one transaction: `catalog::get` (a kit, a variant parent or a product with "track stock" off is `product_keeps_no_stock`, INV-09) → the batch: **Auto** is FEFO for stock out and no batch for stock in; **Existing** is that batch; **New** (stock in only, else `new_batch_only_for_stock_in`) needs an expiry date when the product tracks expiry (`expiry_needed`) and is made with `inventory::create_batch` at the product's cost → `inventory::record` `adjust` with the reason, note, the product's cost and `tracks_expiry`, and `allow_negative` from `InventorySettings` (INV-02, INV-04, INV-05) → audit `stock.adjust` (product, quantity, reason, note, batches). Returns the new stock on hand.
@@ -147,6 +151,8 @@ As built in C-M8 (`workflows::customer_records::take_payment`): the method must 
 
 ## Supplier payment
 `purchasing` payables `payment` → if cash from the drawer: `shifts::record` `cash_out` → audit.
+
+As built in C-M10 (`workflows::purchasing_admin::pay_supplier`): the amount must be above zero and the method cash, card, wallet or other (`payment_method_not_for_supplier`), with a reference when the method needs one → `purchasing::record_payment` → cash "from the drawer" needs the user's own open shift (`shift_not_open`, `shift_not_yours`) and is a `supplier_payment` row on it (negative cash, pointing at the payment) → audit `supplier.payment` → COMMIT → the drawer opens. Aging uses the till's business day; statements and orders export to Excel through `io::write_xlsx` (headings are English constants for now, ADR-022).
 
 ## Import products
 Backup (`pre-import`) → `io::read_table` → map rows to `catalog::NewProduct`/`UpdateProduct` + `inventory::ReorderRule` + `pricing` prices → validate everything → **one transaction** → audit with counts.

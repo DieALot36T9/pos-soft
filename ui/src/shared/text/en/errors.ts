@@ -268,6 +268,23 @@ export const errors = {
   void_reason_missing: "Type why the sale is voided. Example: rang up twice",
   exchange_in_progress:
     "An exchange is open on this sale. Finish it, or give the credit back in cash first.",
+  // Purchasing (C-M10)
+  supplier_name_missing: "Type the supplier's name. Example: Rahim Traders",
+  lines_missing: "Add at least one product.",
+  cost_negative: "A cost can't be below zero.",
+  invoice_total_negative: "The invoice total can't be below zero.",
+  order_missing: "Choose the purchase order these goods belong to.",
+  order_other_supplier: "This order is for another supplier. Choose its own supplier.",
+  order_line_not_on_order: "A line isn't on this order any more. Open the order again.",
+  grn_other_supplier: "That delivery came from another supplier.",
+  method_missing: "Choose how the supplier was paid.",
+  date_range_backwards: "The first day must be on or before the last day.",
+  supplier_archived: "This supplier is archived. Bring them back before ordering or receiving.",
+  order_not_draft: "Only a draft order can be changed. This one was sent already.",
+  order_cancelled: "This order was cancelled.",
+  order_has_receipts: "Goods arrived on this order already, so it can't be cancelled.",
+  order_closed: "This order is received or cancelled. Receive the goods without the order.",
+  payment_method_not_for_supplier: "Pay suppliers in cash, by card, wallet or another way.",
   internal: "Something went wrong (ref {{ref}}). Copy the details and tell the shop owner.",
   unknown: "Something went wrong. Try again.",
 };

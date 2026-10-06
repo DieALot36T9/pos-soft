@@ -107,9 +107,17 @@ pub fn aging(conn, today: NaiveDate) -> Result<Vec<AgingRow>>;   // suppliers wi
 // PUR-06
 pub fn statement(conn, &Id, from: NaiveDate, to: NaiveDate) -> Result<Statement>;   // both days included
 
+// Lists for the screens (documents.rs, C-M10)
+pub fn list_orders(conn, status: Option<OrderStatus>) -> Result<Vec<OrderRow>>;   // newest first, with line count and value
+pub fn list_grns(conn, supplier: Option<&Id>) -> Result<Vec<GrnRow>>;           // newest first, with the order number
+pub fn get_grn(conn, &Id) -> Result<Grn>;                                       // header + lines (batch, expiry, inventory batch)
+pub fn list_returns(conn) -> Result<Vec<ReturnRow>>;                            // newest first, with the GRN number
+
 pub fn migrations() -> ModuleMigrations;
 ```
-Types: `SupplierInput`, `Supplier`, `NewOrder`, `NewOrderLine`, `OrderRef`, `Order`, `OrderLine`, `OrderStatus`, `OrderLineRemaining`, `LowStockItem`, `NewGrn`, `NewGrnLine`, `GrnRef`, `NewSupplierReturn`, `NewReturnLine`, `ReturnRef`, `LedgerKind`, `AgingRow`, `Statement`, `StatementLine`.
+Types: `SupplierInput`, `Supplier`, `NewOrder`, `NewOrderLine`, `OrderRef`, `Order`, `OrderLine`, `OrderStatus`, `OrderLineRemaining`, `LowStockItem`, `NewGrn`, `NewGrnLine`, `GrnRef`, `NewSupplierReturn`, `NewReturnLine`, `ReturnRef`, `LedgerKind`, `AgingRow`, `Statement`, `StatementLine`; since C-M10 `OrderRow`, `GrnRow`, `Grn`, `GrnLine`, `ReturnRow`.
+
+**TypeScript (C-M10):** the types the screens use derive `serde` and `ts_rs::TS` (ADR-014): `Supplier`, `SupplierInput`, `Order`, `OrderLine`, `OrderStatus`, `OrderRef`, `NewOrder`, `NewOrderLine`, `OrderLineRemaining`, `GrnRef`, `AgingRow`, `LedgerKind` and the list types. `Statement`, `StatementLine` and `ReturnRef` are exported as `SupplierStatement`, `SupplierStatementLine` and `SupplierReturnRef`, because `customers` and `sales` use those names. `OrderStatus` and `LedgerKind` are snake_case strings (`"partial"`, `"return_credit"`).
 
 **Errors.** `PurchasingError` turns into `AppError`:
 | Variant | `AppError` | Codes |
@@ -139,6 +147,7 @@ Each test name starts with the requirement (`pur_02_…`) or the [[Module Rules]
 | `tests/receiving.rs` | `pur_03_grn_without_an_order_gets_a_number_and_totals`, `pur_03_invoice_total_different_from_lines_is_flagged`, `pur_03_grn_raises_the_balance_by_the_invoice_total_with_a_due_date`, `pur_03_grn_keeps_batch_expiry_and_inventory_batch`, `pur_03_grn_checks_its_lines`, `pur_04_supplier_return_lowers_the_balance_by_its_value`, `pur_04_return_against_a_grn_must_be_the_same_supplier`, `pur_04_return_needs_lines_with_a_positive_quantity` |
 | `tests/payables.rs` | **`pur_05_balance_after_invoice_payment_and_return`**, **`pur_05_ledger_is_append_only`**, `pur_05_payment_must_be_positive_and_have_a_method`, `pur_05_adjustment_moves_the_balance_either_way`, **`pur_05_aging_buckets_with_a_fixed_clock`**, `pur_06_statement_has_opening_and_closing_balances`, `pur_06_statement_refuses_a_backwards_date_range` |
 | `tests/contract.rs` | `r4_migrations_belong_to_this_module_and_count_up_from_one`, `r2_every_table_and_view_has_the_module_prefix`, `r2_payables_view_has_the_published_columns`, `r2_ledger_view_has_the_published_columns`, `r2_grn_lines_view_has_the_published_columns`, `pur_05_payables_view_shows_zero_for_a_supplier_with_no_ledger_rows`, `pur_03_grn_lines_view_lists_each_received_line_with_its_grn`, `pur_05_balance_of_an_unknown_supplier_is_not_found`, `r3_errors_turn_into_app_errors_with_codes`, `cat_08_a_product_on_an_order_or_grn_is_used` |
+| `tests/documents.rs` (C-M10) | `pur_02_orders_are_listed_newest_first_with_their_value_and_status`, `pur_03_a_delivery_is_listed_and_read_back_with_its_lines`, `pur_04_supplier_returns_are_listed_with_their_delivery` |
 | `src/aging.rs` (unit) | `pur_05_bucket_edges_are_0_30_60_90_days`, `pur_05_credits_pay_off_the_oldest_amounts_first`, `pur_05_overpayment_shows_as_negative_current` |
 
 The three tests the plan asked for are in **bold**: PO status transitions (partial → received, over-receiving allowed but flagged), ledger balance after an invoice, payment and return (append-only), and aging buckets with a fixed clock.
@@ -168,11 +177,10 @@ The three tests the plan asked for are in **bold**: PO status transitions (parti
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- Built in task B-purchasing: tables, public API and tests above. No `app` wiring and no screens yet (Phase C).
-- **ts-rs / serde derives:** the public structs have none yet, because no screen uses them. Add `Serialize`/`Deserialize` and `ts_rs::TS` (and `serde`/`ts-rs` to `Cargo.toml`) when the C task builds the purchasing screens, then run `cargo xtask gen-types`.
-- **Error text:** the codes in the error table above need plain-English messages in `ui/src/shared/text/en/errors.ts` (C task).
-- **Lists for screens:** there is no `list_orders`, `get_grn`, `list_grns` or `list_returns` yet. The C task adds them when a screen needs them (new functions, same tables).
+- Built in task B-purchasing: tables, public API and tests above.
+- **Connected in C-M10:** `app` wires every function (`workflows/purchasing_admin.rs`, `workflows/receiving.rs`) and the screens are in `ui/src/modules/purchasing/`. The screen types derive `serde`/`ts-rs` (see "TypeScript" above); every error code has a message in `ui/src/shared/text/en/errors.ts`; `list_orders`, `list_grns`, `get_grn` and `list_returns` were added (`documents.rs`). See [[Module - app]] for what is not built yet (labels after a delivery, A4 printing).
+- **`record_adjustment`** has no screen or command yet (opening balances and corrections). Add `payables_adjust` with `PurchasingPay` when shops need it.
 - **Printing and export** (PO "Send", GRN note, statement export) belong to `printing`/`io` through `app`. This module only provides the data (`get_order`, `statement`).
-- **Supplier phone numbers** are stored as typed. [[Data Conventions]] rule 9 says phones are stored in E.164 using the `phonenumber` crate and the shop's country. Decide in the C task whether suppliers follow it (it needs the shop's country from `settings`, passed in by `app`).
-- [[Workflows]] calls the return function `record_supplier_return`; the code and this page call it `record_return`. Fix the Workflows page when `app` wires it.
+- **Supplier phone numbers** are stored as typed (still so after C-M10). [[Data Conventions]] rule 9 says phones are stored in E.164 using the `phonenumber` crate and the shop's country. Decide in the C task whether suppliers follow it (it needs the shop's country from `settings`, passed in by `app`).
+- [[Workflows]] calls the return function `record_supplier_return`; the code and this page call it `record_return`. The "As built in C-M10" note on Workflows says so.
 - Migration 001 is the first release of these tables, so the "earlier release" migration test applies from migration 002 on.
