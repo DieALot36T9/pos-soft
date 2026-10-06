@@ -1,10 +1,15 @@
 //! The checkout screen (Req - Checkout, Req - Payments). Selling needs `CheckoutSell`;
 //! typing a weight also needs `CheckoutManualWeight`; holding and resuming need
-//! `CheckoutHoldResume`; cancelling a cart needs `CheckoutCancelCart`.
+//! `CheckoutHoldResume`; cancelling a cart needs `CheckoutCancelCart`. Discounts above
+//! the role's limit, a typed price (`PriceOverride`), another price list
+//! (`PriceListSwitch`) and credit over the limit (`CreditLimitExceed`) take an admin's
+//! approval token (USR-05). Attaching a customer needs `CustomerViewCreate`; paying with
+//! customer credit needs `SellOnCredit`.
 
 use std::time::Duration;
 
-use pos_core::{AppError, Id, Permission, Qty};
+use pos_core::{AppError, Id, Money, Permission, Qty};
+use pricing::ManualDiscount;
 use sales::LineSource;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -13,6 +18,7 @@ use crate::devices::Devices;
 use crate::session;
 use crate::state::AppState;
 use crate::workflows::cart_lines;
+use crate::workflows::cart_pricing::{self, DiscountOn};
 use crate::workflows::cart_view::CartView;
 use crate::workflows::checkout::{self, CheckoutView, SaleHit, ScanResult};
 use crate::workflows::complete_sale::{self, PaymentEntry, PaymentPreview, SaleDone};
@@ -195,8 +201,83 @@ pub fn checkout_complete(
     devices: &Devices,
     payments: &[PaymentEntry],
 ) -> Result<SaleDone, AppError> {
+    checkout_complete_approved(state, devices, payments, None)
+}
+
+/// `checkout_complete` with an admin's approval token, for credit over the customer's
+/// limit (PAY-04). Paying with customer credit needs `SellOnCredit`.
+pub fn checkout_complete_approved(
+    state: &AppState,
+    devices: &Devices,
+    payments: &[PaymentEntry],
+    approval: Option<&str>,
+) -> Result<SaleDone, AppError> {
     let user = session::require(state, Permission::CheckoutSell)?;
-    complete_sale::complete_and_print(state, devices, &user.id, payments)
+    if complete_sale::uses_credit(state, payments)? {
+        session::require(state, Permission::SellOnCredit)?;
+    }
+    complete_sale::complete_and_print(state, devices, &user, payments, approval)
+}
+
+/// A line's discount (`F7`, CHK-12). Above the role's limit it needs an approval token.
+pub fn checkout_set_discount(
+    state: &AppState,
+    line_id: &Id,
+    discount: Option<ManualDiscount>,
+    approval: Option<&str>,
+) -> Result<CartView, AppError> {
+    let user = session::require(state, Permission::CheckoutSell)?;
+    let on = DiscountOn::Line(line_id.clone());
+    cart_pricing::set_discount(state, &user, &on, discount, approval)
+}
+
+/// The discount on the whole cart (`Shift+F7`, CHK-12). Same limit as line discounts.
+pub fn checkout_set_invoice_discount(
+    state: &AppState,
+    discount: Option<ManualDiscount>,
+    approval: Option<&str>,
+) -> Result<CartView, AppError> {
+    let user = session::require(state, Permission::CheckoutSell)?;
+    cart_pricing::set_discount(state, &user, &DiscountOn::Invoice, discount, approval)
+}
+
+/// A typed unit price for a line (`F8`, CHK-13). None goes back to the normal price.
+pub fn checkout_price_override(
+    state: &AppState,
+    line_id: &Id,
+    price: Option<Money>,
+    approval: Option<&str>,
+) -> Result<CartView, AppError> {
+    let allowed = session::require_or_approval(state, Permission::PriceOverride, approval)?;
+    session::require(state, Permission::CheckoutSell)?;
+    cart_pricing::override_price(
+        state,
+        &allowed.user.id,
+        allowed.approved_by.as_ref(),
+        line_id,
+        price,
+    )
+}
+
+/// Attaches a customer to the cart (`F3`, CHK-11), or takes them off with None.
+pub fn checkout_set_customer(
+    state: &AppState,
+    customer_id: Option<&Id>,
+) -> Result<CartView, AppError> {
+    session::require(state, Permission::CustomerViewCreate)?;
+    let user = session::require(state, Permission::CheckoutSell)?;
+    cart_pricing::set_customer(state, &user.id, customer_id)
+}
+
+/// Switches the cart to another price list (CHK-17), or back to normal prices with None.
+pub fn checkout_set_price_list(
+    state: &AppState,
+    price_list_id: Option<&Id>,
+    approval: Option<&str>,
+) -> Result<CartView, AppError> {
+    let allowed = session::require_or_approval(state, Permission::PriceListSwitch, approval)?;
+    session::require(state, Permission::CheckoutSell)?;
+    cart_pricing::set_price_list(state, &allowed.user.id, price_list_id)
 }
 
 /// The saved device settings: which printer and scale to use.
@@ -215,7 +296,8 @@ fn code_of(error: &AppError) -> String {
 pub mod cmd {
     use std::sync::Arc;
 
-    use pos_core::{AppError, Id, Qty};
+    use pos_core::{AppError, Id, Money, Qty};
+    use pricing::ManualDiscount;
     use tauri::State;
 
     use super::{ScaleView, WeightInput};
@@ -382,11 +464,78 @@ pub mod cmd {
         state: State<'_, Arc<AppState>>,
         devices: State<'_, Arc<Devices>>,
         payments: Vec<PaymentEntry>,
+        approval: Option<String>,
     ) -> Result<SaleDone, AppError> {
         let state = Arc::clone(&state);
         let devices = Arc::clone(&devices);
         on_worker("checkout_complete", move || {
-            super::checkout_complete(&state, &devices, &payments)
+            super::checkout_complete_approved(&state, &devices, &payments, approval.as_deref())
+        })
+        .await
+    }
+
+    #[tauri::command]
+    pub async fn checkout_set_discount(
+        state: State<'_, Arc<AppState>>,
+        line_id: Id,
+        discount: Option<ManualDiscount>,
+        approval: Option<String>,
+    ) -> Result<CartView, AppError> {
+        let state = Arc::clone(&state);
+        on_worker("checkout_set_discount", move || {
+            super::checkout_set_discount(&state, &line_id, discount, approval.as_deref())
+        })
+        .await
+    }
+
+    #[tauri::command]
+    pub async fn checkout_set_invoice_discount(
+        state: State<'_, Arc<AppState>>,
+        discount: Option<ManualDiscount>,
+        approval: Option<String>,
+    ) -> Result<CartView, AppError> {
+        let state = Arc::clone(&state);
+        on_worker("checkout_set_invoice_discount", move || {
+            super::checkout_set_invoice_discount(&state, discount, approval.as_deref())
+        })
+        .await
+    }
+
+    #[tauri::command]
+    pub async fn checkout_price_override(
+        state: State<'_, Arc<AppState>>,
+        line_id: Id,
+        price: Option<Money>,
+        approval: Option<String>,
+    ) -> Result<CartView, AppError> {
+        let state = Arc::clone(&state);
+        on_worker("checkout_price_override", move || {
+            super::checkout_price_override(&state, &line_id, price, approval.as_deref())
+        })
+        .await
+    }
+
+    #[tauri::command]
+    pub async fn checkout_set_customer(
+        state: State<'_, Arc<AppState>>,
+        customer_id: Option<Id>,
+    ) -> Result<CartView, AppError> {
+        let state = Arc::clone(&state);
+        on_worker("checkout_set_customer", move || {
+            super::checkout_set_customer(&state, customer_id.as_ref())
+        })
+        .await
+    }
+
+    #[tauri::command]
+    pub async fn checkout_set_price_list(
+        state: State<'_, Arc<AppState>>,
+        price_list_id: Option<Id>,
+        approval: Option<String>,
+    ) -> Result<CartView, AppError> {
+        let state = Arc::clone(&state);
+        on_worker("checkout_set_price_list", move || {
+            super::checkout_set_price_list(&state, price_list_id.as_ref(), approval.as_deref())
         })
         .await
     }

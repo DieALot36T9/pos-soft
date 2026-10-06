@@ -3,7 +3,10 @@
 
 use pos_core::{AppError, Clock, Id, Money, business_date, mul_qty};
 use rusqlite::{Connection, Transaction};
-use sales::{CompletedSale, LineSnapshot, PromotionSnapshot, SaleTotals, Settlement, TaxPart};
+use sales::{
+    CompletedSale, CustomerSnapshot, LineSnapshot, PromotionSnapshot, SaleTotals, Settlement,
+    TaxPart,
+};
 
 use crate::workflows::cart_view::{PricedCart, PricedLine};
 use crate::workflows::checkout::Selling;
@@ -37,7 +40,11 @@ pub(crate) fn completed_sale(
         user_id: user.clone(),
         business_date: business_date(now, clock.local_offset_minutes(), selling.cutoff_hour)?,
         completed_at: now,
-        customer: None,
+        customer: priced.customer.as_ref().map(|customer| CustomerSnapshot {
+            id: customer.customer.id.clone(),
+            name: customer.customer.name.clone(),
+            phone: customer.customer.phone.clone(),
+        }),
         price_list_id: priced.cart.price_list_id.clone(),
         tax_mode: priced.tax.mode,
         exchange_return_id: priced.cart.exchange_return_id.clone(),

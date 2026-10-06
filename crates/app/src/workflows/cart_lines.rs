@@ -132,7 +132,7 @@ pub fn add_weighed(
         add(tx, clock, user, product_id, qty, source, None)
     })?;
     match added {
-        ScanResult::Added { cart, .. } => Ok(cart),
+        ScanResult::Added { cart, .. } => Ok(*cart),
         _ => Err(AppError::internal("adding a weight gave no cart")),
     }
 }
@@ -209,7 +209,10 @@ fn add(
     };
     let line_id = sales::add_line(tx, &cart.id, line, merge, clock.now())?;
     let cart = cart_view::cart_view(tx, clock, sales::get_cart(tx, &cart.id)?)?;
-    Ok(ScanResult::Added { cart, line_id })
+    Ok(ScanResult::Added {
+        cart: Box::new(cart),
+        line_id,
+    })
 }
 
 /// Rule CHK-21: with negative stock off, selling more than the stock is refused; with

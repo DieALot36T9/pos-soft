@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 
 use catalog::{Product, ProductKind, Unit};
+use customers::CustomerWithBalances;
 use pos_core::{AppError, Clock, Id, Money, Qty, RoundingRule, TaxMode, business_date, cash_round};
 use pricing::{LocalTime, ManualDiscount, PriceLineIn, PriceLineOut, PricingProduct};
 use rusqlite::Connection;
@@ -53,6 +54,10 @@ pub struct CartLineView {
     pub amount: Money,
     /// The price on a scale sticker was used exactly as printed (CHK-08).
     pub sticker_price: bool,
+    /// The unit price was typed in with `PriceOverride` (CHK-13).
+    pub price_overridden: bool,
+    /// The cashier's discount on this line, as typed (CHK-12).
+    pub manual_discount: Option<ManualDiscount>,
     pub stock_warning: Option<StockWarning>,
 }
 
@@ -76,11 +81,41 @@ pub struct CartTotals {
     pub total: Money,
 }
 
+/// The customer attached to the cart (CHK-11), with what the till shows about them.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct CartCustomer {
+    pub id: Id,
+    pub name: String,
+    /// In E.164 form. Example: "+8801711123456".
+    pub phone: String,
+    /// Example: "Gold". None when the customer has no tier or it is archived.
+    pub tier_name: Option<String>,
+    pub points: i64,
+    /// Positive: the customer owes the shop. Negative: store credit.
+    pub credit: Money,
+    pub credit_limit: Money,
+}
+
+/// A price list as a choice: the cart's price list, or one the cashier may switch to (CHK-17).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct PriceListChoice {
+    pub id: Id,
+    /// Example: "Wholesale".
+    pub name: String,
+}
+
 /// The whole cart, sent back after every change (Frontend Architecture, "Checkout data flow").
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
 #[ts(export)]
 pub struct CartView {
     pub cart_id: Id,
+    pub customer: Option<CartCustomer>,
+    /// The price list switched on for this cart (CHK-17). None: normal prices.
+    pub price_list: Option<PriceListChoice>,
+    /// The discount on the whole cart, as typed (CHK-12).
+    pub invoice_discount: Option<ManualDiscount>,
     pub lines: Vec<CartLineView>,
     pub totals: CartTotals,
     /// The tax name from settings. Example: "VAT".
@@ -106,6 +141,8 @@ pub(crate) struct PricedCart {
     pub cart: Cart,
     pub lines: Vec<PricedLine>,
     pub tax: TaxSettings,
+    /// The attached customer with their balances (CHK-11).
+    pub customer: Option<CustomerWithBalances>,
 }
 
 impl PricedCart {
@@ -123,11 +160,17 @@ pub(crate) fn price_cart(
     cart: Cart,
 ) -> Result<PricedCart, AppError> {
     let tax: TaxSettings = settings::get(conn)?;
+    let customer = cart
+        .customer_id
+        .as_ref()
+        .map(|id| customers::get(conn, id))
+        .transpose()?;
     if cart.lines.is_empty() {
         return Ok(PricedCart {
             cart,
             lines: Vec::new(),
             tax,
+            customer,
         });
     }
     let mut ids: Vec<Id> = Vec::new();
@@ -162,29 +205,18 @@ pub(crate) fn price_cart(
         at: clock.now(),
         offset_minutes: clock.local_offset_minutes(),
     };
+    // The customer's tier gives its price list and discount (PRC-03, CHK-11).
+    let tier = customer
+        .as_ref()
+        .and_then(|customer| customer.customer.tier_id.as_ref());
     let context = pricing::load_context(
         conn,
         &pricing_products,
-        None,
+        tier,
         cart.price_list_id.as_ref(),
         now,
     )?;
-    let mut lines_in = Vec::with_capacity(cart.lines.len());
-    for (key, line) in cart.lines.iter().enumerate() {
-        let product = pricing_products
-            .iter()
-            .find(|each| each.id == line.product_id)
-            .cloned()
-            .ok_or_else(|| AppError::internal("a cart product went missing"))?;
-        lines_in.push(PriceLineIn {
-            key,
-            product,
-            qty: line.qty,
-            embedded_price: line.embedded_price,
-            price_override: line.price_override.as_ref().map(|each| each.price),
-            manual: line.manual_discount.map(manual_discount),
-        });
-    }
+    let lines_in = pricing_lines(&cart, &pricing_products)?;
     let priced = pricing::price_cart(
         &context,
         &lines_in,
@@ -217,7 +249,36 @@ pub(crate) fn price_cart(
             rate,
         });
     }
-    Ok(PricedCart { cart, lines, tax })
+    Ok(PricedCart {
+        cart,
+        lines,
+        tax,
+        customer,
+    })
+}
+
+/// The cart's lines in the form the pricing engine takes.
+fn pricing_lines(
+    cart: &Cart,
+    pricing_products: &[PricingProduct],
+) -> Result<Vec<PriceLineIn>, AppError> {
+    let mut lines_in = Vec::with_capacity(cart.lines.len());
+    for (key, line) in cart.lines.iter().enumerate() {
+        let product = pricing_products
+            .iter()
+            .find(|each| each.id == line.product_id)
+            .cloned()
+            .ok_or_else(|| AppError::internal("a cart product went missing"))?;
+        lines_in.push(PriceLineIn {
+            key,
+            product,
+            qty: line.qty,
+            embedded_price: line.embedded_price,
+            price_override: line.price_override.as_ref().map(|each| each.price),
+            manual: line.manual_discount.map(manual_discount),
+        });
+    }
+    Ok(lines_in)
 }
 
 /// Builds what the screen shows from a priced cart, with the stock warnings (CHK-21).
@@ -257,12 +318,26 @@ pub(crate) fn view(
             discount,
             amount: price.amount,
             sticker_price: priced_line.line.embedded_price.is_some(),
+            price_overridden: priced_line.line.price_override.is_some(),
+            manual_discount: priced_line.line.manual_discount.map(manual_discount),
             stock_warning: warnings.get(&priced_line.product.id).copied(),
         });
     }
     let rounded = cash_round(sums.gross, &rounding_rule)?;
     Ok(CartView {
         cart_id: priced.cart.id.clone(),
+        customer: priced
+            .customer
+            .as_ref()
+            .map(|customer| cart_customer(conn, customer))
+            .transpose()?,
+        price_list: priced
+            .cart
+            .price_list_id
+            .as_ref()
+            .map(|id| price_list_choice(conn, id))
+            .transpose()?,
+        invoice_discount: priced.cart.invoice_discount.map(manual_discount),
         lines,
         totals: CartTotals {
             item_count,
@@ -324,6 +399,46 @@ fn stock_warnings(
     Ok(warnings)
 }
 
+/// What the till shows about the attached customer.
+fn cart_customer(
+    conn: &Connection,
+    customer: &CustomerWithBalances,
+) -> Result<CartCustomer, AppError> {
+    let record = &customer.customer;
+    Ok(CartCustomer {
+        id: record.id.clone(),
+        name: record.name.clone(),
+        phone: record.phone.clone(),
+        tier_name: running_tier_name(conn, record.tier_id.as_ref())?,
+        points: customer.points,
+        credit: customer.credit,
+        credit_limit: record.credit_limit,
+    })
+}
+
+/// The tier's name, unless it is archived (an archived tier gives nothing, PRC-03).
+pub(crate) fn running_tier_name(
+    conn: &Connection,
+    tier_id: Option<&Id>,
+) -> Result<Option<String>, AppError> {
+    let Some(tier_id) = tier_id else {
+        return Ok(None);
+    };
+    let tier = pricing::tier(conn, tier_id)?;
+    Ok(tier.archived_at.is_none().then_some(tier.name))
+}
+
+fn price_list_choice(conn: &Connection, id: &Id) -> Result<PriceListChoice, AppError> {
+    let list = pricing::price_lists(conn)?
+        .into_iter()
+        .find(|list| list.id == *id)
+        .ok_or_else(|| AppError::internal(format!("price list {id} is gone")))?;
+    Ok(PriceListChoice {
+        id: list.id,
+        name: list.name,
+    })
+}
+
 /// A piece line counts its pieces; a weighed or measured line counts as one item.
 fn items_on_line(line: &PricedLine) -> u32 {
     if line.unit.decimals == 0 {
@@ -334,7 +449,7 @@ fn items_on_line(line: &PricedLine) -> u32 {
 }
 
 /// The cart's stored discount, in the form the pricing engine takes.
-fn manual_discount(discount: Discount) -> ManualDiscount {
+pub(crate) fn manual_discount(discount: Discount) -> ManualDiscount {
     match discount {
         Discount::Percent(rate) => ManualDiscount::Percent(rate),
         Discount::Amount(amount) => ManualDiscount::Amount(amount),

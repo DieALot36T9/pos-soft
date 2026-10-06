@@ -103,7 +103,7 @@ pub struct SaleHit {
 #[ts(export)]
 pub enum ScanResult {
     /// The product is in the cart. `line_id` is the line it went into (select it).
-    Added { cart: CartView, line_id: Id },
+    Added { cart: Box<CartView>, line_id: Id },
     /// A weighed product: the screen opens the weight dialog.
     NeedsWeight { product: WeighProduct },
     /// The text wasn't a code: pick one of these.
@@ -185,12 +185,20 @@ pub fn load(state: &AppState, user: &Id) -> Result<CheckoutView, AppError> {
     })
 }
 
-/// The active payment methods the till can take now. Credit, points and exchange credit
-/// need a customer or a return, which come in later milestones (C-M8, C-M9).
+/// The active payment methods the till can take. Customer credit shows when selling on
+/// credit is switched on, loyalty points when loyalty is on; both need an attached
+/// customer when paying (PAY-04, PAY-05). Exchange credit needs a return (C-M9).
 pub(crate) fn payment_methods(conn: &Connection) -> Result<Vec<PaymentMethodView>, AppError> {
+    let credit: settings::CreditSettings = settings::get(conn)?;
+    let loyalty: settings::LoyaltySettings = settings::get(conn)?;
     Ok(sales::payment_methods(conn)?
         .into_iter()
-        .filter(|method| method.active && takes_payment_now(method.kind))
+        .filter(|method| {
+            method.active
+                && (takes_payment_now(method.kind)
+                    || (method.kind == PaymentKind::Credit && credit.enabled)
+                    || (method.kind == PaymentKind::Points && loyalty.enabled))
+        })
         .map(|method| PaymentMethodView {
             id: method.id,
             name: method.name,

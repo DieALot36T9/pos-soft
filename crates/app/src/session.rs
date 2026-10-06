@@ -415,29 +415,36 @@ pub fn require_or_approval(
             approved_by: None,
         });
     }
-    let needed = AppError::OverrideRequired { permission };
-    let Some(token) = approval else {
-        return Err(needed);
-    };
+    match approval.map(|token| take_approval(state, &user, permission, token)) {
+        Some(Ok(Some(approved_by))) => Ok(Allowed {
+            user,
+            approved_by: Some(approved_by),
+        }),
+        Some(Err(error)) => Err(error),
+        _ => Err(AppError::OverrideRequired { permission }),
+    }
+}
+
+/// Uses up an approval token and gives the admin who approved it, when the token is
+/// for `permission`, was asked for by `user` and hasn't expired. The token is gone
+/// afterwards even when it doesn't fit (USR-05: one approval, one action).
+pub fn take_approval(
+    state: &AppState,
+    user: &SessionUser,
+    permission: Permission,
+    token: &str,
+) -> Result<Option<Id>, AppError> {
     let found = {
         let mut approvals = lock(&state.approvals)?;
         let place = approvals.iter().position(|each| each.token == token);
         place.map(|index| approvals.remove(index))
     };
     let now = state.clock.now();
-    match found {
-        Some(each)
-            if each.permission == permission
-                && each.requested_by == user.id
-                && now < each.expires_at =>
-        {
-            Ok(Allowed {
-                user,
-                approved_by: Some(each.approved_by),
-            })
-        }
-        _ => Err(needed),
-    }
+    Ok(found
+        .filter(|each| {
+            each.permission == permission && each.requested_by == user.id && now < each.expires_at
+        })
+        .map(|each| each.approved_by))
 }
 
 /// The signed-in user, for the screens. A user disabled since login is signed out.

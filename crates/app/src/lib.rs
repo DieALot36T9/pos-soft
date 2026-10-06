@@ -105,8 +105,8 @@ fn command_handler() -> CommandHandler {
 #[allow(clippy::too_many_lines)]
 fn with_dev_commands() -> CommandHandler {
     use commands::{
-        audit, auth, backup, catalog, checkout, dev, hardware, inventory, payment_methods,
-        receipts, settings, setup, shifts, startup, system, tax, users,
+        audit, auth, backup, catalog, checkout, customers, dev, hardware, inventory,
+        payment_methods, pricing, receipts, settings, setup, shifts, startup, system, tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -221,6 +221,30 @@ fn with_dev_commands() -> CommandHandler {
         receipts::cmd::print_dismiss,
         payment_methods::cmd::payment_method_list,
         payment_methods::cmd::payment_method_save,
+        checkout::cmd::checkout_set_discount,
+        checkout::cmd::checkout_set_invoice_discount,
+        checkout::cmd::checkout_price_override,
+        checkout::cmd::checkout_set_customer,
+        checkout::cmd::checkout_set_price_list,
+        pricing::cmd::price_list_list,
+        pricing::cmd::price_list_save,
+        pricing::cmd::price_list_items,
+        pricing::cmd::price_list_set_items,
+        pricing::cmd::price_list_remove_items,
+        pricing::cmd::tier_list,
+        pricing::cmd::tier_save,
+        pricing::cmd::tier_archive,
+        pricing::cmd::promotion_list,
+        pricing::cmd::promotion_save,
+        pricing::cmd::promotion_set_active,
+        customers::cmd::customer_lookup,
+        customers::cmd::customer_list,
+        customers::cmd::customer_get,
+        customers::cmd::customer_save,
+        customers::cmd::customer_archive,
+        customers::cmd::customer_payment,
+        customers::cmd::points_adjust,
+        customers::cmd::customer_statement,
         dev::dev_fake_scale_get,
         dev::dev_fake_scale_set,
         dev::dev_fake_scale_read,
@@ -232,8 +256,8 @@ fn with_dev_commands() -> CommandHandler {
 #[allow(clippy::too_many_lines)]
 fn without_dev_commands() -> CommandHandler {
     use commands::{
-        audit, auth, backup, catalog, checkout, hardware, inventory, payment_methods, receipts,
-        settings, setup, shifts, startup, system, tax, users,
+        audit, auth, backup, catalog, checkout, customers, hardware, inventory, payment_methods,
+        pricing, receipts, settings, setup, shifts, startup, system, tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -348,6 +372,30 @@ fn without_dev_commands() -> CommandHandler {
         receipts::cmd::print_dismiss,
         payment_methods::cmd::payment_method_list,
         payment_methods::cmd::payment_method_save,
+        checkout::cmd::checkout_set_discount,
+        checkout::cmd::checkout_set_invoice_discount,
+        checkout::cmd::checkout_price_override,
+        checkout::cmd::checkout_set_customer,
+        checkout::cmd::checkout_set_price_list,
+        pricing::cmd::price_list_list,
+        pricing::cmd::price_list_save,
+        pricing::cmd::price_list_items,
+        pricing::cmd::price_list_set_items,
+        pricing::cmd::price_list_remove_items,
+        pricing::cmd::tier_list,
+        pricing::cmd::tier_save,
+        pricing::cmd::tier_archive,
+        pricing::cmd::promotion_list,
+        pricing::cmd::promotion_save,
+        pricing::cmd::promotion_set_active,
+        customers::cmd::customer_lookup,
+        customers::cmd::customer_list,
+        customers::cmd::customer_get,
+        customers::cmd::customer_save,
+        customers::cmd::customer_archive,
+        customers::cmd::customer_payment,
+        customers::cmd::points_adjust,
+        customers::cmd::customer_statement,
     ])
 }
 

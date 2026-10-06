@@ -159,10 +159,19 @@ function cartView(from: FakeLine[] = lines): CartView {
       discount: 0,
       amount: Math.round((each.sale_price * line.qty) / 1000),
       sticker_price: false,
+      price_overridden: false,
+      manual_discount: null,
       stock_warning: null,
     };
   });
-  return { cart_id: "01FAKECART0000000000000001", lines: priced, ...fakeTillPricing(priced) };
+  return {
+    cart_id: "01FAKECART0000000000000001",
+    customer: null,
+    price_list: null,
+    invoice_discount: null,
+    lines: priced,
+    ...fakeTillPricing(priced),
+  };
 }
 
 function add(productId: string, qty: number): ScanResult {
@@ -247,6 +256,8 @@ function preview(payments: PaymentEntry[]): PaymentPreview {
     change: Math.max(offered - due, 0),
     cash_to_pay: restInCash,
     quick_cash: restInCash > 0 ? quick : [],
+    points_offer: null,
+    credit_available: null,
   };
 }
 
@@ -284,6 +295,7 @@ function complete(payments: PaymentEntry[]): SaleDone {
     paid: answer.paid,
     change: answer.change,
     cash_taken: cashTaken,
+    points_earned: 0,
     cart: cartView(),
     receipt: fakePrint({ kind: "receipt", sale_id: sale.id }, pictures.receipt, cashTaken),
   };

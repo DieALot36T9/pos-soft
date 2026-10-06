@@ -5,18 +5,24 @@
 
 use std::collections::HashMap;
 
-use pos_core::{AppError, Clock, Id, Money, RoundingRule, business_date, round_half_away};
+use auth::SessionUser;
+use customers::{CustomerWithBalances, LedgerRef, PointsKind};
+use pos_core::{
+    AppError, Clock, Id, Money, Permission, RoundingRule, business_date, round_half_away,
+};
 use rusqlite::{Connection, Transaction};
 use sales::{EnteredPayment, PaymentKind, Settlement};
 use serde::{Deserialize, Serialize};
-use settings::{Denominations, InventorySettings};
+use settings::{CreditSettings, Denominations, InventorySettings};
 use shifts::{MovementKind, ShiftMovement};
 use ts_rs::TS;
 
 use crate::devices::Devices;
+use crate::session;
 use crate::state::AppState;
 use crate::workflows::cart_view::{self, CartView, PricedCart, keeps_stock};
 use crate::workflows::checkout::{Selling, current_cart, selling, takes_payment_now};
+use crate::workflows::customer_records::{ledger_ctx, loyalty_view};
 use crate::workflows::payment_amounts::{amount_due, quick_cash};
 use crate::workflows::receipts::{self, PrintResult};
 use crate::workflows::sale_snapshot::completed_sale;
@@ -52,6 +58,23 @@ pub struct PaymentPreview {
     pub cash_to_pay: Money,
     /// The next useful notes above `cash_to_pay`. Example: due 470 → 500, 600, 1000.
     pub quick_cash: Vec<Money>,
+    /// With a customer and loyalty on: the most that points may pay now (PAY-05).
+    pub points_offer: Option<PointsOffer>,
+    /// With a customer: how much more may go on credit before the limit (PAY-04).
+    /// Store credit counts too. None without a customer.
+    pub credit_available: Option<Money>,
+}
+
+/// What the customer's points can pay (PAY-05). Example: 1,200 points at 0.10 → 120.00.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct PointsOffer {
+    pub balance: i64,
+    /// The most points usable now, in whole points. 0 under the minimum to redeem.
+    pub max_points: i64,
+    pub max_amount: Money,
+    /// One point's value, so the screen can show "= 120 points".
+    pub value_per_point: Money,
 }
 
 /// A completed sale, and the empty cart for the next customer.
@@ -66,6 +89,8 @@ pub struct SaleDone {
     pub change: Money,
     /// True when cash was taken: the drawer opens (HW-04).
     pub cash_taken: bool,
+    /// Loyalty points the customer earned on this sale (CUS-04). 0 without a customer.
+    pub points_earned: i64,
     pub cart: CartView,
     /// How the receipt printed, after the sale was saved (PAY-09). None only inside
     /// `complete`, before printing.
@@ -84,11 +109,30 @@ pub fn preview(
         let cart = current_cart(tx, clock, &selling, user)?;
         let priced = cart_view::price_cart(tx, clock, cart)?;
         let gross = priced.gross()?;
-        let entered = entered_payments(tx, entries)?;
+        let entered = entered_payments(tx, entries, priced.customer.as_ref())?;
         let rule: RoundingRule = settings::get(tx)?;
         let due = amount_due(gross, &entered, &rule)?;
         let settled = sales::settle_payments(due.due, &entered)?;
         let denominations: Denominations = settings::get(tx)?;
+        let (points_offer, credit_available) = match &priced.customer {
+            Some(customer) => {
+                let view = loyalty_view(tx)?;
+                let max_points = customers::max_points_to_redeem(customer.points, due.due, &view);
+                let offer = view.enabled.then(|| PointsOffer {
+                    balance: customer.points,
+                    max_points,
+                    max_amount: Money(max_points.saturating_mul(view.value_per_point.0)),
+                    value_per_point: view.value_per_point,
+                });
+                let available = customer
+                    .customer
+                    .credit_limit
+                    .checked_sub(customer.credit)?
+                    .max(Money::zero());
+                (offer, Some(available))
+            }
+            None => (None, None),
+        };
         Ok(PaymentPreview {
             gross,
             rounding: due.due.checked_sub(gross)?,
@@ -98,6 +142,8 @@ pub fn preview(
             change: settled.change,
             cash_to_pay: due.cash_to_pay,
             quick_cash: quick_cash(due.cash_to_pay, &denominations.0),
+            points_offer,
+            credit_available,
         })
     })
 }
@@ -107,10 +153,12 @@ pub fn preview(
 /// shift payments. If any step fails nothing is saved and the cart stays as it was.
 pub fn complete(
     state: &AppState,
-    user: &Id,
+    seller: &SessionUser,
     entries: &[PaymentEntry],
+    approval: Option<&str>,
 ) -> Result<SaleDone, AppError> {
     let clock = state.clock.as_ref();
+    let user = &seller.id;
     state.db.write(|tx| {
         let selling = selling(tx, user)?;
         let cart = current_cart(tx, clock, &selling, user)?;
@@ -119,10 +167,15 @@ pub fn complete(
         }
         let priced = cart_view::price_cart(tx, clock, cart)?;
         let gross = priced.gross()?;
-        let entered = entered_payments(tx, entries)?;
+        let entered = entered_payments(tx, entries, priced.customer.as_ref())?;
         let rule: RoundingRule = settings::get(tx)?;
         let due = amount_due(gross, &entered, &rule)?;
         let settled = sales::settle_payments(due.due, &entered)?;
+        let by_customer = customer_payments(&entered, &settled)?;
+        if let Some(customer) = &priced.customer {
+            check_points(tx, customer, &by_customer, due.due)?;
+            check_credit_limit(state, seller, customer, &by_customer, approval)?;
+        }
         if settled.remaining.0 > 0 {
             return Err(AppError::Validation {
                 field: None,
@@ -139,6 +192,12 @@ pub fn complete(
         let saved = sales::complete(tx, sale)?;
         record_stock(tx, clock, &selling, user, &priced, &saved.id)?;
         let cash_taken = record_payments(tx, clock, &selling, user, &entered, &settled, &saved.id)?;
+        let points_earned = match &priced.customer {
+            Some(customer) => {
+                record_customer(tx, clock, user, customer, &by_customer, total, &saved.id)?
+            }
+            None => 0,
+        };
         let fresh = current_cart(tx, clock, &selling, user)?;
         Ok(SaleDone {
             sale_id: saved.id,
@@ -147,6 +206,7 @@ pub fn complete(
             paid: settled.paid,
             change: settled.change,
             cash_taken,
+            points_earned,
             cart: cart_view::cart_view(tx, clock, fresh)?,
             receipt: None,
         })
@@ -158,10 +218,11 @@ pub fn complete(
 pub fn complete_and_print(
     state: &AppState,
     devices: &Devices,
-    user: &Id,
+    seller: &SessionUser,
     entries: &[PaymentEntry],
+    approval: Option<&str>,
 ) -> Result<SaleDone, AppError> {
-    let mut done = complete(state, user, entries)?;
+    let mut done = complete(state, seller, entries, approval)?;
     done.receipt = Some(receipts::print_receipt(
         state,
         devices,
@@ -172,19 +233,40 @@ pub fn complete_and_print(
     Ok(done)
 }
 
-/// The typed payments with their method's kind. Blank rows are skipped. Only methods
-/// the till takes now are allowed (credit and points need a customer, C-M8).
+/// True when any typed payment is "Customer credit": the command then needs `SellOnCredit`.
+pub fn uses_credit(state: &AppState, entries: &[PaymentEntry]) -> Result<bool, AppError> {
+    state.db.read(|conn| {
+        for entry in entries.iter().filter(|entry| entry.amount.0 != 0) {
+            if sales::payment_method(conn, &entry.method_id)?.kind == PaymentKind::Credit {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    })
+}
+
+/// The typed payments with their method's kind. Blank rows are skipped. Customer credit
+/// and points need an attached customer and their feature switched on (PAY-04, PAY-05);
+/// exchange credit needs a return (C-M9).
 fn entered_payments(
     conn: &Connection,
     entries: &[PaymentEntry],
+    customer: Option<&CustomerWithBalances>,
 ) -> Result<Vec<EnteredPayment>, AppError> {
+    let credit: CreditSettings = settings::get(conn)?;
+    let loyalty = loyalty_view(conn)?;
     let mut entered = Vec::new();
     for entry in entries.iter().filter(|entry| entry.amount.0 != 0) {
         let method = sales::payment_method(conn, &entry.method_id)?;
         if !method.active {
             return Err(AppError::validation("payment_method_inactive"));
         }
-        if !takes_payment_now(method.kind) {
+        let customer_method = match method.kind {
+            PaymentKind::Credit => credit.enabled,
+            PaymentKind::Points => loyalty.enabled,
+            _ => false,
+        };
+        if !takes_payment_now(method.kind) && !(customer_method && customer.is_some()) {
             return Err(AppError::validation("payment_needs_customer"));
         }
         let reference = entry
@@ -304,4 +386,120 @@ fn record_payments(
         )?;
     }
     Ok(cash_taken)
+}
+
+/// What the customer paid from their own account on this sale.
+#[derive(Default)]
+struct CustomerMoney {
+    points: Money,
+    credit: Money,
+}
+
+/// Adds up the applied points and credit payments.
+fn customer_payments(
+    entered: &[EnteredPayment],
+    settled: &Settlement,
+) -> Result<CustomerMoney, AppError> {
+    let mut money = CustomerMoney::default();
+    for (payment, typed) in settled.payments.iter().zip(entered) {
+        match typed.kind {
+            PaymentKind::Points => money.points = money.points.checked_add(payment.amount)?,
+            PaymentKind::Credit => money.credit = money.credit.checked_add(payment.amount)?,
+            _ => {}
+        }
+    }
+    Ok(money)
+}
+
+/// Rule PAY-05: points pay in whole points, up to what the balance and the minimum allow.
+fn check_points(
+    conn: &Connection,
+    customer: &CustomerWithBalances,
+    money: &CustomerMoney,
+    due: Money,
+) -> Result<(), AppError> {
+    if money.points.0 == 0 {
+        return Ok(());
+    }
+    let view = loyalty_view(conn)?;
+    if view.value_per_point.0 <= 0 || money.points.0 % view.value_per_point.0 != 0 {
+        return Err(AppError::validation("points_whole_only"));
+    }
+    let wanted = money.points.0 / view.value_per_point.0;
+    let most = customers::max_points_to_redeem(customer.points, due, &view);
+    if wanted > most {
+        return Err(AppError::Validation {
+            field: None,
+            code: "points_over_limit".into(),
+            params: [("max_points".to_string(), most.to_string())].into(),
+        });
+    }
+    Ok(())
+}
+
+/// Rule PAY-04: new debt may not go over the customer's credit limit unless the user has
+/// `CreditLimitExceed` or an admin approved it (USR-05). Store credit is used first.
+fn check_credit_limit(
+    state: &AppState,
+    seller: &SessionUser,
+    customer: &CustomerWithBalances,
+    money: &CustomerMoney,
+    approval: Option<&str>,
+) -> Result<(), AppError> {
+    if money.credit.0 == 0 {
+        return Ok(());
+    }
+    let split = customers::split_credit_payment(customer.credit, money.credit)?;
+    let owed_after = customer.credit.checked_add(money.credit)?;
+    if split.new_debt.0 == 0 || owed_after <= customer.customer.credit_limit {
+        return Ok(());
+    }
+    if seller.permissions.contains(Permission::CreditLimitExceed) {
+        return Ok(());
+    }
+    let approved = match approval {
+        Some(token) => session::take_approval(state, seller, Permission::CreditLimitExceed, token)?,
+        None => None,
+    };
+    match approved {
+        Some(_) => Ok(()),
+        None => Err(AppError::OverrideRequired {
+            permission: Permission::CreditLimitExceed,
+        }),
+    }
+}
+
+/// The customer's ledgers for the sale (CUS-04, CUS-05, CUS-06): points paid, the credit
+/// payment (store credit first, then debt) and the points earned on the rest. Gives the
+/// points earned.
+fn record_customer(
+    tx: &Transaction,
+    clock: &dyn Clock,
+    user: &Id,
+    customer: &CustomerWithBalances,
+    money: &CustomerMoney,
+    total: Money,
+    sale_id: &Id,
+) -> Result<i64, AppError> {
+    let id = &customer.customer.id;
+    let ctx = ledger_ctx(tx, clock, user)?;
+    let ref_ = LedgerRef {
+        ref_type: "sale".into(),
+        ref_id: sale_id.clone(),
+    };
+    let view = loyalty_view(tx)?;
+    if money.points.0 > 0 {
+        let points = money.points.0 / view.value_per_point.0;
+        customers::add_points(tx, id, -points, PointsKind::Redeem, Some(&ref_), None, &ctx)?;
+    }
+    if money.credit.0 > 0 {
+        customers::pay_with_credit(tx, id, money.credit, Some(&ref_), &ctx)?;
+    }
+    let eligible = customers::eligible_for_points(total, money.points, money.credit)?;
+    let earned = customers::points_earned(eligible, &view);
+    if earned > 0 && !customer.customer.loyalty_opt_out {
+        customers::add_points(tx, id, earned, PointsKind::Earn, Some(&ref_), None, &ctx)?;
+        return Ok(earned);
+    }
+    Ok(0)
 }

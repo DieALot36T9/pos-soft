@@ -76,6 +76,20 @@ pub const STOCK_COUNT_POST: &str = "stock_count.post";
 pub const STOCK_COUNT_CANCEL: &str = "stock_count.cancel";
 /// A receipt was printed again, marked COPY (PAY-10).
 pub const RECEIPT_REPRINT: &str = "receipt.reprint";
+/// A discount above the cashier's limit, approved by an admin (CHK-12, PRC-07).
+pub const DISCOUNT_OVER_LIMIT: &str = "discount.over_limit";
+/// A line's unit price was typed in; details hold the old and new price (CHK-13).
+pub const PRICE_OVERRIDE: &str = "price.override";
+/// A price list, its prices, a tier or a promotion was added or changed (PRC-02 to PRC-04).
+pub const PRICING_CHANGE: &str = "pricing.change";
+/// A customer was added (CUS-01, CUS-02).
+pub const CUSTOMER_CREATE: &str = "customer.create";
+/// A customer's details, tier or credit limit changed, or they were archived (CUS-01).
+pub const CUSTOMER_CHANGE: &str = "customer.change";
+/// A customer paid off some of their debt (CUS-05).
+pub const CUSTOMER_PAYMENT: &str = "customer.payment";
+/// An admin added or took away loyalty points, with a reason (CUS-04).
+pub const POINTS_ADJUST: &str = "points.adjust";
 
 /// Every action name, for the action filter on the audit screen (USR-08).
 pub const ALL: &[&str] = &[
@@ -116,6 +130,13 @@ pub const ALL: &[&str] = &[
     STOCK_COUNT_POST,
     STOCK_COUNT_CANCEL,
     RECEIPT_REPRINT,
+    DISCOUNT_OVER_LIMIT,
+    PRICE_OVERRIDE,
+    PRICING_CHANGE,
+    CUSTOMER_CREATE,
+    CUSTOMER_CHANGE,
+    CUSTOMER_PAYMENT,
+    POINTS_ADJUST,
 ];
 
 #[cfg(test)]

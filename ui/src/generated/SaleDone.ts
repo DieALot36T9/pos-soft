@@ -15,7 +15,11 @@ invoice_no: string, total: Money, paid: Money, change: Money,
 /**
  * True when cash was taken: the drawer opens (HW-04).
  */
-cash_taken: boolean, cart: CartView, 
+cash_taken: boolean, 
+/**
+ * Loyalty points the customer earned on this sale (CUS-04). 0 without a customer.
+ */
+points_earned: number, cart: CartView, 
 /**
  * How the receipt printed, after the sale was saved (PAY-09). None only inside
  * `complete`, before printing.

@@ -12,14 +12,17 @@ use app::commands::{
     users as user_commands,
 };
 use app::commands::{
-    payment_methods as payment_commands, receipts as receipt_commands, shifts as shift_commands,
+    customers as customer_commands, payment_methods as payment_commands,
+    pricing as pricing_commands, receipts as receipt_commands, shifts as shift_commands,
 };
 use app::devices::Devices;
 use app::session;
 use app::state::AppState;
 use app::workflows::catalog_lists::{BrandInput, CategoryInput, UnitInput};
 use app::workflows::checkout::MethodKind;
+use app::workflows::customer_records::{CustomerPaymentInput, CustomerSave};
 use app::workflows::payment_methods::PaymentMethodSave;
+use app::workflows::pricing_admin::{PriceListSave, PromotionSave, TierSave};
 use app::workflows::products::{ProductInput, VariantAttribute};
 use app::workflows::settings_change::SettingsChange;
 use app::workflows::shifts::{CashMoveInput, CashMoveKind, CountLine};
@@ -116,8 +119,11 @@ fn calls() -> Vec<(&'static str, Call)> {
     calls.extend(catalog_calls());
     calls.extend(stock_calls());
     calls.extend(till_calls());
+    calls.extend(till_pricing_calls());
     calls.extend(shift_calls());
     calls.extend(receipt_calls());
+    calls.extend(pricing_calls());
+    calls.extend(customer_calls());
     calls
 }
 
@@ -473,6 +479,187 @@ fn till_calls() -> Vec<(&'static str, Call)> {
     ]
 }
 
+/// The till's pricing commands (C-M8): discounts, typed prices, customer, price list.
+fn till_pricing_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("checkout_set_discount", |state, _| {
+            let line = a_line(state)?;
+            ok(till_commands::checkout_set_discount(
+                state, &line, None, None,
+            ))
+        }),
+        ("checkout_set_invoice_discount", |state, _| {
+            ensure_shift(state);
+            ok(till_commands::checkout_set_invoice_discount(
+                state, None, None,
+            ))
+        }),
+        ("checkout_price_override", |state, _| {
+            // Without a line (signed out) the command must still refuse on its own check.
+            let line = a_line(state).unwrap_or_else(|_| Id::new());
+            ok(till_commands::checkout_price_override(
+                state,
+                &line,
+                Some(Money(4_000)),
+                None,
+            ))
+        }),
+        ("checkout_set_customer", |state, _| {
+            ensure_shift(state);
+            ok(till_commands::checkout_set_customer(state, None))
+        }),
+        ("checkout_set_price_list", |state, _| {
+            ensure_shift(state);
+            ok(till_commands::checkout_set_price_list(state, None, None))
+        }),
+    ]
+}
+
+/// The pricing screens (C-M8).
+fn pricing_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("price_list_list", |state, _| {
+            ok(pricing_commands::price_list_list(state))
+        }),
+        ("price_list_save", |state, _| {
+            let input = PriceListSave {
+                id: None,
+                name: format!("List {}", Id::new()),
+                active: true,
+            };
+            ok(pricing_commands::price_list_save(state, &input))
+        }),
+        ("price_list_items", |state, _| {
+            ok(pricing_commands::price_list_items(state, &Id::new()))
+        }),
+        ("price_list_set_items", |state, _| {
+            ok(pricing_commands::price_list_set_items(
+                state,
+                &Id::new(),
+                &[],
+            ))
+        }),
+        ("price_list_remove_items", |state, _| {
+            ok(pricing_commands::price_list_remove_items(
+                state,
+                &Id::new(),
+                &[],
+            ))
+        }),
+        ("tier_list", |state, _| {
+            ok(pricing_commands::tier_list(state))
+        }),
+        ("tier_save", |state, _| {
+            let input = TierSave {
+                id: None,
+                name: format!("Tier {}", Id::new()),
+                price_list_id: None,
+                discount: Bps(200),
+                sort: 0,
+            };
+            ok(pricing_commands::tier_save(state, &input))
+        }),
+        ("tier_archive", |state, _| {
+            ok(pricing_commands::tier_archive(state, &Id::new()))
+        }),
+        ("promotion_list", |state, _| {
+            ok(pricing_commands::promotion_list(state))
+        }),
+        ("promotion_save", |state, _| {
+            let input = PromotionSave {
+                id: None,
+                promotion: pricing::PromotionInput {
+                    name: "Bread week".into(),
+                    rule: pricing::PromoRule::PercentOff {
+                        percent: Bps(1_000),
+                    },
+                    starts_at: None,
+                    ends_at: None,
+                    days_mask: pricing::EVERY_DAY,
+                    tier_id: None,
+                    targets: vec![pricing::PromoTarget::Product(product_by_code(
+                        state, "BREAD-1",
+                    ))],
+                },
+            };
+            ok(pricing_commands::promotion_save(state, &input))
+        }),
+        ("promotion_set_active", |state, _| {
+            ok(pricing_commands::promotion_set_active(
+                state,
+                &Id::new(),
+                false,
+            ))
+        }),
+    ]
+}
+
+/// The customer set up by `shop`, who owes 500.00.
+fn a_customer(state: &AppState) -> Id {
+    state
+        .db
+        .read(|conn| Ok(customers::lookup(conn, "Asha", 1)?))
+        .expect("lookup")[0]
+        .id
+        .clone()
+}
+
+/// The customer screens (C-M8).
+fn customer_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("customer_lookup", |state, _| {
+            ok(customer_commands::customer_lookup(state, "Asha"))
+        }),
+        ("customer_list", |state, _| {
+            ok(customer_commands::customer_list(state, "", true))
+        }),
+        ("customer_get", |state, _| {
+            ok(customer_commands::customer_get(state, &a_customer(state)))
+        }),
+        ("customer_save", |state, _| {
+            let input = CustomerSave {
+                id: None,
+                details: customers::CustomerDetails::quick("01811000222", "Babul"),
+            };
+            ok(customer_commands::customer_save(state, &input))
+        }),
+        ("customer_archive", |state, _| {
+            ok(customer_commands::customer_archive(
+                state,
+                &a_customer(state),
+                false,
+            ))
+        }),
+        ("customer_payment", |state, _| {
+            ensure_shift(state);
+            let input = CustomerPaymentInput {
+                customer_id: a_customer(state),
+                amount: Money(100),
+                method_id: cash_method(state),
+                reference: None,
+            };
+            ok(customer_commands::customer_payment(state, &input))
+        }),
+        ("points_adjust", |state, _| {
+            ok(customer_commands::points_adjust(
+                state,
+                &a_customer(state),
+                10,
+                "Welcome gift",
+            ))
+        }),
+        ("customer_statement", |state, _| {
+            let day = pos_core::BusinessDate::parse("2026-01-01").expect("date");
+            ok(customer_commands::customer_statement(
+                state,
+                &a_customer(state),
+                day,
+                day,
+            ))
+        }),
+    ]
+}
+
 /// The payment method and shift commands (C-M6).
 fn shift_calls() -> Vec<(&'static str, Call)> {
     vec![
@@ -555,7 +742,12 @@ fn ensure_sale(state: &AppState) {
     };
     ensure_shift(state);
     app::workflows::cart_lines::scan(state, &user, "BREAD-1").expect("scanned");
-    app::workflows::complete_sale::complete(state, &user, &[cash(state, 5_000)]).expect("sold");
+    let seller = state
+        .db
+        .read(|conn| Ok(auth::session_user(conn, &user)?))
+        .expect("seller");
+    app::workflows::complete_sale::complete(state, &seller, &[cash(state, 5_000)], None)
+        .expect("sold");
 }
 
 /// Printing, reprinting and the X report (C-M7).
@@ -660,6 +852,8 @@ const TAKES_APPROVAL: &[&str] = &[
     "shift_cash_move",
     "shift_no_sale",
     "shift_force_close",
+    "checkout_price_override",
+    "checkout_set_price_list",
 ];
 
 fn shop() -> (tempfile::TempDir, AppState, String) {
@@ -687,8 +881,31 @@ fn shop() -> (tempfile::TempDir, AppState, String) {
         None,
     );
     stock_commands::count_create(&state, &count_input()).expect("a count");
+    add_customer_who_owes(&state);
     let file = backup_commands::backup_now(&state).expect("backed up").file;
     (folder, state, file)
+}
+
+/// Asha, who owes 500.00, so a debt payment has something to pay off.
+fn add_customer_who_owes(state: &AppState) {
+    let input = CustomerSave {
+        id: None,
+        details: customers::CustomerDetails::quick("01711123456", "Asha"),
+    };
+    let id = customer_commands::customer_save(state, &input).expect("customer");
+    state
+        .db
+        .write(|tx| {
+            let ctx = customers::LedgerCtx {
+                at: pos_core::Timestamp(0),
+                business_date: pos_core::BusinessDate::parse("2026-01-01")?,
+                user_id: None,
+            };
+            let kind = customers::CreditKind::CreditSale;
+            customers::add_credit(tx, &id, Money(50_000), kind, None, None, &ctx)?;
+            Ok(())
+        })
+        .expect("debt");
 }
 
 #[test]
