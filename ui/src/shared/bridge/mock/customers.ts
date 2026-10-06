@@ -4,8 +4,11 @@ import type { Customer } from "../../../generated/Customer";
 import type { CustomerPage } from "../../../generated/CustomerPage";
 import type { CustomerPaymentDone } from "../../../generated/CustomerPaymentDone";
 import type { CustomerPaymentInput } from "../../../generated/CustomerPaymentInput";
+import type { CurrencyFormat } from "../../../generated/CurrencyFormat";
+import type { CustomerList } from "../../../generated/CustomerList";
 import type { CustomerRow } from "../../../generated/CustomerRow";
 import type { CustomerSave } from "../../../generated/CustomerSave";
+import type { PaymentMethodView } from "../../../generated/PaymentMethodView";
 import type { PointsRow } from "../../../generated/PointsRow";
 import type { PriceList } from "../../../generated/PriceList";
 import type { PriceListItem } from "../../../generated/PriceListItem";
@@ -40,6 +43,15 @@ let promotions: Promotion[] = [];
 let customers: FakeCustomer[] = [];
 let nextId = 100;
 let tillCash: (amount: number) => boolean = () => false;
+let debtMethods: () => PaymentMethodView[] = () => [];
+let currency: () => CurrencyFormat = () => {
+  throw new Error("The fake customers aren't connected to the fake shop.");
+};
+
+// shop.ts calls this once, so balances use the shop's money format.
+export function connectCustomersToShop(shopCurrency: () => CurrencyFormat) {
+  currency = shopCurrency;
+}
 
 function fakeId(prefix: string) {
   return prefix + String(nextId++).padStart(26 - prefix.length, "0");
@@ -57,9 +69,14 @@ const clash = (code: string, params: Record<string, string> = {}): never =>
   fail({ kind: "conflict", code, params });
 const missing = (entity: string, key: string): never => fail({ kind: "not_found", entity, key });
 
-// till.ts tells this file how to put cash in the open shift's drawer (CUS-05).
-export function connectCustomersToTill(cashIn: (amount: number) => boolean) {
+// till.ts tells this file how to put cash in the open shift's drawer, and which
+// methods can pay off a debt (CUS-05).
+export function connectCustomersToTill(
+  cashIn: (amount: number) => boolean,
+  methods: () => PaymentMethodView[],
+) {
   tillCash = cashIn;
+  debtMethods = methods;
 }
 
 // Starts again. A set-up shop has a Wholesale list, a Gold tier and two customers.
@@ -396,9 +413,9 @@ export const customerHandlers = {
       .slice(0, 20)
       .map(row);
   },
-  customer_list: (args?: Args): CustomerRow[] => {
+  customer_list: (args?: Args): CustomerList => {
     requirePermission("customer_view_create");
-    return customers
+    const rows = customers
       .filter(
         (each) =>
           (Boolean(args?.includeArchived) || each.customer.archived_at === null) &&
@@ -406,6 +423,7 @@ export const customerHandlers = {
       )
       .sort((a, b) => a.customer.name.localeCompare(b.customer.name))
       .map(row);
+    return { rows, currency: currency() };
   },
   customer_get: (args?: Args): CustomerPage => {
     requirePermission("customer_view_create");
@@ -424,6 +442,11 @@ export const customerHandlers = {
       visits: sales.filter((one) => one.kind === "sale").length,
       purchases: structuredClone(each.purchases),
       points_history: [...each.points].reverse(),
+      payment_methods: debtMethods(),
+      tiers: tiers
+        .filter((tier) => tier.archived_at === null)
+        .map((tier) => ({ id: tier.id, name: tier.name })),
+      currency: currency(),
     };
   },
   customer_save: (args?: Args): string => {

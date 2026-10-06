@@ -20,6 +20,8 @@ use crate::audit_actions::{CUSTOMER_CHANGE, CUSTOMER_CREATE, CUSTOMER_PAYMENT, P
 use crate::audit_log;
 use crate::state::AppState;
 use crate::workflows::cart_view::running_tier_name;
+use crate::workflows::checkout::{PaymentMethodView, takes_payment_now};
+use crate::workflows::products::Choice;
 use crate::workflows::till::{conflict, till_shift};
 
 /// The most customers the till's lookup shows (CUS-02).
@@ -41,6 +43,14 @@ pub struct CustomerRow {
     /// Positive: the customer owes the shop. Negative: store credit.
     pub credit: Money,
     pub archived: bool,
+}
+
+/// The back-office customer list, with the shop's money format for the balances.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, TS)]
+#[ts(export)]
+pub struct CustomerList {
+    pub rows: Vec<CustomerRow>,
+    pub currency: CurrencyFormat,
 }
 
 /// What the user types for a customer: a new one (`id` empty) or a change.
@@ -94,6 +104,11 @@ pub struct CustomerPage {
     pub purchases: Vec<PurchaseRow>,
     /// Newest first, at most 100.
     pub points_history: Vec<PointsRow>,
+    /// The ways a debt payment can be taken (CUS-05): cash, card, wallet and other.
+    pub payment_methods: Vec<PaymentMethodView>,
+    /// The tiers the customer can be moved to (not archived), for the edit form.
+    pub tiers: Vec<Choice>,
+    pub currency: CurrencyFormat,
 }
 
 /// A payment against the customer's debt (CUS-05).
@@ -145,10 +160,22 @@ pub fn list(
     state: &AppState,
     typed: &str,
     include_archived: bool,
+) -> Result<CustomerList, AppError> {
+    let rows = if !typed.trim().is_empty() && !include_archived {
+        lookup(state, typed)?
+    } else {
+        everyone(state, typed, include_archived)?
+    };
+    let currency = state.db.read(|conn| Ok(settings::get(conn)?))?;
+    Ok(CustomerList { rows, currency })
+}
+
+/// Everyone matching the typed text (all when empty), by name.
+fn everyone(
+    state: &AppState,
+    typed: &str,
+    include_archived: bool,
 ) -> Result<Vec<CustomerRow>, AppError> {
-    if !typed.trim().is_empty() && !include_archived {
-        return lookup(state, typed);
-    }
     state.db.read(|conn| {
         let like = format!("%{}%", typed.trim().to_lowercase());
         let mut statement = conn.prepare(
@@ -216,6 +243,16 @@ pub fn page(state: &AppState, id: &Id) -> Result<CustomerPage, AppError> {
             total_spend,
             visits,
             purchases,
+            payment_methods: debt_methods(conn)?,
+            tiers: pricing::tiers(conn)?
+                .into_iter()
+                .filter(|tier| tier.archived_at.is_none())
+                .map(|tier| Choice {
+                    id: tier.id,
+                    name: tier.name,
+                })
+                .collect(),
+            currency: settings::get(conn)?,
         })
     })
 }
@@ -309,7 +346,7 @@ pub fn take_payment(
         if !method.active {
             return Err(AppError::validation("payment_method_inactive"));
         }
-        if !crate::workflows::checkout::takes_payment_now(method.kind) {
+        if !takes_payment_now(method.kind) {
             return Err(AppError::validation("payment_method_not_for_debt"));
         }
         let reference = input
@@ -408,6 +445,20 @@ pub fn adjust_points(
         audit_log::record(tx, clock, POINTS_ADJUST, details, Some(by.clone()))?;
         Ok(balance)
     })
+}
+
+/// The active methods that can pay off a debt, in list order.
+fn debt_methods(conn: &Connection) -> Result<Vec<PaymentMethodView>, AppError> {
+    Ok(sales::payment_methods(conn)?
+        .into_iter()
+        .filter(|method| method.active && takes_payment_now(method.kind))
+        .map(|method| PaymentMethodView {
+            id: method.id,
+            name: method.name,
+            kind: method.kind.into(),
+            requires_reference: method.requires_reference,
+        })
+        .collect())
 }
 
 /// Who changed a ledger and when, with the till's business date.

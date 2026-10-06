@@ -32,7 +32,7 @@ import {
 import { connectPrinter, resetPrinter } from "./printer";
 import { connectStockToShop, resetStock, stockHandlers } from "./stock";
 import { connectTill, resetTill, tillHandlers } from "./till";
-import { customerHandlers, resetCustomers } from "./customers";
+import { connectCustomersToShop, customerHandlers, resetCustomers } from "./customers";
 
 // A pretend shop for the fake bridge. Rust does the real checks; this stand-in
 // checks only what the screens and their tests need, with the same error codes.
@@ -140,6 +140,7 @@ connectTill(
   () => snapshot.currency,
   () => snapshot,
 );
+connectCustomersToShop(() => snapshot.currency);
 connectPrinter(() => snapshot.hardware);
 
 connectCatalog({

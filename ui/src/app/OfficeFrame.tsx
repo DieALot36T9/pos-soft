@@ -16,6 +16,7 @@ import {
   Ruler,
   Settings,
   ShieldCheck,
+  Contact,
   Tag,
   Users,
   type LucideIcon,
@@ -28,6 +29,7 @@ import type { Permission } from "../generated/Permission";
 import type { SessionView } from "../generated/SessionView";
 import { AuditLogPage } from "../modules/audit/pages/AuditLogPage";
 import { MyAccountPage } from "../modules/auth/pages/MyAccountPage";
+import { CustomersPage } from "../modules/customers/pages/CustomersPage";
 import { BackupsPage } from "../modules/backup/pages/BackupsPage";
 import { BrandsPage } from "../modules/catalog/pages/BrandsPage";
 import { CategoriesPage } from "../modules/catalog/pages/CategoriesPage";
@@ -53,6 +55,7 @@ import { useIdleLock } from "./useIdleLock";
 type Page =
   | "home"
   | "checkout"
+  | "customers"
   | "products"
   | "stock"
   | "counts"
@@ -74,6 +77,7 @@ type Page =
 const menu: { page: Page; icon: LucideIcon; needs: Permission | null }[] = [
   { page: "home", icon: Home, needs: null },
   { page: "checkout", icon: ShoppingCart, needs: "checkout_sell" },
+  { page: "customers", icon: Contact, needs: "customer_view_create" },
   { page: "products", icon: Package, needs: "stock_view" },
   { page: "stock", icon: Boxes, needs: "stock_view" },
   { page: "counts", icon: ClipboardList, needs: "stock_count_enter" },
@@ -194,6 +198,7 @@ export function OfficeFrame({
             onOpenStock={() => setPage("stock")}
           />
         ) : null}
+        {page === "customers" ? <CustomersPage permissions={session.permissions} /> : null}
         {page === "products" ? <ProductsPage /> : null}
         {page === "stock" ? (
           <StockLevelsPage canAdjust={session.permissions.includes("stock_adjust")} />

@@ -9,7 +9,8 @@ use pos_core::{AppError, BusinessDate, Id, Permission};
 use crate::session;
 use crate::state::AppState;
 use crate::workflows::customer_records::{
-    self, CustomerPage, CustomerPaymentDone, CustomerPaymentInput, CustomerRow, CustomerSave,
+    self, CustomerList, CustomerPage, CustomerPaymentDone, CustomerPaymentInput, CustomerRow,
+    CustomerSave,
 };
 
 pub fn customer_lookup(state: &AppState, text: &str) -> Result<Vec<CustomerRow>, AppError> {
@@ -21,7 +22,7 @@ pub fn customer_list(
     state: &AppState,
     text: &str,
     include_archived: bool,
-) -> Result<Vec<CustomerRow>, AppError> {
+) -> Result<CustomerList, AppError> {
     session::require(state, Permission::CustomerViewCreate)?;
     customer_records::list(state, text, include_archived)
 }
@@ -86,7 +87,8 @@ pub mod cmd {
     use crate::commands::on_worker;
     use crate::state::AppState;
     use crate::workflows::customer_records::{
-        CustomerPage, CustomerPaymentDone, CustomerPaymentInput, CustomerRow, CustomerSave,
+        CustomerList, CustomerPage, CustomerPaymentDone, CustomerPaymentInput, CustomerRow,
+        CustomerSave,
     };
 
     #[tauri::command]
@@ -106,7 +108,7 @@ pub mod cmd {
         state: State<'_, Arc<AppState>>,
         text: String,
         include_archived: bool,
-    ) -> Result<Vec<CustomerRow>, AppError> {
+    ) -> Result<CustomerList, AppError> {
         let state = Arc::clone(&state);
         on_worker("customer_list", move || {
             super::customer_list(&state, &text, include_archived)

@@ -89,13 +89,24 @@ export function connectTill(
   settings = shopSettings;
 }
 
-connectCustomersToTill((amount) => {
-  if (!shift || shift.user_id !== currentSession()?.user_id) {
-    return false;
-  }
-  shift.cash += amount;
-  return true;
-});
+connectCustomersToTill(
+  (amount) => {
+    if (!shift || shift.user_id !== currentSession()?.user_id) {
+      return false;
+    }
+    shift.cash += amount;
+    return true;
+  },
+  () =>
+    methods
+      .filter((each) => each.active && ["cash", "card", "wallet", "other"].includes(each.kind))
+      .map((each) => ({
+        id: each.id,
+        name: each.name,
+        kind: each.kind,
+        requires_reference: each.requires_reference,
+      })),
+);
 
 // Starts the pretend till again: no shift, an empty cart, cash only.
 export function resetTill() {

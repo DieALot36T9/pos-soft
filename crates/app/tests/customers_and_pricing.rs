@@ -12,6 +12,7 @@ use app::commands::pricing as pricing_commands;
 use app::commands::settings as settings_commands;
 use app::session::{self, ApprovalResult};
 use app::state::AppState;
+use app::workflows::checkout::MethodKind;
 use app::workflows::complete_sale::PaymentEntry;
 use app::workflows::customer_records::{CustomerPaymentInput, CustomerSave};
 use app::workflows::pricing_admin::{PriceListSave, TierSave};
@@ -452,6 +453,13 @@ fn cus_02_a_cashier_adds_a_customer_without_tier_or_limit_but_may_not_change_one
     let page = customer_commands::customer_get(&state, &id).expect("page");
     assert_eq!(page.customer.tier_id, None);
     assert_eq!(page.customer.credit_limit, Money::zero());
+    assert_eq!(page.tiers.len(), 1, "Gold can be chosen in the edit form");
+    assert!(
+        page.payment_methods
+            .iter()
+            .all(|method| !matches!(method.kind, MethodKind::Credit | MethodKind::Points)),
+        "a debt is never paid with credit or points"
+    );
     assert_eq!(audit_count(&state, "customer.create"), 1);
     let found = customer_commands::customer_lookup(&state, "1711").expect("lookup");
     assert_eq!(found.len(), 1);
