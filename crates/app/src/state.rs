@@ -8,6 +8,7 @@ use pos_core::{AppError, Clock};
 use crate::logging::LogSwitch;
 use crate::paths::AppPaths;
 use crate::session::{Approval, Session};
+use crate::workflows::import_file::ImportJob;
 
 /// Whether the database passed the startup check (rule BAK-06).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,6 +34,8 @@ pub struct AppState {
     pub backed_up_at_marker: Mutex<u64>,
     /// The last backup problem to show in the warning banner, as an error code.
     pub backup_warning: Mutex<Option<String>>,
+    /// The running import's progress and cancel switch (IO-05).
+    pub import_job: ImportJob,
     /// The detailed-logging switch. `None` in tests, which don't start logging.
     pub log: Option<LogSwitch>,
 }

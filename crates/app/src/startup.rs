@@ -14,6 +14,7 @@ use crate::audit_log;
 use crate::migrations;
 use crate::paths::AppPaths;
 use crate::state::{AppState, DbHealth};
+use crate::workflows::import_file::ImportJob;
 
 /// What the restore marker file holds: which backup to put back, and who asked.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -48,6 +49,7 @@ pub fn start(paths: AppPaths, clock: Arc<dyn Clock>) -> Result<AppState, AppErro
         approvals: Mutex::new(Vec::new()),
         backed_up_at_marker: Mutex::new(marker),
         backup_warning: Mutex::new(None),
+        import_job: ImportJob::default(),
         log: None,
     })
 }

@@ -13,6 +13,11 @@ import type { SearchHit } from "../../generated/SearchHit";
 import type { Unit } from "../../generated/Unit";
 import type { UnitInput } from "../../generated/UnitInput";
 import type { VariantAttribute } from "../../generated/VariantAttribute";
+import type { LabelPick } from "../../generated/LabelPick";
+import type { LabelPicked } from "../../generated/LabelPicked";
+import type { LabelPicture } from "../../generated/LabelPicture";
+import type { LabelRequest } from "../../generated/LabelRequest";
+import type { LabelsPrinted } from "../../generated/LabelsPrinted";
 import { call } from "../../shared/bridge";
 
 // One page of products, sorted by name (archived ones only when the filter asks).
@@ -53,3 +58,13 @@ export const listBrands = (includeArchived: boolean) =>
   call<Brand[]>("brand_list", { includeArchived });
 export const saveBrand = (input: BrandInput) => call<string>("brand_save", { input });
 export const archiveBrand = (id: string) => call<null>("brand_archive", { id });
+
+// Labels and shelf tags (CAT-12, CAT-13).
+// The products to print: by hand, a category, prices changed since a day, or a delivery.
+export const pickLabels = (pick: LabelPick) => call<LabelPicked>("labels_pick", { pick });
+// Every label as a PNG picture, exactly as it prints.
+export const previewLabels = (request: LabelRequest) =>
+  call<LabelPicture[]>("labels_preview", { request });
+// Prints on the label printer, or the Preview printer when none is set up.
+export const printLabels = (request: LabelRequest) =>
+  call<LabelsPrinted>("labels_print", { request });

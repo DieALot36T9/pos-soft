@@ -16,12 +16,16 @@ use app::commands::{
     pricing as pricing_commands, purchasing as purchasing_commands, receipts as receipt_commands,
     reports as report_commands, returns as return_commands, shifts as shift_commands,
 };
+use app::commands::{io as io_commands, labels as label_commands};
 use app::devices::Devices;
 use app::session;
 use app::state::AppState;
 use app::workflows::catalog_lists::{BrandInput, CategoryInput, UnitInput};
 use app::workflows::checkout::MethodKind;
 use app::workflows::customer_records::{CustomerPaymentInput, CustomerSave};
+use app::workflows::exports::{ExportEntity, ExportRequest, FileFormat};
+use app::workflows::import_file::{ImportEntity, ImportRequest, MatchBy};
+use app::workflows::labels::{LabelCopies, LabelKind, LabelPick, LabelRequest, LabelSettings};
 use app::workflows::payment_methods::PaymentMethodSave;
 use app::workflows::pricing_admin::{PriceListSave, PromotionSave, TierSave};
 use app::workflows::products::{ProductInput, VariantAttribute};
@@ -133,6 +137,8 @@ fn calls() -> Vec<(&'static str, Call)> {
     calls.extend(purchasing_calls());
     calls.extend(receiving_calls());
     calls.extend(report_calls());
+    calls.extend(io_calls());
+    calls.extend(label_calls());
     calls
 }
 
@@ -1110,6 +1116,112 @@ fn report_calls() -> Vec<(&'static str, Call)> {
             ))
         }),
     ]
+}
+
+/// The import and export commands (C-M12). The file to import doesn't exist, so an
+/// allowed call fails on the file, not on the permission.
+fn io_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("import_preview", |state, file| {
+            ok(io_commands::import_preview(state, &an_import(file)))
+        }),
+        ("import_commit", |state, file| {
+            ok(io_commands::import_commit(state, &an_import(file)))
+        }),
+        ("import_progress", |state, _| {
+            ok(io_commands::import_progress(state))
+        }),
+        ("import_cancel", |state, _| {
+            ok(io_commands::import_cancel(state))
+        }),
+        ("import_errors_save", |state, file| {
+            ok(io_commands::import_errors_save(
+                state,
+                &[],
+                &format!("{file}-errors.csv"),
+            ))
+        }),
+        ("template_download", |state, file| {
+            ok(io_commands::template_download(
+                state,
+                ImportEntity::Products,
+                FileFormat::Csv,
+                &format!("{file}-template.csv"),
+            ))
+        }),
+        ("export_entity", |state, file| {
+            let request = ExportRequest {
+                entity: ExportEntity::Customers,
+                format: FileFormat::Csv,
+                file: format!("{file}-customers.csv"),
+                price_list_id: None,
+            };
+            ok(io_commands::export_entity(state, &request))
+        }),
+        ("io_price_lists", |state, _| {
+            ok(io_commands::io_price_lists(state))
+        }),
+    ]
+}
+
+fn an_import(file: &str) -> ImportRequest {
+    ImportRequest {
+        entity: ImportEntity::Products,
+        file: format!("{file}-missing.csv"),
+        sheet: None,
+        mapping: None,
+        match_by: MatchBy::Sku,
+        create_missing: false,
+        skip_errors: false,
+        price_list_id: None,
+    }
+}
+
+/// The label commands (C-M12). A cashier may print labels.
+fn label_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("labels_pick", |state, _| {
+            let pick = LabelPick::Products {
+                ids: vec![first_product(state)],
+            };
+            ok(label_commands::labels_pick(state, &pick))
+        }),
+        ("labels_preview", |state, _| {
+            ok(label_commands::labels_preview(
+                state,
+                devices(),
+                &a_label_request(state),
+            ))
+        }),
+        ("labels_print", |state, _| {
+            ok(label_commands::labels_print(
+                state,
+                devices(),
+                &a_label_request(state),
+            ))
+        }),
+    ]
+}
+
+fn a_label_request(state: &AppState) -> LabelRequest {
+    LabelRequest {
+        settings: LabelSettings {
+            kind: LabelKind::Label,
+            width_mm: 58,
+            height_mm: 40,
+            gap_mm: 2,
+            show_name: true,
+            show_price: true,
+            show_unit_price: false,
+            show_barcode: true,
+            packed_on: None,
+            expires_on: None,
+        },
+        items: vec![LabelCopies {
+            product_id: first_product(state),
+            copies: 1,
+        }],
+    }
 }
 
 fn a_daily_summary() -> ReportRequest {

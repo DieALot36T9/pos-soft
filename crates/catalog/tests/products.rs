@@ -306,6 +306,62 @@ fn cat_09_price_change_rows_are_written_only_when_prices_change() {
 }
 
 #[test]
+fn cat_09_an_import_records_its_own_reason() {
+    let mut db = test_db();
+    let milk = create(&mut db, standard("Milk", 9000));
+    let tx = db.transaction().unwrap();
+
+    let mut edit = ProductUpdate::from_product(&catalog::get(&tx, &milk).unwrap());
+    edit.sale_price = Money(9500);
+    catalog::update_product_with_reason(&tx, &milk, edit.clone(), (&user(), "import"), NOW)
+        .unwrap();
+    let history = catalog::price_history(&tx, &milk).unwrap();
+    assert_eq!(history[0].reason.as_deref(), Some("import"));
+
+    edit.sale_price = Money(9600);
+    let refused =
+        catalog::update_product_with_reason(&tx, &milk, edit, (&user(), "guess"), NOW).unwrap_err();
+    assert!(
+        matches!(refused, CatalogError::Invalid { .. }),
+        "{refused:?}"
+    );
+}
+
+#[test]
+fn cat_13_products_whose_sale_price_changed_since_a_time() {
+    let mut db = test_db();
+    let milk = create(&mut db, standard("Milk", 9000));
+    let rice = create(&mut db, standard("Rice", 6000));
+    let tx = db.transaction().unwrap();
+
+    let mut edit = ProductUpdate::from_product(&catalog::get(&tx, &milk).unwrap());
+    edit.sale_price = Money(9500);
+    catalog::update_product(&tx, &milk, edit, &user(), Timestamp(NOW.0 + 1000)).unwrap();
+    // A cost change alone doesn't change the shelf price.
+    catalog::set_cost(
+        &tx,
+        &rice,
+        Money(5000),
+        "grn",
+        &user(),
+        Timestamp(NOW.0 + 2000),
+    )
+    .unwrap();
+
+    let since = Timestamp(NOW.0 + 500);
+    assert_eq!(
+        catalog::sale_price_changed_since(&tx, since).unwrap(),
+        vec![milk]
+    );
+    let later = Timestamp(NOW.0 + 5000);
+    assert!(
+        catalog::sale_price_changed_since(&tx, later)
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
 fn cat_09_set_cost_records_the_reason_and_skips_unchanged_cost() {
     let mut db = test_db();
     let milk = create(&mut db, standard("Milk", 9000));

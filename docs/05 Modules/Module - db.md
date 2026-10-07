@@ -35,6 +35,7 @@ impl Db {
   pub fn open(path: &Path) -> Result<Db, DbError>;
   pub fn open_in_memory() -> Result<Db, DbError>;             // tests: shared-cache memory db, a new one per call
   pub fn write<T>(&self, f: impl FnOnce(&Transaction) -> Result<T, AppError>) -> Result<T, AppError>; // BEGIN IMMEDIATE … COMMIT
+  pub fn write_and_undo<T>(&self, f: impl FnOnce(&Transaction) -> Result<T, AppError>) -> Result<T, AppError>; // BEGIN IMMEDIATE … ROLLBACK, always (import preview, C-M12)
   pub fn read<T>(&self, f: impl FnOnce(&Connection) -> Result<T, AppError>) -> Result<T, AppError>;
 }
 pub fn pending(db: &Db, all: &[ModuleMigrations]) -> Result<Vec<(String, u32)>, DbError>;
@@ -74,7 +75,7 @@ Restore is a file swap done by `app` at restart, using `verify` first.
 
 ## Tests
 - Pragmas applied on both connections (file and memory). *(done, `src/open.rs`)*
-- `tests/contract.rs`: applied once, in order, idempotent; `pending`; checksum mismatch refuses; unknown newer version or module refuses; a failing migration leaves its module untouched; versions out of order refused; `write` rolls back on error. *(done)*
+- `tests/contract.rs`: applied once, in order, idempotent; `pending`; checksum mismatch refuses; unknown newer version or module refuses; a failing migration leaves its module untouched; versions out of order refused; `write` rolls back on error; `write_and_undo` gives the answer and saves nothing (C-M12). *(done)*
 - `tests/backup.rs` *(done)*:
   - BAK-01: produced file passes `verify` and holds the data; works from a memory database; works while a write transaction is open (the unfinished row is left out); never overwrites an existing file.
   - BAK-01: change marker moves only when a write changes rows; a rolled-back write is not a change; running migrations is a change, re-running none is not.
@@ -110,6 +111,6 @@ Restore is a file swap done by `app` at restart, using `verify` first.
 - Done in A0: `Db` (open, settings, write, read), `migrate`, `pending`, the `db_migrations` table.
 - Done in B-db: `backup_to`, `verify`, `open_read_only`, `quick_check`, `change_marker`, `has_changed_since`, `backup_file_name`, `prune_backups`, and the power-cut test. `db_meta` dropped (see Tables).
 - **Done in `app` (C-M2):** the backup timer, backups on close, before migrations and before restores, the copy to the second folder (BAK-02), the restore file swap at the next start, and the startup recovery screen (`ui/src/modules/backup/`, with the Backups screen).
-- Still for `app`: backups before imports (C-M12) and count postings (C-M5), and the daily `integrity_check` on the newest backup.
+- Still for `app`: the daily `integrity_check` on the newest backup. (Backups before count postings came in C-M5, before imports in C-M12; `write_and_undo` was added for the import preview.)
 - For M13: the power cut on a real Windows PC (pulling the plug), on top of the killed-process test here.
 - Screens (`ui/src/modules/backup/`): Backups (list, Back up now, restore with a confirmation) and the recovery screen, built in C-M2.

@@ -12,7 +12,7 @@ Cards: today's net sales, number of sales, average basket, open shift info. Aler
 - **List:** columns name, SKU, category, brand, price, cost, stock, status. Filters: category, brand, archived, low stock, no barcode.
 - **Edit page** (tabs): General (name, SKU, category, brand, unit, kind) · Prices & tax (sale, cost, tax rate, price-list prices, price history) · Barcodes (list, add, generate internal) · Stock (track stock/expiry, reorder level/qty, preferred supplier, current stock and batches, link to history) · Variants (attributes, generate, variant table) · Kit (components) · Image.
 - Categories (tree editor), Brands, Units: simple lists with inline edit.
-- **Labels & shelf tags:** choose products (search, category, "from GRN", "price changed since"), template, quantity per product, preview (real PNG), print.
+- **Labels & shelf tags:** choose products (search, category, "from GRN", "price changed since"), template, quantity per product, preview (real PNG), print. As built in C-M12: its own menu entry "Labels and shelf tags" (`LabelsPrint`), with search, category and "prices changed since"; the kind (barcode label or shelf tag), size, "Print on" label printer or A4 sheets, the fields to show and packed/expiry days; Preview and Print. "From GRN" is in Rust (`labels_pick` with a delivery) but has no button yet.
 
 ## Pricing
 Price lists (list + item grid with bulk paste), Tiers, Promotions (form: kind, values, targets picker, schedule, tier, preview "Soap 50.00 × 3 → 100.00").
@@ -43,6 +43,8 @@ Left: report list grouped (Sales, Profit, Stock, Tax, Customers & suppliers, Con
 
 ## Import / Export
 Wizard: entity → file → sheet → column mapping → match rule → preview with errors → import with progress → summary + error file. Export: entity, format, filters.
+
+As built in C-M12: one "Import and export" page with tabs Import and Export (each shown when the role allows it). Import: what the file holds, Template (CSV) and Template (Excel), Choose file, the sheet for an Excel file, one drop-down per field (needed ones marked), "Find products by" SKU or barcode, the price list for prices, "Make missing categories, brands and units", Check file; the preview (counts, the first 50 rows, every problem in words); "Skip rows with errors" and Import (green), the progress bar with Cancel (red); the summary with the backup file, "Save error file" and "Import another file". Export: what, CSV or Excel, the price list for prices, Export. There are no filters on exports yet (see Module - app, open items).
 
 ## Users & roles
 Users (tiles, role, active, last login), user form (PIN/password reset). Roles: permission checklist grouped by area, max discount %.

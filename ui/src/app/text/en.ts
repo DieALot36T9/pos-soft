@@ -31,6 +31,10 @@ export const en = {
     categories: { label: "Categories", tip: "Group products into categories and sub-categories." },
     brands: { label: "Brands", tip: "The brands products can belong to." },
     units: { label: "Units", tip: "What products are counted or weighed in: piece, kg, litre." },
+    labels: {
+      label: "Labels and shelf tags",
+      tip: "Print barcode labels and shelf tags, on the label printer or A4 sheets.",
+    },
     pricing: {
       label: "Prices and promotions",
       tip: "Price lists such as wholesale, customer tiers and promotions.",
@@ -42,6 +46,10 @@ export const en = {
     reports: {
       label: "Reports",
       tip: "Daily summary, shift X and Z reports, sales, profit, stock, tax and money owed.",
+    },
+    io: {
+      label: "Import and export",
+      tip: "Bring products, customers, suppliers, stock and prices in from a file, or save them to one.",
     },
     tax: { label: "Tax rates", tip: "Add, change or deactivate tax rates." },
     backups: { label: "Backups", tip: "Back up now, see backups and restore one." },

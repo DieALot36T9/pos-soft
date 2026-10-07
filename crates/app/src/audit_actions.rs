@@ -104,6 +104,10 @@ pub const GRN_SAVE: &str = "grn.save";
 pub const SUPPLIER_RETURN_SAVE: &str = "supplier_return.save";
 /// A supplier was paid (PUR-05).
 pub const SUPPLIER_PAYMENT: &str = "supplier.payment";
+/// A file was imported; details hold what, the counts and the backup (IO-01).
+pub const DATA_IMPORT: &str = "data.import";
+/// Data was exported to a file (IO-03).
+pub const DATA_EXPORT: &str = "data.export";
 
 /// Every action name, for the action filter on the audit screen (USR-08).
 pub const ALL: &[&str] = &[
@@ -158,6 +162,8 @@ pub const ALL: &[&str] = &[
     GRN_SAVE,
     SUPPLIER_RETURN_SAVE,
     SUPPLIER_PAYMENT,
+    DATA_IMPORT,
+    DATA_EXPORT,
 ];
 
 #[cfg(test)]

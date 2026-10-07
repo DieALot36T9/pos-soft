@@ -298,6 +298,89 @@ export const en = {
       saved: "The brand was saved.",
     },
   },
+  labels: {
+    title: "Labels and shelf tags",
+    intro: "Choose products, a template and how many of each. Look at the preview, then print.",
+    pick: {
+      heading: "Products",
+      search: {
+        label: "Find product",
+        tip: "Type part of a name, a SKU or a barcode. Example: milk",
+      },
+      find: { label: "Find", tip: "Look for products matching what you typed." },
+      add: { tip: "Add {{name}} to the labels." },
+      noHits: "No products found.",
+      hit: "{{name}} · {{sku}}",
+      category: { label: "Category", tip: "Every product in this category and the ones below it." },
+      addCategory: { label: "Add category", tip: "Add every product in the chosen category." },
+      since: {
+        label: "Prices changed since",
+        tip: "A day as year-month-day. Products whose price changed on or after it. Example: 2026-03-01",
+      },
+      addSince: {
+        label: "Add changed",
+        tip: "Add every product whose sale price changed since that day.",
+      },
+      noneFound: "No products to add.",
+      chooseCategory: "Choose a category",
+    },
+    items: {
+      name: "Product",
+      sku: "SKU",
+      price: "Price",
+      copies: { label: "How many", tip: "How many labels of this product. 1 to 500." },
+      remove: { tip: "Take {{name}} off the list." },
+      empty: "No products chosen yet.",
+      copiesWrong: "Type how many labels as a whole number from 1 to 500.",
+    },
+    template: {
+      heading: "Template",
+      kind: {
+        label: "Kind",
+        tip: "A barcode label goes on the product; a shelf tag goes on the shelf edge with a big price.",
+        label_option: "Barcode label",
+        shelf_tag_option: "Shelf tag",
+      },
+      size: { label: "Size", tip: "Width × height of one label in millimetres." },
+      output: {
+        label: "Print on",
+        tip: "The label printer prints one label at a time. A4 prints sheets on the office printer.",
+        printer: "Label printer",
+        a4: "A4 sheets",
+      },
+      showName: { label: "Name", tip: "Print the product's name." },
+      showPrice: { label: "Price", tip: "Print the sale price." },
+      showUnitPrice: {
+        label: "Price per kg or litre",
+        tip: "Print the price per unit for products sold by weight.",
+      },
+      showBarcode: {
+        label: "Barcode",
+        tip: "Print the barcode, or the SKU as a barcode if the product has none.",
+      },
+      packedOn: {
+        label: "Packed on",
+        tip: "Optional. A day as year-month-day. Example: 2026-03-01",
+      },
+      expiresOn: {
+        label: "Expires on",
+        tip: "Optional. A day as year-month-day. Example: 2026-09-01",
+      },
+      dateWrong: "Type the day as year-month-day. Example: 2026-03-01",
+    },
+    preview: { label: "Preview", tip: "Draw every label exactly as it will print." },
+    print: {
+      label: "Print",
+      tip: "Print the labels. A4 opens the print dialog; choose Save as PDF there for a PDF.",
+    },
+    needItems: "Add at least one product first.",
+    needPreview: "Press Preview first.",
+    sheetHeading: "A4 sheet",
+    copies: "× {{count}}",
+    printed: "{{count}} labels were sent to the label printer.",
+    printedToPreview:
+      "No label printer is set up, so {{count}} labels went to the Preview printer.",
+  },
 };
 
 export type CatalogText = typeof en;
