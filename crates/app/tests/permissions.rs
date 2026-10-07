@@ -14,7 +14,7 @@ use app::commands::{
 use app::commands::{
     customers as customer_commands, payment_methods as payment_commands,
     pricing as pricing_commands, purchasing as purchasing_commands, receipts as receipt_commands,
-    returns as return_commands, shifts as shift_commands,
+    reports as report_commands, returns as return_commands, shifts as shift_commands,
 };
 use app::devices::Devices;
 use app::session;
@@ -27,6 +27,7 @@ use app::workflows::pricing_admin::{PriceListSave, PromotionSave, TierSave};
 use app::workflows::products::{ProductInput, VariantAttribute};
 use app::workflows::purchasing_admin::{OrderSave, SupplierPaymentInput, SupplierSave};
 use app::workflows::receiving::{GrnInput, SupplierReturnInput};
+use app::workflows::report_runs::ReportRequest;
 use app::workflows::returns::{ReturnInput, ReturnLineInput};
 use app::workflows::settings_change::SettingsChange;
 use app::workflows::shifts::{CashMoveInput, CashMoveKind, CountLine};
@@ -131,6 +132,7 @@ fn calls() -> Vec<(&'static str, Call)> {
     calls.extend(return_calls());
     calls.extend(purchasing_calls());
     calls.extend(receiving_calls());
+    calls.extend(report_calls());
     calls
 }
 
@@ -1076,6 +1078,47 @@ fn receiving_calls() -> Vec<(&'static str, Call)> {
 }
 
 /// A delivery with no lines from a supplier that doesn't exist.
+/// The report commands (C-M11). The request is the daily summary, which a cashier may
+/// not see (RPT-10); their own shift's report is tested in `tests/reports.rs`.
+fn report_calls() -> Vec<(&'static str, Call)> {
+    vec![
+        ("report_choices", |state, _| {
+            ok(report_commands::report_choices(state))
+        }),
+        ("report_customer_search", |state, _| {
+            ok(report_commands::report_customer_search(state, "Asha"))
+        }),
+        ("report_shifts", |state, _| {
+            ok(report_commands::report_shifts(state))
+        }),
+        ("report_run", |state, _| {
+            ok(report_commands::report_run(state, &a_daily_summary()))
+        }),
+        ("report_export_xlsx", |state, file| {
+            let excel = format!("{file}.xlsx");
+            ok(report_commands::report_export_xlsx(
+                state,
+                &a_daily_summary(),
+                &excel,
+            ))
+        }),
+        ("report_print", |state, _| {
+            ok(report_commands::report_print(
+                state,
+                devices(),
+                &a_daily_summary(),
+            ))
+        }),
+    ]
+}
+
+fn a_daily_summary() -> ReportRequest {
+    ReportRequest::DailySummary {
+        date: pos_core::BusinessDate::parse("2026-01-01").expect("date"),
+        till_id: None,
+    }
+}
+
 fn empty_grn() -> GrnInput {
     GrnInput {
         supplier_id: Id::new(),

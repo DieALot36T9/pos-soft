@@ -106,8 +106,8 @@ fn command_handler() -> CommandHandler {
 fn with_dev_commands() -> CommandHandler {
     use commands::{
         audit, auth, backup, catalog, checkout, customers, dev, hardware, inventory,
-        payment_methods, pricing, purchasing, receipts, returns, settings, setup, shifts, startup,
-        system, tax, users,
+        payment_methods, pricing, purchasing, receipts, reports, returns, settings, setup, shifts,
+        startup, system, tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -274,6 +274,12 @@ fn with_dev_commands() -> CommandHandler {
         purchasing::cmd::supplier_statement,
         purchasing::cmd::supplier_statement_export,
         purchasing::cmd::supplier_payment,
+        reports::cmd::report_choices,
+        reports::cmd::report_customer_search,
+        reports::cmd::report_shifts,
+        reports::cmd::report_run,
+        reports::cmd::report_export_xlsx,
+        reports::cmd::report_print,
         dev::dev_fake_scale_get,
         dev::dev_fake_scale_set,
         dev::dev_fake_scale_read,
@@ -286,8 +292,8 @@ fn with_dev_commands() -> CommandHandler {
 fn without_dev_commands() -> CommandHandler {
     use commands::{
         audit, auth, backup, catalog, checkout, customers, hardware, inventory, payment_methods,
-        pricing, purchasing, receipts, returns, settings, setup, shifts, startup, system, tax,
-        users,
+        pricing, purchasing, receipts, reports, returns, settings, setup, shifts, startup, system,
+        tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -454,6 +460,12 @@ fn without_dev_commands() -> CommandHandler {
         purchasing::cmd::supplier_statement,
         purchasing::cmd::supplier_statement_export,
         purchasing::cmd::supplier_payment,
+        reports::cmd::report_choices,
+        reports::cmd::report_customer_search,
+        reports::cmd::report_shifts,
+        reports::cmd::report_run,
+        reports::cmd::report_export_xlsx,
+        reports::cmd::report_print,
     ])
 }
 

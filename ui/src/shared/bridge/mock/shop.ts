@@ -34,6 +34,7 @@ import { connectStockToShop, resetStock, stockHandlers } from "./stock";
 import { connectTill, resetTill, tillHandlers } from "./till";
 import { connectCustomersToShop, customerHandlers, resetCustomers } from "./customers";
 import { connectPurchasingToShop, purchasingHandlers, resetPurchasing } from "./purchasing";
+import { connectReportsToShop, reportHandlers } from "./reports";
 
 // A pretend shop for the fake bridge. Rust does the real checks; this stand-in
 // checks only what the screens and their tests need, with the same error codes.
@@ -144,6 +145,7 @@ connectTill(
 );
 connectCustomersToShop(() => snapshot.currency);
 connectPurchasingToShop(() => snapshot.currency);
+connectReportsToShop(() => ({ name: snapshot.shop_profile.name, currency: snapshot.currency }));
 connectPrinter(() => snapshot.hardware);
 
 connectCatalog({
@@ -159,6 +161,7 @@ export const shopHandlers = {
   ...tillHandlers,
   ...customerHandlers,
   ...purchasingHandlers,
+  ...reportHandlers,
   startup_status: (): StartupView => ({
     damaged: false,
     setup: setupStatus(),

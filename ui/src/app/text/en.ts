@@ -39,6 +39,10 @@ export const en = {
       label: "Purchasing",
       tip: "Suppliers, purchase orders, receiving goods, goods sent back and what the shop owes.",
     },
+    reports: {
+      label: "Reports",
+      tip: "Daily summary, shift X and Z reports, sales, profit, stock, tax and money owed.",
+    },
     tax: { label: "Tax rates", tip: "Add, change or deactivate tax rates." },
     backups: { label: "Backups", tip: "Back up now, see backups and restore one." },
     users: { label: "Users", tip: "Add users, reset a PIN or password, disable a user." },

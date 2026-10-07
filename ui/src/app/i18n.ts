@@ -17,6 +17,7 @@ import { en as hardware } from "../modules/hardware/text/en";
 import { en as inventory } from "../modules/inventory/text/en";
 import { en as pricing } from "../modules/pricing/text/en";
 import { en as purchasing } from "../modules/purchasing/text/en";
+import { en as reports } from "../modules/reports/text/en";
 import { en as settings } from "../modules/settings/text/en";
 import { en as setup } from "../modules/setup/text/en";
 import { en as shifts } from "../modules/shifts/text/en";
@@ -50,6 +51,7 @@ export const resources = {
     pricing,
     purchasing,
     customers,
+    reports,
   },
 };
 

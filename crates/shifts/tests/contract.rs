@@ -320,3 +320,63 @@ fn an_unknown_shift_is_not_found() {
         matches!(AppError::from(error), AppError::NotFound { entity, .. } if entity == "shift")
     );
 }
+
+// ---- RPT-02 Past shifts for the X and Z report list ----
+
+#[test]
+fn rpt_02_get_finds_a_shift_open_or_closed() {
+    let mut conn = test_db();
+    let (till, user) = (Id::new(), Id::new());
+    let id = open_shift(&mut conn, &till, &user, taka(1_000));
+    assert_eq!(shifts::get(&conn, &id).unwrap().status, ShiftStatus::Open);
+
+    write(&mut conn, |tx| {
+        shifts::close(tx, &id, &[(taka(1_000), 1)], &user, false, None, NOW).unwrap()
+    });
+    let closed = shifts::get(&conn, &id).unwrap();
+    assert_eq!(closed.status, ShiftStatus::Closed);
+    assert_eq!(closed.counted_cash, Some(taka(1_000)));
+
+    let missing = Id::new();
+    assert_eq!(
+        shifts::get(&conn, &missing).unwrap_err(),
+        ShiftsError::NotFound(missing)
+    );
+}
+
+#[test]
+fn rpt_02_list_gives_the_newest_shifts_first_for_one_user_or_everyone() {
+    let mut conn = test_db();
+    let (rina, karim) = (Id::new(), Id::new());
+    let till = Id::new();
+    let mut opened = Vec::new();
+    for (index, user) in [&rina, &karim, &rina].into_iter().enumerate() {
+        let at = pos_core::Timestamp(NOW.0 + index as i64 * 1_000);
+        let id = write(&mut conn, |tx| {
+            shifts::open(tx, &till, user, taka(500), &[], today(), at).unwrap()
+        });
+        write(&mut conn, |tx| {
+            shifts::close(tx, &id, &[(taka(500), 1)], user, false, None, at).unwrap()
+        });
+        opened.push(id);
+    }
+
+    let everyone: Vec<Id> = shifts::list(&conn, None, 10)
+        .unwrap()
+        .into_iter()
+        .map(|shift| shift.id)
+        .collect();
+    assert_eq!(
+        everyone,
+        vec![opened[2].clone(), opened[1].clone(), opened[0].clone()]
+    );
+
+    let rinas: Vec<Id> = shifts::list(&conn, Some(&rina), 10)
+        .unwrap()
+        .into_iter()
+        .map(|shift| shift.id)
+        .collect();
+    assert_eq!(rinas, vec![opened[2].clone(), opened[0].clone()]);
+
+    assert_eq!(shifts::list(&conn, None, 1).unwrap().len(), 1);
+}

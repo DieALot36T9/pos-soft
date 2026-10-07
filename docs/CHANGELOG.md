@@ -4,6 +4,13 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (task C-M11: reports)
+- **Reports in the back office** ("Reports"): the list of reports on the left, grouped Sales, Profit, Stock, Tax, Customers and suppliers, Control; on the right the days (Today, Yesterday, This week, This month or Custom) and the report's own choices, then **Show**. Every report is shown with one table: shop, title, period and filters, the rows with numbers on the right, the totals in bold, and the report's sections. Negative stock shows in red (INV-04).
+- **Every report** in Req - Reports: daily summary for one day and one till or all (RPT-01), the X or Z report of any shift, past ones too (RPT-02), sales by product, category, brand, cashier, hour, weekday or day with category, brand and cashier filters and top N (RPT-03), profit and margin (RPT-04), stock value, low stock, near expiry and stock movement (RPT-05), the tax report (RPT-06), what the shop owes suppliers and what customers owe, and supplier and customer statements (RPT-07), discounts and overrides per cashier (RPT-08).
+- **Print and export** (RPT-01, RPT-09): "Print receipt" prints the report on the receipt printer (a failure shows the usual banner with Retry); "Print A4 or PDF" opens the print dialog with the report on an A4 page ("Save as PDF" there makes the PDF); "Excel" saves an .xlsx with the shop name, report, period, time made and real numbers.
+- **Who sees what** (RPT-10): everything needs "See all reports"; a cashier sees only the X and Z reports of their own shifts, and the menu shows "Reports" to them for that.
+- 6 new commands (`report_choices`, `report_customer_search`, `report_shifts`, `report_run`, `report_export_xlsx`, `report_print`), each in `tests/permissions.rs`; `crates/app/tests/reports.rs`; `shifts::get` and `shifts::list` (newest first, for one cashier or everyone); screen tests and `ui/e2e/reports.spec.ts`.
+
 ### Added (task C-M10: purchasing)
 - **Purchasing in the back office** ("Purchasing", needs "Purchasing"): suppliers with what the shop owes them, purchase orders, receiving goods, supplier returns and the aging of what is owed, in one page with tabs.
 - **Suppliers** (PUR-01): add, change and archive suppliers (archived ones get no new orders or deliveries). The supplier page shows what the shop owes, the deliveries, a payment, and the statement for chosen days with opening and closing balances, exportable to Excel (PUR-06).

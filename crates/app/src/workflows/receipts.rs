@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
-use pos_core::{AppError, Bitmap1, CurrencyFormat, Id, Money, TaxMode, Timestamp};
+use pos_core::{AppError, Bitmap1, BusinessDate, CurrencyFormat, Id, Money, TaxMode, Timestamp};
 use printing::escpos::{self, DrawerPin, EscPosOpts};
 use printing::{
     CustomerOnReceipt, Doc, LineDiscount, PaymentLine, ReceiptData, ReceiptLayout, ReceiptLine,
@@ -27,6 +27,8 @@ use crate::audit_log;
 use crate::devices::Devices;
 use crate::receipt_words;
 use crate::state::AppState;
+use crate::workflows::report_runs::{self, ReportRequest};
+use crate::workflows::stock;
 use crate::workflows::till::{conflict, till_settings, till_shift};
 
 /// Something the receipt printer prints, named so it can be printed again.
@@ -40,6 +42,9 @@ pub enum Printable {
     ShiftReport { shift_id: Id },
     /// A return's receipt (RET-06).
     Return { return_id: Id },
+    /// Any report from the Reports screen, on receipt paper (RPT-01). It is run again
+    /// for each try, so a retry prints the figures as they are then.
+    Report { request: ReportRequest },
 }
 
 /// How a printout or a drawer pulse went (HW-08). The screen shows a banner when
@@ -87,6 +92,14 @@ pub fn print_return(
 pub fn print_shift_report(state: &AppState, devices: &Devices, shift_id: &Id) -> PrintResult {
     let printable = Printable::ShiftReport {
         shift_id: shift_id.clone(),
+    };
+    print(state, devices, printable, false, false)
+}
+
+/// Prints a report from the Reports screen once, on receipt paper (RPT-01).
+pub fn print_report(state: &AppState, devices: &Devices, request: &ReportRequest) -> PrintResult {
+    let printable = Printable::Report {
+        request: request.clone(),
     };
     print(state, devices, printable, false, false)
 }
@@ -176,6 +189,7 @@ pub fn retry(
             print_receipt(state, devices, sale_id, false, took_cash)
         }
         Printable::ShiftReport { shift_id } => print_shift_report(state, devices, shift_id),
+        Printable::Report { request } => print_report(state, devices, request),
         Printable::Return { return_id } => {
             let cash_back = state
                 .db
@@ -308,10 +322,12 @@ fn picture(
     copy: bool,
 ) -> Result<Bitmap1, AppError> {
     let offset = state.clock.local_offset_minutes();
+    let today = BusinessDate(stock::today(state)?);
     let doc = state.db.read(|conn| match printable {
         Printable::Receipt { sale_id } => receipt_doc(conn, offset, sale_id, copy),
         Printable::ShiftReport { shift_id } => report_doc(conn, offset, shift_id),
         Printable::Return { return_id } => return_doc(conn, offset, return_id),
+        Printable::Report { request } => any_report_doc(conn, offset, today, request),
     })?;
     Ok(rasterize(&doc, &devices.fonts)?)
 }
@@ -348,21 +364,20 @@ pub fn report_doc(
     utc_offset_minutes: i32,
     shift_id: &Id,
 ) -> Result<Doc, AppError> {
-    let mut till_names = BTreeMap::new();
-    let till: TillSettings = settings::get(conn)?;
-    if let Some(till_id) = till.till_id {
-        till_names.insert(till_id, till.till_code);
-    }
-    let context = reports::ShopContext {
-        user_names: user_names(conn)?,
-        till_names,
-        payment_method_names: sales::payment_methods(conn)?
-            .into_iter()
-            .map(|method| (method.id, method.name))
-            .collect(),
-        utc_offset_minutes,
-    };
+    let context = report_runs::shop_context(conn, utc_offset_minutes)?;
     let table = reports::shift_report(conn, shift_id, &context)?;
+    let layout = receipt_layout(conn)?;
+    Ok(shift_report(&table, &layout, &receipt_words::english()))
+}
+
+/// Any report laid out for receipt paper: title, period, filters and each table.
+pub fn any_report_doc(
+    conn: &Connection,
+    utc_offset_minutes: i32,
+    today: BusinessDate,
+    request: &ReportRequest,
+) -> Result<Doc, AppError> {
+    let table = report_runs::run_on(conn, utc_offset_minutes, today, request)?;
     let layout = receipt_layout(conn)?;
     Ok(shift_report(&table, &layout, &receipt_words::english()))
 }

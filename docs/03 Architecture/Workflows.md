@@ -154,6 +154,13 @@ As built in C-M8 (`workflows::customer_records::take_payment`): the method must 
 
 As built in C-M10 (`workflows::purchasing_admin::pay_supplier`): the amount must be above zero and the method cash, card, wallet or other (`payment_method_not_for_supplier`), with a reference when the method needs one → `purchasing::record_payment` → cash "from the drawer" needs the user's own open shift (`shift_not_open`, `shift_not_yours`) and is a `supplier_payment` row on it (negative cash, pointing at the payment) → audit `supplier.payment` → COMMIT → the drawer opens. Aging uses the till's business day; statements and orders export to Excel through `io::write_xlsx` (headings are English constants for now, ADR-022).
 
+## Reports (C-M11)
+- **Run:** the screen sends a `ReportRequest` (the report and its days and filters) → `report_run` checks RPT-10 (`ReportsViewAll`, or `ShiftOpenCloseOwn` and a shift whose `user_id` is the user's, through `shifts::get`) → `report_runs::run` on the **reader** connection: the `ShopContext` (user names from `auth`, this till's name from `settings`, payment method names from `sales`, the clock's offset) and today's business date go to the matching `reports::*` function → `ReportTable`. Saves nothing and audits nothing.
+- **Shift list:** `report_shifts` → `shifts::list` (newest first, at most 200; only the user's own without `ReportsViewAll`) with till and cashier names and the local opening time.
+- **Receipt paper:** `report_print` → `receipts::print_report` → `Printable::Report { request }` → the report is run again and laid out by `printing::shift_report` (any report) → the receipt printer, once. A failure waits for Retry like any printout (HW-08).
+- **A4 and PDF:** the screen draws the same `ReportTable` in a `data-print-area` and calls `print_window` (ADR-013); `@page` sets A4.
+- **Excel:** `report_export_xlsx` → the report → `io::report_to_xlsx` with the shop name, the local time and the English export words (ADR-022).
+
 ## Import products
 Backup (`pre-import`) → `io::read_table` → map rows to `catalog::NewProduct`/`UpdateProduct` + `inventory::ReorderRule` + `pricing` prices → validate everything → **one transaction** → audit with counts.
 

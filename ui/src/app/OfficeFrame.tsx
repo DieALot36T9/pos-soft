@@ -1,5 +1,6 @@
 import {
   BadgePercent,
+  BarChart3,
   Boxes,
   ShoppingCart,
   ClipboardList,
@@ -39,6 +40,7 @@ import { UnitsPage } from "../modules/catalog/pages/UnitsPage";
 import { HardwarePage } from "../modules/hardware/pages/HardwarePage";
 import { PricingPage } from "../modules/pricing/pages/PricingPage";
 import { PurchasingPage } from "../modules/purchasing/pages/PurchasingPage";
+import { ReportsPage } from "../modules/reports/pages/ReportsPage";
 import { StockCountsPage } from "../modules/inventory/pages/StockCountsPage";
 import { StockLevelsPage } from "../modules/inventory/pages/StockLevelsPage";
 import { SettingsPage } from "../modules/settings/pages/SettingsPage";
@@ -66,6 +68,7 @@ type Page =
   | "units"
   | "pricing"
   | "purchasing"
+  | "reports"
   | "hardware"
   | "settings"
   | "tax"
@@ -75,9 +78,9 @@ type Page =
   | "audit"
   | "account";
 
-// Each menu entry, and the permission it needs. The menu hides what the user's role
-// can't open, as a convenience: Rust checks every command anyway.
-const menu: { page: Page; icon: LucideIcon; needs: Permission | null }[] = [
+// Each menu entry, and the permission it needs (a list: any one of them). The menu hides
+// what the user's role can't open, as a convenience: Rust checks every command anyway.
+const menu: { page: Page; icon: LucideIcon; needs: Permission | Permission[] | null }[] = [
   { page: "home", icon: Home, needs: null },
   { page: "checkout", icon: ShoppingCart, needs: "checkout_sell" },
   { page: "customers", icon: Contact, needs: "customer_view_create" },
@@ -89,6 +92,8 @@ const menu: { page: Page; icon: LucideIcon; needs: Permission | null }[] = [
   { page: "units", icon: Ruler, needs: "catalog_manage" },
   { page: "pricing", icon: BadgePercent, needs: "pricing_manage" },
   { page: "purchasing", icon: Truck, needs: "purchasing_manage" },
+  // RPT-10: cashiers see their own shifts' X and Z reports; everything else needs all reports.
+  { page: "reports", icon: BarChart3, needs: ["reports_view_all", "shift_open_close_own"] },
   { page: "hardware", icon: Printer, needs: null },
   { page: "settings", icon: Settings, needs: "settings_manage" },
   { page: "tax", icon: Percent, needs: "tax_manage" },
@@ -140,8 +145,10 @@ export function OfficeFrame({
 
   useIdleLock(idleLockMinutes, lock);
 
-  const allowed = menu.filter(
-    (entry) => entry.needs === null || session.permissions.includes(entry.needs),
+  const allowed = menu.filter(({ needs }) =>
+    needs === null
+      ? true
+      : (Array.isArray(needs) ? needs : [needs]).some((each) => session.permissions.includes(each)),
   );
 
   return (
@@ -215,6 +222,7 @@ export function OfficeFrame({
         {page === "units" ? <UnitsPage /> : null}
         {page === "pricing" ? <PricingPage /> : null}
         {page === "purchasing" ? <PurchasingPage permissions={session.permissions} /> : null}
+        {page === "reports" ? <ReportsPage permissions={session.permissions} /> : null}
         {page === "hardware" ? <HardwarePage devTools={devTools} /> : null}
         {page === "settings" ? <SettingsPage /> : null}
         {page === "tax" ? <TaxRatesPage /> : null}
