@@ -4,6 +4,9 @@ All notable changes to this project are recorded here.
 Format: [Keep a Changelog](https://keepachangelog.com/). Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+### Added (UI redesign plan)
+- UI Review section: guidelines, review process, list of all 50 screens with a spec page each, ADR-024 (Mantine, proposed).
+
 ### Added (task C-M12: import, export, labels and shelf tags)
 - **Import and export** in the back office ("Import and export", needs "Import data" or "Export data"). The import wizard: choose what the file holds (products, customers, suppliers, opening stock, price list prices, extra barcodes), save a CSV or Excel **template** with an example row, choose the file (CSV with comma, semicolon or tab, with or without BOM; or an Excel sheet), and the columns are matched by their headers, including common names such as "MRP" or "Item code"; any can be changed. Products are found by SKU or by barcode; missing categories, brands and units can be made.
 - **Preview** (IO-01): the counts of new, changed and left-out rows, the first 50 rows as they will be saved, and **every problem with its row and column** in plain words ("Row 5, MRP: leave out thousands signs"). The preview runs the whole import and undoes it, so it finds every problem the import would meet (a barcode used by another product, an unknown tax rate, …).

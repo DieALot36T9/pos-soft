@@ -59,6 +59,9 @@ flowchart LR
 | **M14** | UAT | **Product owner and a real cashier** run the [[UAT Script]] on real hardware | Zero blocking bugs and zero data-loss bugs |
 | **M15** | Release 1.0 | Signed Windows installer, Linux/macOS builds, [[Installation]] runbook, user manuals, pilot at one till | Pilot runs one week without a critical issue |
 
+## UI redesign (after M12)
+The features are complete, but the screens are being redesigned page by page with reviewed Mantine mocks before M13: [[UI Review Home]]. Approved pages then become rebuild tasks.
+
 ## How the work is run
 Each milestone is split into task briefs ([[Task Index]]), each done by a **fresh cloud session** ([[Building with Cloud Sessions]]).
 

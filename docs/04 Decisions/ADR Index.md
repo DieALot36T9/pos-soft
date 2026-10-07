@@ -30,4 +30,5 @@ Status values: Proposed · **Accepted** · Superseded by ADR-xxx.
 | [[ADR-020 Negative stock allowed by default]] | Never block a sale for wrong stock data (setting) | Accepted |
 | [[ADR-021 Flat colour-coded UI with tooltips]] | Flat look, fixed colour meanings, tooltips everywhere | Accepted |
 | [[ADR-022 Ready for more languages later]] | English only, text kept in one place for future languages | Accepted |
+| [[ADR-024 Mantine for the UI]] | Mantine components and standard POS/admin layouts; React stays, no Rust UI | Proposed |
 | [[ADR-023 Reuse before building]] | Standards and libraries first; own code only where nothing fits; permissive licences only | Accepted |

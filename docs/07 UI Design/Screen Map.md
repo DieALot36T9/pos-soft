@@ -3,6 +3,8 @@ tags: [ui]
 ---
 # Screen Map
 
+> The redesign works from the full, numbered list of screens in [[Page List]] (with one spec per page). This map shows how the screens connect.
+
 ```mermaid
 flowchart TB
   Start((App start)) --> Check{Setup complete?}

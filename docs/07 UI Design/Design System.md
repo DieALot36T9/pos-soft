@@ -104,5 +104,7 @@ lucide icons, one fixed icon per action across the whole app:
 | Settings | settings | grey |
 
 ## Shared components (`ui/src/shared/ui/`)
+> **Being replaced:** the screens are being redesigned with **Mantine** ([[ADR-024 Mantine for the UI]]). How components, layouts and patterns work from now on is in [[UI Guidelines]]. The colours, colour meanings, contrast, tooltip and icon rules on this page stay.
+
 `ActionButton` (colour + icon + label + shortcut + tooltip, all required), `IconButton` (icon + tooltip required), `Tip`, `MoneyInput`, `QtyInput`, `Field` (label + input + tooltip + error text), `Dialog`, `SidePanel`, `DataTable` (virtualized), `Badge` (soft colour + icon + word), `StatusLight`, `ColourLegend` (shown in the `F1` help).
 These start from shadcn/ui and are **restyled flat**: shadow utilities are removed from the Tailwind theme, so `shadow-*` classes don't exist and can't creep back in.

@@ -7,6 +7,9 @@ The design lives in the Obsidian vault at `docs/`. Start at `docs/00 Home.md`.
 1. Work on **one module at a time**. Read its page in `docs/05 Modules/Module - <name>.md`, especially **"Working on this module"**, and its folder's `CLAUDE.md`. Stay inside that module's folders.
 2. Read `docs/03 Architecture/Module Rules.md` and `docs/09 Guides/Coding Standards.md` if you haven't in this session.
 
+## UI redesign sessions
+If you're asked to mock or redesign a screen, start at `docs/13 UI Review/UI Review Home.md` and follow it. One page per session.
+
 ## Hard rules
 - A module crate depends only on `core` (plus approved third-party crates). Only `app` connects modules. Never add one module crate to another's `Cargo.toml`.
 - A module reads and writes only its own tables (`<module>_*`). Other modules read it through its public functions or its published `<module>_v_*` views.

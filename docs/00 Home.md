@@ -21,6 +21,7 @@ An **offline, universal point-of-sale system for supermarkets and grocery shops*
 | Know exactly what a feature must do | [[Requirements Index]] |
 | Work on a module | `05 Modules/` → e.g. [[Module - sales]] |
 | See the screens | [[Screen Map]] |
+| **Redesign the screens (one page at a time, with mocks)** | [[UI Review Home]] → [[Page List]] → [[UI Guidelines]] |
 | Write or run tests | [[Test Strategy]] → [[Definition of Done]] |
 | Build the app with Claude cloud sessions | [[Building with Cloud Sessions]] → [[Task Index]] |
 | Set up a computer for development | [[Dev Environment Setup]] |
@@ -41,6 +42,7 @@ An **offline, universal point-of-sale system for supermarkets and grocery shops*
 - **10 Runbooks**: [[Installation]], [[Backup and Restore]], [[Printer Setup]], [[Scale Setup]], [[Troubleshooting]]
 - **11 User Manual**: [[Cashier Guide]], [[Admin Guide]]
 - **Templates**: module page, ADR, user story, milestone, bug report
+- **13 UI Review**: [[UI Review Home]], [[UI Guidelines]], [[UI Review Process]], [[Page List]] (50 page specs in `Pages/`)
 - **12 Tasks**: [[Task Index]]: one brief per piece of work, for fresh cloud sessions
 - [[CHANGELOG]]
 
