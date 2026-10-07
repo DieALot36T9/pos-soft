@@ -53,6 +53,8 @@ pub fn reverse_ref(tx, shift: &Id, ref_type: &str, ref_id: &Id, by: &Id, now: Ti
 pub fn expected_cash(conn, shift: &Id) -> Result<Money>;
 pub fn close(tx, shift: &Id, counts: &[(Money, u32)], by: &Id, forced: bool, note: Option<String>, now: Timestamp) -> Result<CloseResult>;
 pub fn summary(conn, shift: &Id) -> Result<ShiftSummary>;     // totals by kind and method
+pub fn get(conn, shift: &Id) -> Result<Shift>;                  // open or closed; NotFound if unknown (C-M11)
+pub fn list(conn, user: Option<&Id>, limit: u32) -> Result<Vec<Shift>>;  // newest first; one cashier's or everyone's (C-M11, RPT-02/RPT-10)
 pub fn migrations() -> ModuleMigrations;
 
 pub const CASH: &str = "cash";                 // the method kind that counts toward expected cash
@@ -90,6 +92,7 @@ Unit tests in `src/rules.rs` and `src/error.rs`; contract tests in `tests/contra
 - The SHF-06 example: expected vs counted difference: `shf_06_expected_12450_counted_12400_records_a_shortage_of_50`.
 - Expected cash includes every cash kind with the right signs; non-cash methods are excluded: `shf_06_expected_cash_adds_every_cash_kind_with_its_sign_and_skips_other_methods`.
 - `reverse_ref` makes the shift totals return to what they were before the voided sale: `ret_04_reverse_ref_returns_the_shift_totals_to_before_the_voided_sale` (plus only once, nothing to reverse, closed shift).
+- RPT-02 (C-M11): `rpt_02_get_finds_a_shift_open_or_closed`, `rpt_02_list_gives_the_newest_shifts_first_for_one_user_or_everyone`.
 - Also: SHF-01 open (float as expected cash, counts kept, count mismatch, negative float), SHF-03 (reason needed, signs by kind), SHF-06 (count needed, closed shift is frozen), SHF-07 force close, SHF-08 summary totals, append-only movements, the three views' columns (`shf_08_view_shifts_v_counts_publishes_the_opening_and_closing_counts` for `shifts_v_counts`, added for the reports Z report), not found, migrations run on an empty database.
 
 ## Working on this module
@@ -121,4 +124,5 @@ Unit tests in `src/rules.rs` and `src/error.rs`; contract tests in `tests/contra
 - Migration 002 publishes `shifts_v_counts` (shift_id, stage, denomination_minor, count) for the Z report's count per denomination (SHF-08). `reports::shift_report` reads it.
 - The public structs have no `serde`/`ts-rs` derives: `app` maps them into `ShiftView`, `ShiftState` and `ShiftClosed` (decided in C-M6).
 - Done in `app` (C-M6): the business date from `core::business_date` with the till's cutoff, open carts and permissions checked before `close`, the audit events (`shift.open`, `shift.cash_move`, `drawer.no_sale`, `shift.close`, `shift.force_close`). SHF-04 moves no money, so it has no movement row here; it is only an audit event. The drawer pulse and the X/Z reports come in C-M7.
+- C-M11: `get` and `list` were added for the Reports screen's X and Z list (`app` `report_shifts`). The list is newest first by opening time; there is no paging beyond `limit`.
 - For `reports`: counts of sales, returns, voids and cancelled carts (SHF-08) come from `sales`, not from this module.

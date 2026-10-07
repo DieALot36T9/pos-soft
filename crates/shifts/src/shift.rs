@@ -56,6 +56,17 @@ pub fn current(conn: &Connection, till: &Id) -> Result<Option<Shift>, ShiftsErro
     }
 }
 
+/// One shift, open or closed (RPT-02: past Z reports can be reprinted).
+pub fn get(conn: &Connection, shift: &Id) -> Result<Shift, ShiftsError> {
+    require_shift(conn, shift)
+}
+
+/// The newest shifts first, at most `limit`. With `user`, only that cashier's shifts
+/// (RPT-10: a cashier sees only their own X and Z reports).
+pub fn list(conn: &Connection, user: Option<&Id>, limit: u32) -> Result<Vec<Shift>, ShiftsError> {
+    store::list_shifts(conn, user, limit)
+}
+
 /// Closes a shift and saves expected cash, counted cash and the difference (SHF-06).
 /// `counts` is the cash count by denomination; it may be empty only when `forced`
 /// is true (an admin closing someone else's shift, SHF-07).

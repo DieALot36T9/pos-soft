@@ -14,6 +14,7 @@ pub mod payment_methods;
 pub mod pricing;
 pub mod purchasing;
 pub mod receipts;
+pub mod reports;
 pub mod returns;
 pub mod settings;
 pub mod setup;
@@ -59,6 +60,10 @@ use pos_core::{AppError, Permission};
 ///   `sale_void`, take an admin's approval token (`require_or_approval`, USR-05). A typed
 ///   price on a return without a receipt also needs `PriceOverride` (the user's or the
 ///   approving admin's).
+/// - `report_run`, `report_export_xlsx` and `report_print` also let a user with
+///   `ShiftOpenCloseOwn` see the X or Z report of their own shift (RPT-10).
+///   `report_shifts` lists everyone's shifts with `ReportsViewAll`, otherwise only the
+///   user's own.
 /// - `count_post` makes a `pre-count-post` backup first, without `BackupRun`: the backup
 ///   is part of posting (Workflows, "Post stock count").
 pub const COMMANDS: &[(&str, Option<Permission>)] = &[
@@ -235,6 +240,12 @@ pub const COMMANDS: &[(&str, Option<Permission>)] = &[
         Some(Permission::PurchasingManage),
     ),
     ("supplier_payment", Some(Permission::PurchasingPay)),
+    ("report_choices", Some(Permission::ReportsViewAll)),
+    ("report_customer_search", Some(Permission::ReportsViewAll)),
+    ("report_shifts", Some(Permission::ShiftOpenCloseOwn)),
+    ("report_run", Some(Permission::ReportsViewAll)),
+    ("report_export_xlsx", Some(Permission::ReportsViewAll)),
+    ("report_print", Some(Permission::ReportsViewAll)),
 ];
 
 /// The dev-only commands (fake scale panel). Registered only when `dev_tools::ON` is true.
@@ -284,7 +295,7 @@ mod tests {
     #[test]
     fn every_command_has_a_permission_decision() {
         let all = names(COMMANDS);
-        assert_eq!(all.len(), 164);
+        assert_eq!(all.len(), 170);
         let mut unique = all.clone();
         unique.sort_unstable();
         unique.dedup();

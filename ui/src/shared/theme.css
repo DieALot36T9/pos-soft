@@ -117,4 +117,16 @@
   [data-print-area] img {
     border: none;
   }
+  /* A report on A4 (RPT-09, ADR-013): the full page width, no panel border. */
+  [data-print-area].report-page {
+    width: 100%;
+    border: none;
+    padding: 0;
+  }
+}
+
+/* Reports print on A4 with a small margin. "Save as PDF" in the dialog makes the PDF. */
+@page {
+  size: A4;
+  margin: 12mm;
 }

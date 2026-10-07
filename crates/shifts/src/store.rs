@@ -94,6 +94,30 @@ pub(crate) fn load_shift(conn: &Connection, id: &Id) -> Result<Option<Shift>, Sh
     }
 }
 
+/// The newest shifts first, for everyone or for one user.
+pub(crate) fn list_shifts(
+    conn: &Connection,
+    user: Option<&Id>,
+    limit: u32,
+) -> Result<Vec<Shift>, ShiftsError> {
+    let mut statement = conn.prepare(
+        "SELECT id, till_id, user_id, business_date, status, opened_at, opening_float_minor,
+                closed_at, closed_by, forced, expected_cash_minor, counted_cash_minor,
+                difference_minor, close_note
+         FROM shifts_shifts
+         WHERE :user_id IS NULL OR user_id = :user_id
+         ORDER BY opened_at DESC, id DESC
+         LIMIT :limit",
+    )?;
+    let raws = statement
+        .query_map(
+            named_params! { ":user_id": user.map(Id::as_str), ":limit": limit },
+            RawShift::read,
+        )?
+        .collect::<Result<Vec<RawShift>, rusqlite::Error>>()?;
+    raws.into_iter().map(RawShift::into_shift).collect()
+}
+
 /// Saves the close figures and marks the shift closed.
 pub(crate) fn mark_closed(
     tx: &Transaction,

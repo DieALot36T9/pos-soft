@@ -20,6 +20,7 @@ pub mod purchasing_admin;
 pub mod receipts;
 pub mod receiving;
 pub mod refund_plan;
+pub mod report_runs;
 pub mod returns;
 pub mod sale_snapshot;
 pub mod scan_input;

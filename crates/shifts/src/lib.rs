@@ -16,7 +16,7 @@ pub use model::{
     ShiftMovement, ShiftStatus, ShiftSummary,
 };
 pub use movement::{expected_cash, record, reverse_ref};
-pub use shift::{close, current, open};
+pub use shift::{close, current, get, list, open};
 pub use summary::summary;
 
 use pos_core::{Migration, ModuleMigrations};
