@@ -95,6 +95,21 @@ impl Db {
         Ok(value)
     }
 
+    /// Runs `work` in a write transaction and then always undoes it. Used to try a
+    /// change and see what would happen, such as an import preview (IO-01).
+    pub fn write_and_undo<T>(
+        &self,
+        work: impl FnOnce(&Transaction) -> Result<T, AppError>,
+    ) -> Result<T, AppError> {
+        let mut connection = lock(&self.writer);
+        let transaction = connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(sqlite_to_app)?;
+        let value = work(&transaction)?;
+        transaction.rollback().map_err(sqlite_to_app)?;
+        Ok(value)
+    }
+
     /// Runs `work` on the reader connection. Use it for reports, lists and searches.
     pub fn read<T>(
         &self,

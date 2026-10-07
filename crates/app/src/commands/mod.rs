@@ -10,6 +10,8 @@ pub mod customers;
 pub mod dev;
 pub mod hardware;
 pub mod inventory;
+pub mod io;
+pub mod labels;
 pub mod payment_methods;
 pub mod pricing;
 pub mod purchasing;
@@ -64,6 +66,8 @@ use pos_core::{AppError, Permission};
 ///   `ShiftOpenCloseOwn` see the X or Z report of their own shift (RPT-10).
 ///   `report_shifts` lists everyone's shifts with `ReportsViewAll`, otherwise only the
 ///   user's own.
+/// - `import_commit` makes a `pre-import` backup first, without `BackupRun`, like
+///   `count_post`. `io_price_lists` also works with `DataExport` instead of `DataImport`.
 /// - `count_post` makes a `pre-count-post` backup first, without `BackupRun`: the backup
 ///   is part of posting (Workflows, "Post stock count").
 pub const COMMANDS: &[(&str, Option<Permission>)] = &[
@@ -246,6 +250,17 @@ pub const COMMANDS: &[(&str, Option<Permission>)] = &[
     ("report_run", Some(Permission::ReportsViewAll)),
     ("report_export_xlsx", Some(Permission::ReportsViewAll)),
     ("report_print", Some(Permission::ReportsViewAll)),
+    ("import_preview", Some(Permission::DataImport)),
+    ("import_commit", Some(Permission::DataImport)),
+    ("import_progress", Some(Permission::DataImport)),
+    ("import_cancel", Some(Permission::DataImport)),
+    ("import_errors_save", Some(Permission::DataImport)),
+    ("template_download", Some(Permission::DataImport)),
+    ("export_entity", Some(Permission::DataExport)),
+    ("io_price_lists", Some(Permission::DataImport)),
+    ("labels_pick", Some(Permission::LabelsPrint)),
+    ("labels_preview", Some(Permission::LabelsPrint)),
+    ("labels_print", Some(Permission::LabelsPrint)),
 ];
 
 /// The dev-only commands (fake scale panel). Registered only when `dev_tools::ON` is true.
@@ -295,7 +310,7 @@ mod tests {
     #[test]
     fn every_command_has_a_permission_decision() {
         let all = names(COMMANDS);
-        assert_eq!(all.len(), 170);
+        assert_eq!(all.len(), 181);
         let mut unique = all.clone();
         unique.sort_unstable();
         unique.dedup();

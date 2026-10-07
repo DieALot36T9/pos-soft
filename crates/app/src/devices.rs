@@ -56,6 +56,11 @@ impl Devices {
         printer_from(&config, &self.preview)
     }
 
+    /// The label printer from the settings (HW-06).
+    pub fn label_printer(&self, connection: &PrinterConnection) -> Box<dyn RawPrinter> {
+        printer_from(&printer_config(connection), &self.preview)
+    }
+
     /// Sends one printout's bytes. Waits for any printout already being sent.
     pub fn send(&self, printer: &dyn RawPrinter, bytes: &[u8]) -> Result<(), AppError> {
         let _turn = lock(&self.print_queue)?;

@@ -18,6 +18,7 @@ pub fn read_file(path: &Path, sheet: Option<&str>) -> Result<Table>;        // .
 pub fn sheet_names(path: &Path) -> Result<Vec<String>>;                     // .xlsx tab names in order; a .csv has none
 pub fn write_csv(path: &Path, t: &Table) -> Result<()>;                     // UTF-8 BOM, CRLF, formula guard
 pub fn write_xlsx(path: &Path, sheets: &[XlsxSheet]) -> Result<()>;         // typed cells, bold header row
+pub fn decimal_text(value: i64, decimals: u8) -> String;                    // (1250, 2) → "12.50", exact; money and quantities in CSV exports (C-M12)
 pub fn report_to_xlsx(path: &Path, r: &ReportTable, header: &ExportHeader) -> Result<()>;
 
 pub struct XlsxSheet { pub name: String, pub headers: Vec<String>, pub rows: Vec<Vec<XlsxCell>> }  // name made safe for Excel
@@ -88,8 +89,7 @@ The UI turns each code into plain English. The file errors keep the library's me
 
 ## Open items
 *Anything not finished yet. The next session working on this module starts here.*
-- Built in task B-io (Rust only). The screens (`ui/src/modules/io/`) and the `app` import/export workflows come in Phase C.
-- [[Workflows#Import products]] calls the read function `io::read_table`; the code (and this page) call it `read_file`. Fix the word in Workflows when the import workflow is built.
+- Built in task B-io (Rust only). **Connected in C-M12:** the screens (`ui/src/modules/io/`, "Import and export") and the `app` workflows (`import_file.rs`, `import_products.rs`, `import_contacts.rs`, `import_stock.rs`, `exports.rs`); see [[Module - app]] and [[Workflows#Import products]] (which now says `read_file`). `decimal_text` was made public for CSV exports.
 - An .xlsx sheet whose header row is not row 1 (blank rows above it) is read from its first used row, so row numbers in errors are off by the number of blank rows above. Templates always start at row 1. Revisit if shops send such files.
 - If two `XlsxSheet` names become the same after they are made safe, `write_xlsx` fails with `io_file_not_saved`. Callers pass distinct names today.
-- No types here are sent to the UI yet, so none derive `ts-rs`. Add the derives when the Phase C screens need them (probably `CellErr` and the mapping result).
+- No types here are sent to the UI, so none derive `ts-rs`: `app` has its own screen types (`ImportCellError`, `ImportPreview`, …) built from `Table` and `CellErr`'s fields.

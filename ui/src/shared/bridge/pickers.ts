@@ -58,3 +58,39 @@ export async function pickImageFile(title: string): Promise<string | null> {
   });
   return typeof picked === "string" ? picked : null;
 }
+
+export const FAKE_IMPORT_FILE = "/fake/imports/products.csv";
+
+// Lets the user pick a .csv or .xlsx file to import (IO-01). Null if cancelled.
+export async function pickImportFile(title: string): Promise<string | null> {
+  if (useFakeBridge) {
+    return FAKE_IMPORT_FILE;
+  }
+  const picked = await open({
+    title,
+    multiple: false,
+    directory: false,
+    filters: [{ name: "CSV or Excel", extensions: ["csv", "xlsx"] }],
+  });
+  return typeof picked === "string" ? picked : null;
+}
+
+// Lets the user choose where to save a CSV or Excel file (IO-03). Null if cancelled.
+export async function pickDataFile(
+  title: string,
+  suggestedName: string,
+  format: "csv" | "xlsx",
+): Promise<string | null> {
+  if (useFakeBridge) {
+    return `/fake/exports/${suggestedName}`;
+  }
+  const picked = await save({
+    title,
+    defaultPath: suggestedName,
+    filters:
+      format === "csv"
+        ? [{ name: "CSV", extensions: ["csv"] }]
+        : [{ name: "Excel", extensions: ["xlsx"] }],
+  });
+  return picked ?? null;
+}

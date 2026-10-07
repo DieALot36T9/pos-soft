@@ -105,7 +105,7 @@ fn command_handler() -> CommandHandler {
 #[allow(clippy::too_many_lines)]
 fn with_dev_commands() -> CommandHandler {
     use commands::{
-        audit, auth, backup, catalog, checkout, customers, dev, hardware, inventory,
+        audit, auth, backup, catalog, checkout, customers, dev, hardware, inventory, io, labels,
         payment_methods, pricing, purchasing, receipts, reports, returns, settings, setup, shifts,
         startup, system, tax, users,
     };
@@ -280,6 +280,17 @@ fn with_dev_commands() -> CommandHandler {
         reports::cmd::report_run,
         reports::cmd::report_export_xlsx,
         reports::cmd::report_print,
+        io::cmd::import_preview,
+        io::cmd::import_commit,
+        io::cmd::import_progress,
+        io::cmd::import_cancel,
+        io::cmd::import_errors_save,
+        io::cmd::template_download,
+        io::cmd::export_entity,
+        io::cmd::io_price_lists,
+        labels::cmd::labels_pick,
+        labels::cmd::labels_preview,
+        labels::cmd::labels_print,
         dev::dev_fake_scale_get,
         dev::dev_fake_scale_set,
         dev::dev_fake_scale_read,
@@ -291,9 +302,9 @@ fn with_dev_commands() -> CommandHandler {
 #[allow(clippy::too_many_lines)]
 fn without_dev_commands() -> CommandHandler {
     use commands::{
-        audit, auth, backup, catalog, checkout, customers, hardware, inventory, payment_methods,
-        pricing, purchasing, receipts, reports, returns, settings, setup, shifts, startup, system,
-        tax, users,
+        audit, auth, backup, catalog, checkout, customers, hardware, inventory, io, labels,
+        payment_methods, pricing, purchasing, receipts, reports, returns, settings, setup, shifts,
+        startup, system, tax, users,
     };
     boxed(tauri::generate_handler![
         system::app_info,
@@ -466,6 +477,17 @@ fn without_dev_commands() -> CommandHandler {
         reports::cmd::report_run,
         reports::cmd::report_export_xlsx,
         reports::cmd::report_print,
+        io::cmd::import_preview,
+        io::cmd::import_commit,
+        io::cmd::import_progress,
+        io::cmd::import_cancel,
+        io::cmd::import_errors_save,
+        io::cmd::template_download,
+        io::cmd::export_entity,
+        io::cmd::io_price_lists,
+        labels::cmd::labels_pick,
+        labels::cmd::labels_preview,
+        labels::cmd::labels_print,
     ])
 }
 

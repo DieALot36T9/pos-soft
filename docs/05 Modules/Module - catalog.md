@@ -109,6 +109,8 @@ Data-changing functions take `&rusqlite::Transaction`; reading functions take `&
 // products
 pub fn create_product(tx, NewProduct, now: Timestamp) -> Result<Id>;          // blank SKU → "P000001"; no category → Uncategorised
 pub fn update_product(tx, &Id, ProductUpdate, by: &Id, now) -> Result<PriceChanges>; // writes price history (reason "manual")
+pub fn update_product_with_reason(tx, &Id, ProductUpdate, (by: &Id, reason: &str), now) -> Result<PriceChanges>; // reason "manual", "grn" or "import" (C-M12 import)
+pub fn sale_price_changed_since(conn, since: Timestamp) -> Result<Vec<Id>>;       // products whose sale price changed at or after `since` (shelf tags, CAT-13, C-M12)
 pub fn archive_product(tx, &Id, now) -> Result<()>;
 pub fn unarchive_product(tx, &Id, now) -> Result<()>;                         // back on sale; unit, category and brand must be active (C-M4)
 pub fn delete_unused_product(tx, &Id, used_elsewhere: bool) -> Result<()>;    // app passes the "used" check
@@ -191,7 +193,7 @@ Every test name starts with the requirement it covers. Run them with `cargo next
 - **Images:** files are written before the transaction commits. If the caller rolls back, the new files stay on disk (they overwrite the product's own `<id>.jpg`, so nothing else breaks). Old files of deleted products aren't removed yet. There is no "remove image" function yet. (The screen gets the picture as a data address from `app`, so caching is no problem.) Lists and search don't show thumbnails yet.
 - **Benchmark in CI:** `tests/benchmark.rs` is ignored by default. The nightly performance job (`xtask bench`, [[Test Strategy]]) should run it with `--release --run-ignored only` once that job exists.
 - **Kit stock:** "available kit quantity" (CAT-07) needs stock, so it belongs to `inventory`/`app`, using `kit_components`.
-- **Labels and shelf tags** (CAT-12, CAT-13) are printing and screen work for C-M12 ("Import/export, labels and shelf tags"); the catalog already gives names, prices, barcodes and units. C-M4 built the product screens without them.
+- **Labels and shelf tags** (CAT-12, CAT-13) were built in C-M12: `app::workflows::labels` with `printing`, and the screen `ui/src/modules/catalog/pages/LabelsPage.tsx`. The catalog added `sale_price_changed_since` for "prices changed since", and `update_product_with_reason` so imports record "import" in the price history. A unit price for packs ("per litre" on a 500 ml bottle) needs the pack's content, which products don't keep yet.
 - **Unarchive:** products can be brought back (`unarchive_product`, C-M4). Units, categories and brands can't yet; add functions if the shop asks.
 - **Product list columns from other modules:** the list has no stock column and no "low stock" or "no barcode" filters ([[Back Office Screens]]). Stock comes with the inventory screens (C-M5); "no barcode" needs a `ProductFilter` field.
 - **Barcode order:** the first barcode added stays the main one. Removing it makes the next oldest the main one; there is no "make this the main barcode" yet.

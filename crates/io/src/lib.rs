@@ -18,4 +18,4 @@ pub use parse::{parse_bool, parse_date, parse_money, parse_qty};
 pub use read::{read_file, sheet_names};
 pub use report::report_to_xlsx;
 pub use table::{ExportHeader, ExportLabels, Table, XlsxCell, XlsxSheet};
-pub use write::{write_csv, write_xlsx};
+pub use write::{decimal_text, write_csv, write_xlsx};

@@ -501,7 +501,7 @@ fn tax_rate_for(tx: &Transaction, picked: Option<&Id>) -> Result<Id, AppError> {
 /// Trims the barcodes, drops empty ones, and checks the check digit of codes that look
 /// like an EAN-8, UPC-A or EAN-13 (all digits, 8, 12 or 13 long). Other codes, such as
 /// Code 128, are kept as typed (CAT-04).
-fn clean_barcodes(codes: &[String]) -> Result<Vec<String>, AppError> {
+pub(crate) fn clean_barcodes(codes: &[String]) -> Result<Vec<String>, AppError> {
     let mut clean: Vec<String> = Vec::new();
     for code in codes {
         let code = code.trim();
@@ -523,7 +523,7 @@ fn clean_barcodes(codes: &[String]) -> Result<Vec<String>, AppError> {
 }
 
 /// Makes the product's barcodes exactly `wanted`: removes the others, adds the new ones.
-fn replace_barcodes(
+pub(crate) fn replace_barcodes(
     tx: &Transaction,
     id: &Id,
     wanted: &[String],

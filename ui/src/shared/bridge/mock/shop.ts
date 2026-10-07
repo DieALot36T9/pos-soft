@@ -34,6 +34,7 @@ import { connectStockToShop, resetStock, stockHandlers } from "./stock";
 import { connectTill, resetTill, tillHandlers } from "./till";
 import { connectCustomersToShop, customerHandlers, resetCustomers } from "./customers";
 import { connectPurchasingToShop, purchasingHandlers, resetPurchasing } from "./purchasing";
+import { connectIoToShop, ioHandlers } from "./io";
 import { connectReportsToShop, reportHandlers } from "./reports";
 
 // A pretend shop for the fake bridge. Rust does the real checks; this stand-in
@@ -148,6 +149,8 @@ connectPurchasingToShop(() => snapshot.currency);
 connectReportsToShop(() => ({ name: snapshot.shop_profile.name, currency: snapshot.currency }));
 connectPrinter(() => snapshot.hardware);
 
+connectIoToShop(() => snapshot.currency);
+
 connectCatalog({
   rates: () => rates,
   defaultRate: () => snapshot.tax.default_rate_id,
@@ -162,6 +165,7 @@ export const shopHandlers = {
   ...customerHandlers,
   ...purchasingHandlers,
   ...reportHandlers,
+  ...ioHandlers,
   startup_status: (): StartupView => ({
     damaged: false,
     setup: setupStatus(),

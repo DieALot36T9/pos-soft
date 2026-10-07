@@ -5,7 +5,7 @@ use rusqlite::{Connection, Row, Transaction, named_params};
 
 use crate::error::{CatalogError, invalid};
 use crate::read::get;
-use crate::rows::{read_money, read_optional_id};
+use crate::rows::{read_id, read_money, read_optional_id};
 use crate::types::{PriceChange, PriceField, PriceHistoryRow};
 
 /// The reasons a price may change: typed by hand, a goods receipt, or an import.
@@ -24,9 +24,7 @@ pub fn set_cost(
     if cost.0 < 0 {
         return Err(invalid("cost_price", "price_negative"));
     }
-    if !REASONS.contains(&reason) {
-        return Err(invalid("reason", "price_reason_invalid"));
-    }
+    check_reason(reason)?;
     let current = get(tx, product_id)?;
     if current.cost_price == cost {
         return Ok(());
@@ -44,6 +42,15 @@ pub fn set_cost(
         now,
     )?;
     Ok(())
+}
+
+/// Refuses a reason that isn't one of `REASONS`.
+pub(crate) fn check_reason(reason: &str) -> Result<(), CatalogError> {
+    if REASONS.contains(&reason) {
+        Ok(())
+    } else {
+        Err(invalid("reason", "price_reason_invalid"))
+    }
 }
 
 /// Writes one history row if `(old, new)` differ, and returns the change.
@@ -93,6 +100,23 @@ pub fn price_history(
         )?
         .collect::<Result<_, _>>()?;
     Ok(rows)
+}
+
+/// Products whose sale price changed at `since` or later, oldest change first. Shelf
+/// tags print these ("prices changed since", CAT-13).
+pub fn sale_price_changed_since(
+    connection: &Connection,
+    since: Timestamp,
+) -> Result<Vec<Id>, CatalogError> {
+    let ids = connection
+        .prepare(
+            "SELECT product_id FROM catalog_price_changes
+             WHERE field = 'sale_price' AND changed_at >= :since
+             GROUP BY product_id ORDER BY min(changed_at), product_id",
+        )?
+        .query_map(named_params! { ":since": since.0 }, |row| read_id(row, 0))?
+        .collect::<Result<_, _>>()?;
+    Ok(ids)
 }
 
 fn read_history_row(row: &Row) -> rusqlite::Result<PriceHistoryRow> {

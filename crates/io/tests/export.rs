@@ -376,3 +376,11 @@ fn rpt_09_report_export_header_words_come_from_the_labels() {
         Some(&Data::String("Summe".to_string()))
     );
 }
+
+#[test]
+fn io_04_decimal_text_writes_exact_numbers() {
+    assert_eq!(io::decimal_text(1250, 2), "12.50");
+    assert_eq!(io::decimal_text(-5, 2), "-0.05");
+    assert_eq!(io::decimal_text(1500, 3), "1.500");
+    assert_eq!(io::decimal_text(42, 0), "42");
+}

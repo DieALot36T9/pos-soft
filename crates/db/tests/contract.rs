@@ -215,3 +215,29 @@ fn write_rolls_back_when_the_work_fails() {
         .unwrap();
     assert_eq!(count, 0);
 }
+
+#[test]
+fn write_and_undo_gives_the_answer_but_saves_nothing() {
+    let db = Db::open_in_memory().unwrap();
+    migrate(&db, &[veg()]).unwrap();
+    let marker = db::change_marker(&db);
+
+    let seen: i64 = db
+        .write_and_undo(|tx| {
+            tx.execute("INSERT INTO veg_items (id) VALUES ('a')", [])
+                .map_err(|error| pos_core::AppError::internal(error.to_string()))?;
+            tx.query_row("SELECT count(*) FROM veg_items", [], |row| row.get(0))
+                .map_err(|error| pos_core::AppError::internal(error.to_string()))
+        })
+        .unwrap();
+    assert_eq!(seen, 1);
+
+    let count: i64 = db
+        .read(|conn| {
+            conn.query_row("SELECT count(*) FROM veg_items", [], |row| row.get(0))
+                .map_err(|error| pos_core::AppError::internal(error.to_string()))
+        })
+        .unwrap();
+    assert_eq!(count, 0);
+    assert!(!db::has_changed_since(&db, marker));
+}

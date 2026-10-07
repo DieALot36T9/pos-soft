@@ -1,6 +1,8 @@
 import {
   BadgePercent,
+  ArrowLeftRight,
   BarChart3,
+  Barcode,
   Boxes,
   ShoppingCart,
   ClipboardList,
@@ -35,9 +37,11 @@ import { CustomersPage } from "../modules/customers/pages/CustomersPage";
 import { BackupsPage } from "../modules/backup/pages/BackupsPage";
 import { BrandsPage } from "../modules/catalog/pages/BrandsPage";
 import { CategoriesPage } from "../modules/catalog/pages/CategoriesPage";
+import { LabelsPage } from "../modules/catalog/pages/LabelsPage";
 import { ProductsPage } from "../modules/catalog/pages/ProductsPage";
 import { UnitsPage } from "../modules/catalog/pages/UnitsPage";
 import { HardwarePage } from "../modules/hardware/pages/HardwarePage";
+import { ImportExportPage } from "../modules/io/pages/ImportExportPage";
 import { PricingPage } from "../modules/pricing/pages/PricingPage";
 import { PurchasingPage } from "../modules/purchasing/pages/PurchasingPage";
 import { ReportsPage } from "../modules/reports/pages/ReportsPage";
@@ -66,9 +70,11 @@ type Page =
   | "categories"
   | "brands"
   | "units"
+  | "labels"
   | "pricing"
   | "purchasing"
   | "reports"
+  | "io"
   | "hardware"
   | "settings"
   | "tax"
@@ -90,10 +96,12 @@ const menu: { page: Page; icon: LucideIcon; needs: Permission | Permission[] | n
   { page: "categories", icon: FolderTree, needs: "catalog_manage" },
   { page: "brands", icon: Tag, needs: "catalog_manage" },
   { page: "units", icon: Ruler, needs: "catalog_manage" },
+  { page: "labels", icon: Barcode, needs: "labels_print" },
   { page: "pricing", icon: BadgePercent, needs: "pricing_manage" },
   { page: "purchasing", icon: Truck, needs: "purchasing_manage" },
   // RPT-10: cashiers see their own shifts' X and Z reports; everything else needs all reports.
   { page: "reports", icon: BarChart3, needs: ["reports_view_all", "shift_open_close_own"] },
+  { page: "io", icon: ArrowLeftRight, needs: ["data_import", "data_export"] },
   { page: "hardware", icon: Printer, needs: null },
   { page: "settings", icon: Settings, needs: "settings_manage" },
   { page: "tax", icon: Percent, needs: "tax_manage" },
@@ -220,9 +228,11 @@ export function OfficeFrame({
         {page === "categories" ? <CategoriesPage /> : null}
         {page === "brands" ? <BrandsPage /> : null}
         {page === "units" ? <UnitsPage /> : null}
+        {page === "labels" ? <LabelsPage /> : null}
         {page === "pricing" ? <PricingPage /> : null}
         {page === "purchasing" ? <PurchasingPage permissions={session.permissions} /> : null}
         {page === "reports" ? <ReportsPage permissions={session.permissions} /> : null}
+        {page === "io" ? <ImportExportPage permissions={session.permissions} /> : null}
         {page === "hardware" ? <HardwarePage devTools={devTools} /> : null}
         {page === "settings" ? <SettingsPage /> : null}
         {page === "tax" ? <TaxRatesPage /> : null}

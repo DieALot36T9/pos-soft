@@ -69,6 +69,20 @@ export const errors = {
   setup_not_done: "Finish setup first.",
   io_file_not_saved:
     "The file could not be saved. Pick another folder, or close the file in Excel.",
+  // Import, export and labels (IO-01 to IO-05, CAT-12, CAT-13).
+  io_unknown_file_type: "Choose a .csv or .xlsx file.",
+  io_file_unreadable: "The file could not be opened. Close it in Excel and try again.",
+  io_file_not_utf8: "Save the CSV file as UTF-8 (Excel: Save as, CSV UTF-8) and try again.",
+  io_file_empty: "The file has no rows. Check you chose the right file.",
+  io_sheet_not_found: "The file has no sheet named {{sheet}}. Pick one from the list.",
+  import_has_errors:
+    '{{count}} rows have problems. Fix them in the file, or tick "Skip rows with errors".',
+  import_field_not_mapped: "Choose the column for {{field}}.",
+  import_running: "Another import is still running. Wait for it to finish.",
+  import_cancelled: "The import was cancelled. Nothing was saved.",
+  price_list_needed: "Choose a price list first.",
+  label_size_out_of_range: "Choose a label from 20 to 120 mm wide and 10 to 120 mm high.",
+  label_copies_out_of_range: "Print 1 to {{max}} labels of each product.",
   // Backups (BAK-01 to BAK-06).
   backup_second_folder_failed:
     "The backup was saved, but not copied to the second folder. Check the USB drive or folder.",

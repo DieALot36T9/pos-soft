@@ -6,7 +6,7 @@ use rusqlite::{Transaction, named_params};
 use crate::barcodes::insert_barcode;
 use crate::checks::{check_brand, check_category, check_unit_decimals, uncategorised};
 use crate::error::{CatalogError, conflict, invalid};
-use crate::prices::record_price_change;
+use crate::prices::{check_reason, record_price_change};
 use crate::read::get;
 use crate::rows::{clean_name, clean_optional, optional_id_text};
 use crate::search::{refresh_search_row, remove_search_row};
@@ -111,6 +111,19 @@ pub fn update_product(
     by: &Id,
     now: Timestamp,
 ) -> Result<PriceChanges, CatalogError> {
+    update_product_with_reason(tx, product_id, update, (by, "manual"), now)
+}
+
+/// Like `update_product`, with the reason written to the price history: "manual",
+/// "grn" or "import". An import uses "import" (C-M12).
+pub fn update_product_with_reason(
+    tx: &Transaction,
+    product_id: &Id,
+    update: ProductUpdate,
+    (by, reason): (&Id, &str),
+    now: Timestamp,
+) -> Result<PriceChanges, CatalogError> {
+    check_reason(reason)?;
     let current = get(tx, product_id)?;
     let name = clean_name(&update.name)?;
     let sku = clean_optional(Some(&update.sku)).ok_or(invalid("sku", "sku_missing"))?;
@@ -160,7 +173,7 @@ pub fn update_product(
             product_id,
             PriceField::SalePrice,
             (current.sale_price, update.sale_price),
-            (by, "manual"),
+            (by, reason),
             now,
         )?,
         cost_price: record_price_change(
@@ -168,7 +181,7 @@ pub fn update_product(
             product_id,
             PriceField::CostPrice,
             (current.cost_price, update.cost_price),
-            (by, "manual"),
+            (by, reason),
             now,
         )?,
     };

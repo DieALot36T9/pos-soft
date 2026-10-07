@@ -119,8 +119,9 @@ pub(crate) fn row_number(index: usize) -> Result<u32> {
 }
 
 /// Writes whole minor units as a decimal number. Example: (-1250, 2) → "-12.50".
-/// Done with text, not floating-point maths, so no digits are lost.
-fn decimal_text(value: i64, decimals: u8) -> String {
+/// Done with text, not floating-point maths, so no digits are lost. Exports use it
+/// for money and quantities in CSV files (IO-04).
+pub fn decimal_text(value: i64, decimals: u8) -> String {
     let sign = if value < 0 { "-" } else { "" };
     let digits = value.unsigned_abs().to_string();
     let decimals = usize::from(decimals);
