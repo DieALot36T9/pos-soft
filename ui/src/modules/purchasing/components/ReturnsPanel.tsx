@@ -19,7 +19,6 @@ import { getDelivery, listDeliveries, listReturns, listSuppliers, sendBack } fro
 import { plain, qtyText } from "./OrderEditor";
 import { ProductPicker } from "./ProductPicker";
 
-// One line going back, as typed. An empty cost means the product's cost now.
 type BackLine = {
   productId: string;
   name: string;
@@ -28,8 +27,6 @@ type BackLine = {
   cost: string;
 };
 
-// Supplier returns (PUR-04): pick the supplier and, if known, the delivery the goods
-// came in on; the stock goes down and so does what the shop owes.
 export function ReturnsPanel() {
   const { t } = useTranslation("purchasing");
   const { t: tErrors } = useTranslation("errors");
@@ -115,8 +112,8 @@ export function ReturnsPanel() {
     );
   };
   return (
-    <section className="flex flex-col gap-3">
-      <div className="grid grid-cols-3 gap-3">
+    <section className="flex flex-col gap-4">
+      <div className="rounded-ui border border-border bg-panel p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
         <SelectField
           label={t("common.supplier.label")}
           tip={t("common.supplier.tip")}
@@ -147,13 +144,14 @@ export function ReturnsPanel() {
           onChange={setReason}
         />
       </div>
+
       {lines.length > 0 ? (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <tbody>
             {lines.map((line, index) => (
               <tr key={`${line.productId}-${index}`} className="border-b border-border">
-                <td className="p-2">{line.name}</td>
-                <td className="p-2">
+                <td className="p-2.5 font-semibold">{line.name}</td>
+                <td className="p-2.5">
                   <Tip tip={t("returns.qty.tip")}>
                     <input
                       aria-label={t("returns.qty.label", { name: line.name })}
@@ -163,7 +161,7 @@ export function ReturnsPanel() {
                     />
                   </Tip>
                 </td>
-                <td className="p-2">
+                <td className="p-2.5">
                   <Tip tip={t("returns.cost.tip")}>
                     <input
                       aria-label={t("returns.cost.label", { name: line.name })}
@@ -173,7 +171,7 @@ export function ReturnsPanel() {
                     />
                   </Tip>
                 </td>
-                <td className="p-2">
+                <td className="p-2.5">
                   <ActionButton
                     colour="red"
                     icon={Trash2}
@@ -187,21 +185,27 @@ export function ReturnsPanel() {
           </tbody>
         </table>
       ) : (
-        <p className="text-text-muted">{t("returns.noLines")}</p>
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("returns.noLines")}
+        </p>
       )}
-      <ProductPicker
-        onPick={(hit) =>
-          setLines((old) => [
-            ...old,
-            { productId: hit.product_id, name: hit.name, batchId: null, qty: "1", cost: "" },
-          ])
-        }
-      />
+
+      <div className="rounded-ui border border-border bg-panel p-4">
+        <ProductPicker
+          onPick={(hit) =>
+            setLines((old) => [
+              ...old,
+              { productId: hit.product_id, name: hit.name, batchId: null, qty: "1", cost: "" },
+            ])
+          }
+        />
+      </div>
+
       {typingOk ? null : <Alert kind="problem">{t("returns.typingProblem")}</Alert>}
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {save.problem ? <Alert kind="problem">{save.problem}</Alert> : null}
       {notice ? <Alert kind="done">{notice}</Alert> : null}
-      <div>
+      <div className="flex justify-end">
         <ActionButton
           colour="red"
           icon={PackageX}
@@ -211,29 +215,34 @@ export function ReturnsPanel() {
           onClick={submit}
         />
       </div>
-      <h3 className="text-xl font-semibold">{t("returns.list")}</h3>
-      {returns.length === 0 ? <p>{t("returns.empty")}</p> : null}
+
+      <h3 className="text-xl font-semibold pt-2">{t("returns.list")}</h3>
+      {returns.length === 0 ? (
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("returns.empty")}
+        </p>
+      ) : null}
       {returns.length > 0 ? (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("returns.number")}</th>
-              <th className="p-2">{t("common.supplier.label")}</th>
-              <th className="p-2">{t("returns.grn.label")}</th>
-              <th className="p-2">{t("suppliers.detail.date")}</th>
-              <th className="p-2">{t("returns.reason.label")}</th>
-              <th className="p-2 text-right">{t("returns.total")}</th>
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("returns.number")}</th>
+              <th className="p-2.5">{t("common.supplier.label")}</th>
+              <th className="p-2.5">{t("returns.grn.label")}</th>
+              <th className="p-2.5">{t("suppliers.detail.date")}</th>
+              <th className="p-2.5">{t("returns.reason.label")}</th>
+              <th className="p-2.5 text-right">{t("returns.total")}</th>
             </tr>
           </thead>
           <tbody>
             {returns.map((row) => (
-              <tr key={row.id} className="border-b border-border">
-                <td className="p-2">{row.number}</td>
-                <td className="p-2">{row.supplier_name}</td>
-                <td className="p-2">{row.grn_number ?? ""}</td>
-                <td className="p-2">{formatDateTime(row.at)}</td>
-                <td className="p-2">{row.reason ?? ""}</td>
-                <td className="p-2 text-right tabular-nums">{money(row.total)}</td>
+              <tr key={row.id} className="border-b border-border hover:bg-blue-soft/30">
+                <td className="p-2.5 font-mono text-sm">{row.number}</td>
+                <td className="p-2.5 font-semibold">{row.supplier_name}</td>
+                <td className="p-2.5 font-mono text-sm">{row.grn_number ?? ""}</td>
+                <td className="p-2.5 tabular-nums">{formatDateTime(row.at)}</td>
+                <td className="p-2.5">{row.reason ?? ""}</td>
+                <td className="p-2.5 text-right font-semibold tabular-nums">{money(row.total)}</td>
               </tr>
             ))}
           </tbody>

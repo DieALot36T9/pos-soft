@@ -14,17 +14,18 @@ type SectionFrameProps = {
   onSave: () => void;
 };
 
-// One settings section: its fields, the result of saving, and Save bottom-right.
 export function SectionFrame({ title, children, busy, done, problem, onSave }: SectionFrameProps) {
   const { t } = useTranslation("settings");
   return (
     <section
       aria-labelledby="section-title"
-      className="flex flex-1 flex-col gap-4 rounded-ui border border-border bg-panel p-4"
+      className="flex flex-1 flex-col gap-5 rounded-ui border border-border bg-panel p-5"
     >
-      <h3 id="section-title" className="text-xl font-semibold">
-        {title}
-      </h3>
+      <div className="border-b border-border pb-3">
+        <h3 id="section-title" className="text-xl font-bold text-text">
+          {title}
+        </h3>
+      </div>
       <div className="flex flex-col gap-4">{children}</div>
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {done && !problem ? <Alert kind="done">{t("saved")}</Alert> : null}

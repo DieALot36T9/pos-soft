@@ -24,9 +24,6 @@ import { buildRequest, type ReportForm, type ReportKind } from "../request";
 
 type Shown = { report: ReportTable; request: ReportRequest; generatedAt: string };
 
-// Reports (Req - Reports): pick a report, choose the days and filters, show it, then
-// print it on receipt paper or A4 (or PDF), or save it as Excel. Every number comes
-// from Rust. Without "all reports" a user sees only their own shifts' X and Z (RPT-10).
 export function ReportsPage({ permissions }: { permissions: Permission[] }) {
   const { t } = useTranslation("reports");
   const { t: tErrors } = useTranslation("errors");
@@ -84,7 +81,7 @@ export function ReportsPage({ permissions }: { permissions: Permission[] }) {
     setNotice(null);
     setForm({ ...form, kind });
   };
-  // Builds the request from the form, or shows why it can't yet.
+
   const request = (): ReportRequest | null => {
     const built = buildRequest(form);
     if (!built.ok) {
@@ -147,54 +144,58 @@ export function ReportsPage({ permissions }: { permissions: Permission[] }) {
         </h2>
         <p className="text-text-muted">{t("page.intro")}</p>
       </div>
-      <div className="flex gap-6">
-        <ReportList
-          selected={form.kind}
-          allowed={(kind) => seesAll || kind === "shift"}
-          onPick={pick}
-        />
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <h3 className="text-xl font-semibold">{t(`reports.${form.kind}.label`)}</h3>
-          <ReportParams
-            key={form.kind}
-            form={form}
-            onChange={setForm}
-            choices={choices}
-            shifts={shifts}
-            today={today}
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="rounded-ui border border-border bg-panel p-3 shrink-0">
+          <ReportList
+            selected={form.kind}
+            allowed={(kind) => seesAll || kind === "shift"}
+            onPick={pick}
           />
-          <div className="flex flex-wrap gap-2">
-            <ActionButton
-              colour="blue"
-              icon={ListChecks}
-              label={t("actions.show.label")}
-              tip={t("actions.show.tip")}
-              onClick={show}
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <div className="rounded-ui border border-border bg-panel p-4 flex flex-col gap-4">
+            <h3 className="text-xl font-bold">{t(`reports.${form.kind}.label`)}</h3>
+            <ReportParams
+              key={form.kind}
+              form={form}
+              onChange={setForm}
+              choices={choices}
+              shifts={shifts}
+              today={today}
             />
-            <ActionButton
-              colour="blue"
-              icon={ReceiptText}
-              label={t("actions.print80.label")}
-              tip={t("actions.print80.tip")}
-              disabledReason={needReport}
-              onClick={printReceipt}
-            />
-            <ActionButton
-              colour="blue"
-              icon={Printer}
-              label={t("actions.printA4.label")}
-              tip={t("actions.printA4.tip")}
-              disabledReason={needReport}
-              onClick={printA4}
-            />
-            <ActionButton
-              colour="blue"
-              icon={FileSpreadsheet}
-              label={t("actions.excel.label")}
-              tip={t("actions.excel.tip")}
-              disabledReason={needReport}
-              onClick={saveExcel}
-            />
+            <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+              <ActionButton
+                colour="blue"
+                icon={ListChecks}
+                label={t("actions.show.label")}
+                tip={t("actions.show.tip")}
+                onClick={show}
+              />
+              <ActionButton
+                colour="blue"
+                icon={ReceiptText}
+                label={t("actions.print80.label")}
+                tip={t("actions.print80.tip")}
+                disabledReason={needReport}
+                onClick={printReceipt}
+              />
+              <ActionButton
+                colour="blue"
+                icon={Printer}
+                label={t("actions.printA4.label")}
+                tip={t("actions.printA4.tip")}
+                disabledReason={needReport}
+                onClick={printA4}
+              />
+              <ActionButton
+                colour="blue"
+                icon={FileSpreadsheet}
+                label={t("actions.excel.label")}
+                tip={t("actions.excel.tip")}
+                disabledReason={needReport}
+                onClick={saveExcel}
+              />
+            </div>
           </div>
           {problem ? <Alert kind="problem">{problem}</Alert> : null}
           {notice ? <Alert kind="done">{notice}</Alert> : null}

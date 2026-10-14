@@ -37,11 +37,8 @@ const ENTITIES: ImportEntity[] = [
   "barcodes",
 ];
 
-// How often the progress bar asks Rust how far the import is.
 const PROGRESS_EVERY_MS = 250;
 
-// The import wizard (IO-01, IO-02, IO-05): what, template, file, sheet, columns, match
-// rule, preview with every problem, import with progress and cancel, summary.
 export function ImportWizard({ priceLists }: { priceLists: Choice[] }) {
   const { t } = useTranslation("io");
   const { t: tErrors } = useTranslation("errors");
@@ -206,117 +203,127 @@ export function ImportWizard({ priceLists }: { priceLists: Choice[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="w-64">
-          <SelectField
-            label={t("entity.label")}
-            tip={t("entity.tip")}
-            value={entity}
-            options={ENTITIES.map((each) => ({ value: each, label: t(`entities.${each}`) }))}
-            onChange={changeEntity}
-          />
-        </div>
-        <ActionButton
-          colour="blue"
-          icon={FileDown}
-          label={t("template.csv.label")}
-          tip={t("template.csv.tip")}
-          onClick={() => template("csv")}
-        />
-        <ActionButton
-          colour="blue"
-          icon={FileDown}
-          label={t("template.xlsx.label")}
-          tip={t("template.xlsx.tip")}
-          onClick={() => template("xlsx")}
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <ActionButton
-          colour="blue"
-          icon={FileUp}
-          label={t("file.choose.label")}
-          tip={t("file.choose.tip")}
-          onClick={chooseFile}
-        />
-        <p>{file === null ? t("file.none") : t("file.chosen", { file })}</p>
-      </div>
-
-      {preview !== null && preview.sheets.length > 0 ? (
-        <div className="w-64">
-          <SelectField
-            label={t("sheet.label")}
-            tip={t("sheet.tip")}
-            value={sheet ?? preview.sheets[0] ?? ""}
-            options={preview.sheets.map((name) => ({ value: name, label: name }))}
-            onChange={(name) => {
-              setSheet(name);
-              setMapping(null);
-              check(request({ sheet: name, mapping: null }));
-            }}
-          />
-        </div>
-      ) : null}
-
-      {preview !== null && mapping !== null ? (
-        <MappingTable preview={preview} mapping={mapping} onChange={setMapping} />
-      ) : null}
-
-      <div className="flex flex-wrap items-end gap-4">
-        {entity === "products" || findsProducts ? (
-          <div className="w-56">
-            <SelectField<MatchBy>
-              label={t("options.matchBy.label")}
-              tip={t("options.matchBy.tip")}
-              value={matchBy}
-              options={[
-                { value: "sku", label: t("options.matchBy.sku") },
-                { value: "barcode", label: t("options.matchBy.barcode") },
-              ]}
-              onChange={setMatchBy}
-            />
-          </div>
-        ) : null}
-        {entity === "price_list_prices" ? (
+      <div className="rounded-ui border border-border bg-panel p-4 flex flex-col gap-4">
+        <div className="flex flex-wrap items-end gap-3">
           <div className="w-64">
             <SelectField
-              label={t("options.priceList.label")}
-              tip={t("options.priceList.tip")}
-              value={priceListId}
-              options={[
-                { value: "", label: t("options.priceList.none") },
-                ...priceLists.map((list) => ({ value: list.id, label: list.name })),
-              ]}
-              onChange={setPriceListId}
+              label={t("entity.label")}
+              tip={t("entity.tip")}
+              value={entity}
+              options={ENTITIES.map((each) => ({ value: each, label: t(`entities.${each}`) }))}
+              onChange={changeEntity}
+            />
+          </div>
+          <ActionButton
+            colour="blue"
+            icon={FileDown}
+            label={t("template.csv.label")}
+            tip={t("template.csv.tip")}
+            onClick={() => template("csv")}
+          />
+          <ActionButton
+            colour="blue"
+            icon={FileDown}
+            label={t("template.xlsx.label")}
+            tip={t("template.xlsx.tip")}
+            onClick={() => template("xlsx")}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
+          <ActionButton
+            colour="blue"
+            icon={FileUp}
+            label={t("file.choose.label")}
+            tip={t("file.choose.tip")}
+            onClick={chooseFile}
+          />
+          <p className="font-mono text-sm">
+            {file === null ? t("file.none") : t("file.chosen", { file })}
+          </p>
+        </div>
+
+        {preview !== null && preview.sheets.length > 0 ? (
+          <div className="w-64">
+            <SelectField
+              label={t("sheet.label")}
+              tip={t("sheet.tip")}
+              value={sheet ?? preview.sheets[0] ?? ""}
+              options={preview.sheets.map((name) => ({ value: name, label: name }))}
+              onChange={(name) => {
+                setSheet(name);
+                setMapping(null);
+                check(request({ sheet: name, mapping: null }));
+              }}
             />
           </div>
         ) : null}
-        {entity === "products" ? (
-          <CheckBox
-            label={t("options.createMissing.label")}
-            tip={t("options.createMissing.tip")}
-            checked={createMissing}
-            onChange={setCreateMissing}
+
+        <div className="flex flex-wrap items-end gap-4 border-t border-border pt-3">
+          {entity === "products" || findsProducts ? (
+            <div className="w-56">
+              <SelectField<MatchBy>
+                label={t("options.matchBy.label")}
+                tip={t("options.matchBy.tip")}
+                value={matchBy}
+                options={[
+                  { value: "sku", label: t("options.matchBy.sku") },
+                  { value: "barcode", label: t("options.matchBy.barcode") },
+                ]}
+                onChange={setMatchBy}
+              />
+            </div>
+          ) : null}
+          {entity === "price_list_prices" ? (
+            <div className="w-64">
+              <SelectField
+                label={t("options.priceList.label")}
+                tip={t("options.priceList.tip")}
+                value={priceListId}
+                options={[
+                  { value: "", label: t("options.priceList.none") },
+                  ...priceLists.map((list) => ({ value: list.id, label: list.name })),
+                ]}
+                onChange={setPriceListId}
+              />
+            </div>
+          ) : null}
+          {entity === "products" ? (
+            <CheckBox
+              label={t("options.createMissing.label")}
+              tip={t("options.createMissing.tip")}
+              checked={createMissing}
+              onChange={setCreateMissing}
+            />
+          ) : null}
+          <ActionButton
+            colour="blue"
+            icon={ListChecks}
+            label={t("check.label")}
+            tip={t("check.tip")}
+            disabledReason={file === null ? t("run.needFile") : undefined}
+            onClick={() => check(request())}
           />
-        ) : null}
-        <ActionButton
-          colour="blue"
-          icon={ListChecks}
-          label={t("check.label")}
-          tip={t("check.tip")}
-          disabledReason={file === null ? t("run.needFile") : undefined}
-          onClick={() => check(request())}
-        />
+        </div>
       </div>
+
+      {preview !== null && mapping !== null ? (
+        <div className="rounded-ui border border-border bg-panel p-4">
+          <MappingTable preview={preview} mapping={mapping} onChange={setMapping} />
+        </div>
+      ) : null}
 
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {notice ? <Alert kind="done">{notice}</Alert> : null}
 
-      {preview !== null ? <PreviewTables preview={preview} /> : null}
+      {preview !== null ? (
+        <div className="rounded-ui border border-border bg-panel p-4">
+          <PreviewTables preview={preview} />
+        </div>
+      ) : null}
 
       {preview !== null && progress === null ? (
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-ui border border-border bg-panel p-4">
           <CheckBox
             label={t("options.skipErrors.label")}
             tip={t("options.skipErrors.tip")}
@@ -335,9 +342,9 @@ export function ImportWizard({ priceLists }: { priceLists: Choice[] }) {
       ) : null}
 
       {progress !== null ? (
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 rounded-ui border border-border bg-panel p-4">
           <div className="flex flex-1 flex-col gap-1">
-            <label htmlFor="import-progress">
+            <label htmlFor="import-progress" className="font-semibold">
               {t("run.progress", { done: progress.done, total: progress.total })}
             </label>
             <progress
@@ -358,7 +365,10 @@ export function ImportWizard({ priceLists }: { priceLists: Choice[] }) {
       ) : null}
 
       {done !== null ? (
-        <section aria-labelledby="done-heading" className="flex flex-col gap-2">
+        <section
+          aria-labelledby="done-heading"
+          className="flex flex-col gap-3 rounded-ui border border-border bg-panel p-4"
+        >
           <h3 id="done-heading" className="text-xl font-semibold">
             {t("done.heading")}
           </h3>

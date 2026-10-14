@@ -7,8 +7,12 @@ import type { PrintResult } from "../../../generated/PrintResult";
 import type { SessionView } from "../../../generated/SessionView";
 import { useApproval } from "../../../shared/approval/useApproval";
 import { shortcuts } from "../../../shared/keyboard/shortcuts";
+import { parseQty } from "../../../shared/format/qty";
+import { parseMoney } from "../../../shared/format/money";
+import { parsePercent } from "../../../shared/format/percent";
 import { PrintProblem } from "../../../shared/print/PrintProblem";
 import { Alert } from "../../../shared/ui/Alert";
+import { HelpDialog } from "../../../shared/ui/HelpDialog";
 import {
   cancelCart,
   cashOutExchange,
@@ -31,10 +35,12 @@ import { DiscountDialog } from "../components/DiscountDialog";
 import { ExchangeBar } from "../components/ExchangeBar";
 import { HeldListDialog } from "../components/HeldListDialog";
 import { HoldDialog } from "../components/HoldDialog";
+import { LineEditDrawer } from "../components/LineEditDrawer";
 import { NoShiftPanel } from "../components/NoShiftPanel";
 import { PaymentDialog } from "../components/PaymentDialog";
 import { PriceDialog } from "../components/PriceDialog";
 import { PriceListDialog } from "../components/PriceListDialog";
+import { ProductCatalogPane } from "../components/ProductCatalogPane";
 import { QtyDialog } from "../components/QtyDialog";
 import { RefundDoneBar, type RefundDone } from "../components/RefundDoneBar";
 import { ReprintDialog } from "../components/ReprintDialog";
@@ -62,9 +68,7 @@ type DialogName =
 
 type CheckoutPageProps = {
   session: SessionView;
-  // Changes when a shift was opened or closed elsewhere, so the page loads again.
   reloadKey: number;
-  // True right after login: a cart with items is "your previous sale" (CHK-19).
   justLoggedIn: boolean;
   onOpenShift: () => void;
   onForceClose: () => void;
@@ -73,37 +77,39 @@ type CheckoutPageProps = {
   onBackOffice: () => void;
 };
 
-// The till (Checkout Screen): scan box on top, cart on the left, totals and Pay on the
-// right, buttons below. Everything works by keyboard; every amount comes from Rust.
 export function CheckoutPage(props: CheckoutPageProps) {
   const { t } = useTranslation("checkout");
   const till = useTill(props.reloadKey, props.justLoggedIn);
   const [dialog, setDialog] = useState<DialogName | null>(null);
-  // A receipt that didn't print, with Retry and the system printer (PAY-09).
+  const [lineEditOpen, setLineEditOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [printFailed, setPrintFailed] = useState<PrintResult | null>(null);
-  // After a reprint that worked: which receipt ("" for the last one).
   const [reprinted, setReprinted] = useState<string | null>(null);
-  // After a return, void or exchange cash-out: what was done and the cash to give back.
   const [refundDone, setRefundDone] = useState<RefundDone | null>(null);
   const scanRef = useRef<HTMLInputElement | null>(null);
-  // Discounts above the limit, typed prices and price lists may need an admin (USR-05).
   const { withApproval, dialog: approvalDialog } = useApproval();
   const { view } = till;
   const cart = view?.cart ?? null;
   const lines = cart?.lines ?? [];
   const selectedLine = lines.find((line) => line.line_id === till.selected) ?? null;
-  const busy = dialog !== null || till.weighing !== null || approvalDialog !== null;
+  const busy =
+    dialog !== null ||
+    lineEditOpen ||
+    helpOpen ||
+    till.weighing !== null ||
+    approvalDialog !== null;
 
-  // The scan box always has the focus when no dialog is open.
   useEffect(() => {
     if (!busy) {
       scanRef.current?.focus();
     }
   });
 
-  const close = () => setDialog(null);
-  // Sends a cart change to Rust, asking an admin first when Rust says so, and shows the
-  // cart that comes back. `lineId` is the line to keep selected.
+  const close = () => {
+    setDialog(null);
+    setLineEditOpen(false);
+  };
+
   const changeCart = (
     work: (approval: string | null) => Promise<CartView>,
     lineId: string | null = null,
@@ -114,25 +120,34 @@ export function CheckoutPage(props: CheckoutPageProps) {
       .then((fresh) => till.showCart(fresh, lineId))
       .catch(till.fail);
   };
+
   const open = (name: DialogName, allowed: boolean) => () => {
     if (allowed) {
       setDialog(name);
     }
   };
+
   const hasLines = lines.length > 0;
   const removeSelected = () => {
     if (selectedLine) {
       void till.remove(selectedLine.line_id);
     }
   };
+
   const stepQty = (step: 1 | -1) => {
     if (selectedLine && selectedLine.unit_decimals === 0) {
       void till.changeQty(selectedLine.line_id, selectedLine.qty + step * 1000);
     }
   };
+
   const options = { enableOnFormTags: true, preventDefault: true, enabled: !busy && cart !== null };
-  // react-hotkeys-hook keeps the first callback unless told what it depends on.
   const deps = [selectedLine, hasLines, view, busy];
+
+  useHotkeys("f1", () => setHelpOpen(true), {
+    enableOnFormTags: true,
+    preventDefault: true,
+    enabled: !busy,
+  });
   useHotkeys(shortcuts.checkoutSearch.keys, () => scanRef.current?.focus(), options, deps);
   useHotkeys(shortcuts.checkoutQty.keys, open("qty", selectedLine !== null), options, deps);
   useHotkeys(shortcuts.checkoutCustomer.keys, open("customer", true), options, deps);
@@ -154,7 +169,6 @@ export function CheckoutPage(props: CheckoutPageProps) {
   useHotkeys(shortcuts.checkoutCancel.keys, open("cancel", hasLines), options, deps);
   useHotkeys(shortcuts.checkoutPay.keys, open("payment", hasLines), options, deps);
   useHotkeys(shortcuts.checkoutReturn.keys, open("return", true), options, deps);
-  // Del removes the selected line, unless the scan box has text to edit.
   useHotkeys(
     shortcuts.checkoutRemove.keys,
     () => (scanRef.current?.value ? undefined : removeSelected()),
@@ -164,17 +178,18 @@ export function CheckoutPage(props: CheckoutPageProps) {
   useHotkeys(shortcuts.checkoutShift.keys, props.onShiftMenu, { ...options, enabled: !busy }, deps);
   useHotkeys(shortcuts.lock.keys, props.onLock, { ...options, enabled: !busy }, deps);
 
-  // Shows how a printout went: a short note when it printed, the banner when not.
   const showPrint = (result: PrintResult | null, reprintOf: string | null) => {
     setPrintFailed(result && !result.printed ? result : null);
     setReprinted(result?.printed && reprintOf !== null ? reprintOf : null);
   };
+
   const reprint = (invoiceNo: string | null) => {
     till.clearProblem();
     (invoiceNo === null ? reprintLast() : reprintInvoice(invoiceNo))
       .then((result) => showPrint(result, invoiceNo ?? ""))
       .catch(till.fail);
   };
+
   useHotkeys(
     shortcuts.checkoutReprint.keys,
     () => reprint(null),
@@ -182,7 +197,6 @@ export function CheckoutPage(props: CheckoutPageProps) {
     deps,
   );
 
-  // The exchange credit goes back in cash: the customer takes nothing new (RET-05).
   const cashOut = () => {
     till.clearProblem();
     cashOutExchange()
@@ -211,10 +225,10 @@ export function CheckoutPage(props: CheckoutPageProps) {
 
   return (
     <div
-      className="flex flex-1 flex-col"
+      className="flex flex-1 flex-col h-full bg-bg text-text overflow-hidden"
       onMouseUp={() => (busy ? undefined : scanRef.current?.focus())}
     >
-      <TillHeader shift={view.shift} />
+      <TillHeader shift={view.shift} onHelp={() => setHelpOpen(true)} />
       {!mine || cart === null ? (
         <NoShiftPanel
           otherShift={view.shift}
@@ -222,93 +236,176 @@ export function CheckoutPage(props: CheckoutPageProps) {
           onForceClose={props.onForceClose}
         />
       ) : (
-        <div className="flex flex-1">
-          <main className="flex flex-1 flex-col gap-2 p-3">
-            <ScanBox
-              inputRef={scanRef}
-              hits={till.hits}
-              setHits={till.setHits}
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex-[3] flex flex-col h-full overflow-hidden">
+            <ProductCatalogPane
               currency={view.currency}
-              onSubmit={(text) => void till.scan(text)}
-              onEmptyEnter={open("payment", hasLines)}
-              onPick={(id) => void till.pick(id)}
-              onArrow={till.moveSelection}
-              onPlusMinus={stepQty}
-              onKey={() => {
-                till.clearProblem();
-                till.setRestored(false);
-                setRefundDone(null);
-              }}
+              onPickProduct={(productId) => void till.pick(productId)}
+              scanBoxSlot={
+                <ScanBox
+                  inputRef={scanRef}
+                  hits={till.hits}
+                  setHits={till.setHits}
+                  currency={view.currency}
+                  onSubmit={(text) => void till.scan(text)}
+                  onEmptyEnter={open("payment", hasLines)}
+                  onPick={(id) => void till.pick(id)}
+                  onArrow={till.moveSelection}
+                  onPlusMinus={stepQty}
+                  onKey={() => {
+                    till.clearProblem();
+                    till.setRestored(false);
+                    setRefundDone(null);
+                  }}
+                />
+              }
+              actionBarSlot={
+                <ButtonBar
+                  hasLines={hasLines}
+                  hasSelection={selectedLine !== null}
+                  hasPriceLists={view.price_lists.length > 0}
+                  heldCount={view.held_count}
+                  canReprintAny={props.session.permissions.includes("receipt_reprint_any")}
+                  onSearch={() => scanRef.current?.focus()}
+                  onCustomer={open("customer", cart !== null)}
+                  onQty={open("qty", selectedLine !== null)}
+                  onDiscount={open("discount", selectedLine !== null)}
+                  onInvoiceDiscount={open("invoiceDiscount", hasLines)}
+                  onPrice={open("price", selectedLine !== null)}
+                  onPriceList={open("priceList", view.price_lists.length > 0)}
+                  onHold={open("hold", hasLines)}
+                  onHeld={open("held", view.held_count > 0)}
+                  onRemove={removeSelected}
+                  onCancel={open("cancel", hasLines)}
+                  onReprint={() => reprint(null)}
+                  onOldReceipt={open("reprint", true)}
+                  onReturn={open("return", cart !== null)}
+                  onShift={props.onShiftMenu}
+                  onLock={props.onLock}
+                  onBackOffice={props.onBackOffice}
+                />
+              }
             />
-            {till.problem ? <Alert kind="problem">{till.problem}</Alert> : null}
-            <CustomerBar cart={cart} currency={view.currency} />
-            {cart.exchange ? (
-              <ExchangeBar exchange={cart.exchange} currency={view.currency} onCashOut={cashOut} />
-            ) : null}
-            {till.restored ? <Alert kind="info">{t("restored")}</Alert> : null}
-            {refundDone ? <RefundDoneBar done={refundDone} currency={view.currency} /> : null}
-            {till.lastSale && !refundDone ? (
-              <SaleDoneBar done={till.lastSale} currency={view.currency} />
-            ) : null}
-            {printFailed ? (
-              <PrintProblem
-                key={JSON.stringify(printFailed.printable)}
-                result={printFailed}
-                onGone={() => setPrintFailed(null)}
-              />
-            ) : null}
-            {reprinted !== null ? (
-              <Alert kind="done">
-                {reprinted === ""
-                  ? t("reprint.doneLast")
-                  : t("reprint.done", { invoice: reprinted })}
-              </Alert>
-            ) : null}
-            <div className="flex-1 overflow-auto rounded-ui border border-border bg-panel">
+          </div>
+
+          <div className="flex-[2] min-w-[420px] flex flex-col h-full bg-panel border-l border-border overflow-hidden">
+            <div className="p-3 border-b border-border bg-bg space-y-2 shrink-0">
+              <CustomerBar cart={cart} currency={view.currency} />
+              {cart.exchange ? (
+                <ExchangeBar
+                  exchange={cart.exchange}
+                  currency={view.currency}
+                  onCashOut={cashOut}
+                />
+              ) : null}
+              {till.problem ? <Alert kind="problem">{till.problem}</Alert> : null}
+              {till.restored ? <Alert kind="info">{t("restored")}</Alert> : null}
+              {refundDone ? <RefundDoneBar done={refundDone} currency={view.currency} /> : null}
+              {till.lastSale && !refundDone ? (
+                <SaleDoneBar done={till.lastSale} currency={view.currency} />
+              ) : null}
+              {printFailed ? (
+                <PrintProblem
+                  key={JSON.stringify(printFailed.printable)}
+                  result={printFailed}
+                  onGone={() => setPrintFailed(null)}
+                />
+              ) : null}
+              {reprinted !== null ? (
+                <Alert kind="done">
+                  {reprinted === ""
+                    ? t("reprint.doneLast")
+                    : t("reprint.done", { invoice: reprinted })}
+                </Alert>
+              ) : null}
+            </div>
+
+            <div className="flex-1 overflow-auto bg-panel p-2">
               <CartTable
                 lines={lines}
                 currency={view.currency}
                 selected={till.selected}
                 flash={till.flash}
                 priceChanged={till.priceChanged}
-                onSelect={till.setSelected}
+                onSelect={(id) => {
+                  till.setSelected(id);
+                }}
+                onInspectLine={(id) => {
+                  till.setSelected(id);
+                  setLineEditOpen(true);
+                }}
               />
             </div>
-          </main>
-          <TotalsPanel
-            totals={cart.totals}
-            taxLabel={cart.tax_label}
-            taxMode={cart.tax_mode}
-            currency={view.currency}
-            empty={!hasLines}
-            onPay={open("payment", hasLines)}
-          />
+
+            <TotalsPanel
+              totals={cart.totals}
+              taxLabel={cart.tax_label}
+              taxMode={cart.tax_mode}
+              currency={view.currency}
+              empty={!hasLines}
+              onPay={open("payment", hasLines)}
+            />
+          </div>
         </div>
       )}
-      <ButtonBar
-        hasLines={hasLines}
-        hasSelection={selectedLine !== null}
-        hasPriceLists={view.price_lists.length > 0}
-        heldCount={view.held_count}
-        canReprintAny={props.session.permissions.includes("receipt_reprint_any")}
-        onSearch={() => scanRef.current?.focus()}
-        onCustomer={open("customer", cart !== null)}
-        onQty={open("qty", selectedLine !== null)}
-        onDiscount={open("discount", selectedLine !== null)}
-        onInvoiceDiscount={open("invoiceDiscount", hasLines)}
-        onPrice={open("price", selectedLine !== null)}
-        onPriceList={open("priceList", view.price_lists.length > 0)}
-        onHold={open("hold", hasLines)}
-        onHeld={open("held", view.held_count > 0)}
-        onRemove={removeSelected}
-        onCancel={open("cancel", hasLines)}
-        onReprint={() => reprint(null)}
-        onOldReceipt={open("reprint", true)}
-        onReturn={open("return", cart !== null)}
-        onShift={props.onShiftMenu}
-        onLock={props.onLock}
-        onBackOffice={props.onBackOffice}
+
+      <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      <LineEditDrawer
+        open={lineEditOpen && selectedLine !== null}
+        line={selectedLine}
+        currency={view.currency}
+        onClose={() => setLineEditOpen(false)}
+        onApplyQty={(qtyText) => {
+          if (!selectedLine) return;
+          const parsed = parseQty(qtyText, selectedLine.unit_decimals);
+          if (parsed.ok) {
+            void till.changeQty(selectedLine.line_id, parsed.milli);
+          }
+        }}
+        onApplyPercentDiscount={(pctText) => {
+          if (!selectedLine) return;
+          const parsed = parsePercent(pctText);
+          if (parsed.ok) {
+            changeCart(
+              (approval) =>
+                setLineDiscount(
+                  selectedLine.line_id,
+                  { kind: "percent", value: parsed.bps },
+                  approval,
+                ),
+              selectedLine.line_id,
+            );
+          }
+        }}
+        onApplyAmountDiscount={(amtText) => {
+          if (!selectedLine) return;
+          const parsed = parseMoney(amtText, view.currency.minor_digits);
+          if (parsed.ok) {
+            changeCart(
+              (approval) =>
+                setLineDiscount(
+                  selectedLine.line_id,
+                  { kind: "amount", value: parsed.minor },
+                  approval,
+                ),
+              selectedLine.line_id,
+            );
+          }
+        }}
+        onApplyPriceOverride={(priceText) => {
+          if (!selectedLine) return;
+          const parsed = parseMoney(priceText, view.currency.minor_digits);
+          if (parsed.ok) {
+            changeCart(
+              (approval) => overridePrice(selectedLine.line_id, parsed.minor, approval),
+              selectedLine.line_id,
+            );
+          }
+        }}
+        onRemoveLine={removeSelected}
       />
+
       {dialog === "qty" && selectedLine ? (
         <QtyDialog
           line={selectedLine}

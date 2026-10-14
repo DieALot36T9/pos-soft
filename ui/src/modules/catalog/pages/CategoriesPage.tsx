@@ -17,7 +17,6 @@ import { categoryPaths } from "../components/categoryPaths";
 
 const UNCATEGORISED = "00000000000000000000000010";
 
-// The category tree, shown with each category under its parents, and a form (CAT-03).
 export function CategoriesPage() {
   const { t } = useTranslation("catalog");
   const { t: tErrors } = useTranslation("errors");
@@ -44,25 +43,27 @@ export function CategoriesPage() {
   const byId = new Map(categories.map((each) => [each.id, each]));
   return (
     <section aria-labelledby="categories-heading" className="flex flex-col gap-4">
-      <div>
-        <h2 id="categories-heading" className="text-[28px] font-semibold">
-          {t("categories.title")}
-        </h2>
-        <p className="text-text-muted">{t("categories.intro")}</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 id="categories-heading" className="text-[28px] font-semibold">
+            {t("categories.title")}
+          </h2>
+          <p className="text-text-muted">{t("categories.intro")}</p>
+        </div>
+        <CheckBox
+          label={t("categories.showArchived.label")}
+          tip={t("categories.showArchived.tip")}
+          checked={showArchived}
+          onChange={setShowArchived}
+        />
       </div>
-      <CheckBox
-        label={t("categories.showArchived.label")}
-        tip={t("categories.showArchived.tip")}
-        checked={showArchived}
-        onChange={setShowArchived}
-      />
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       <table className="w-full border-collapse rounded-ui border border-border bg-panel">
         <thead>
-          <tr className="border-b border-border text-left">
-            <th className="p-2">{t("categories.table.name")}</th>
-            <th className="p-2 text-right">{t("categories.table.order")}</th>
-            <th className="p-2">{t("categories.table.actions")}</th>
+          <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+            <th className="p-2.5">{t("categories.table.name")}</th>
+            <th className="p-2.5 text-right">{t("categories.table.order")}</th>
+            <th className="p-2.5">{t("categories.table.actions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -72,9 +73,9 @@ export function CategoriesPage() {
               return null;
             }
             return (
-              <tr key={id} className="border-b border-border">
-                <td className="p-2">
-                  <span className="flex items-center gap-2">
+              <tr key={id} className="border-b border-border hover:bg-blue-soft/30">
+                <td className="p-2.5">
+                  <span className="flex items-center gap-2 font-medium">
                     {path}
                     {category.archived_at !== null ? (
                       <Badge
@@ -86,8 +87,8 @@ export function CategoriesPage() {
                     ) : null}
                   </span>
                 </td>
-                <td className="p-2 text-right tabular-nums">{category.sort}</td>
-                <td className="p-2">
+                <td className="p-2.5 text-right tabular-nums">{category.sort}</td>
+                <td className="p-2.5">
                   <span className="flex gap-2">
                     <IconButton
                       icon={Pencil}
@@ -167,7 +168,7 @@ function CategoryForm({ category, all, onSaved, onCancel }: CategoryFormProps) {
           ? t("categories.form.editHeading", { name: category.name })
           : t("categories.form.addHeading")}
       </h3>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Field
           label={t("categories.form.name.label")}
           tip={t("categories.form.name.tip")}

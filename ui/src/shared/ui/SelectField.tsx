@@ -12,7 +12,7 @@ type SelectFieldProps<T extends string> = {
   error?: string | null;
 };
 
-// A labelled drop-down list with its tooltip and, when needed, an error under it.
+// A labelled drop-down list with persistent helper description, tooltip, and error under it.
 export function SelectField<T extends string>({
   label,
   tip,
@@ -24,9 +24,10 @@ export function SelectField<T extends string>({
   const id = useId();
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="font-semibold">
+      <label htmlFor={id} className="text-sm font-bold text-text">
         {label}
       </label>
+      <span className="text-xs text-text-muted leading-snug">{tip}</span>
       <Tip tip={tip}>
         <select
           id={id}
@@ -34,7 +35,8 @@ export function SelectField<T extends string>({
           onChange={(event) => onChange(event.target.value as T)}
           aria-invalid={error ? true : undefined}
           className={
-            "min-h-10 rounded-ui border bg-panel px-3 " + (error ? "border-red" : "border-border")
+            "min-h-10 rounded-ui border bg-panel px-3 text-base text-text " +
+            (error ? "border-red bg-red-soft/20" : "border-border")
           }
         >
           {options.map((option) => (
@@ -44,7 +46,7 @@ export function SelectField<T extends string>({
           ))}
         </select>
       </Tip>
-      {error ? <p className="text-red">{error}</p> : null}
+      {error ? <p className="text-sm font-semibold text-red">{error}</p> : null}
     </div>
   );
 }

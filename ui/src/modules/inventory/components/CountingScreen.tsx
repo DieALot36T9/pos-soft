@@ -23,8 +23,6 @@ type CountingScreenProps = {
   onBack: () => void;
 };
 
-// Counting by scanning (INV-06): scan or type a code, the quantity (1 by default), Enter.
-// A product with batches asks which batch first. The running list shows what was counted.
 export function CountingScreen({ countId, canManage, onBack }: CountingScreenProps) {
   const { t } = useTranslation("inventory");
   const { t: tErrors } = useTranslation("errors");
@@ -32,7 +30,6 @@ export function CountingScreen({ countId, canManage, onBack }: CountingScreenPro
   const [code, setCode] = useState("");
   const [qtyText, setQtyText] = useState("1");
   const [takeBack, setTakeBack] = useState(false);
-  // A scanned product with batches waits here until its batch is picked.
   const [waiting, setWaiting] = useState<StockProduct | null>(null);
   const [batch, setBatch] = useState("");
   const [reviewing, setReviewing] = useState(false);
@@ -151,9 +148,9 @@ export function CountingScreen({ countId, canManage, onBack }: CountingScreenPro
         </div>
       </div>
       {isOpen ? (
-        <div className="flex flex-col gap-3 rounded-ui border border-border bg-panel p-4">
-          <div className="grid grid-cols-[2fr_1fr_auto] items-end gap-3">
-            <div ref={codeBox} className="text-xl">
+        <div className="flex flex-col gap-4 rounded-ui border border-border bg-panel p-5">
+          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_auto] items-end gap-4">
+            <div ref={codeBox}>
               <Field
                 label={t("counting.code.label")}
                 tip={t("counting.code.tip")}
@@ -179,17 +176,21 @@ export function CountingScreen({ countId, canManage, onBack }: CountingScreenPro
                 }
               }}
             />
-            <CheckBox
-              label={t("counting.takeBack.label")}
-              tip={t("counting.takeBack.tip")}
-              checked={takeBack}
-              onChange={setTakeBack}
-            />
+            <div className="pb-2">
+              <CheckBox
+                label={t("counting.takeBack.label")}
+                tip={t("counting.takeBack.tip")}
+                checked={takeBack}
+                onChange={setTakeBack}
+              />
+            </div>
           </div>
           {waiting ? (
-            <div className="flex flex-col gap-3">
-              <p>{t("counting.found", { name: waiting.name, sku: waiting.sku })}</p>
-              <div className="grid grid-cols-[2fr_auto] items-end gap-3">
+            <div className="flex flex-col gap-3 rounded-ui border border-blue bg-blue-soft/30 p-3">
+              <p className="font-semibold text-blue">
+                {t("counting.found", { name: waiting.name, sku: waiting.sku })}
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-[2fr_auto] items-end gap-3">
                 <SelectField
                   label={t("counting.batch.label")}
                   tip={t("counting.batch.tip")}
@@ -223,27 +224,31 @@ export function CountingScreen({ countId, canManage, onBack }: CountingScreenPro
       {done ? <Alert kind="done">{done}</Alert> : null}
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {view.lines.length === 0 ? (
-        <p className="rounded-ui border border-border bg-panel p-3">{t("counting.table.empty")}</p>
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("counting.table.empty")}
+        </p>
       ) : (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("counting.table.name")}</th>
-              <th className="p-2">{t("counting.table.sku")}</th>
-              <th className="p-2">{t("counting.table.batch")}</th>
-              <th className="p-2 text-right">{t("counting.table.counted")}</th>
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("counting.table.name")}</th>
+              <th className="p-2.5">{t("counting.table.sku")}</th>
+              <th className="p-2.5">{t("counting.table.batch")}</th>
+              <th className="p-2.5 text-right">{t("counting.table.counted")}</th>
             </tr>
           </thead>
           <tbody>
             {view.lines.map((line) => (
               <tr
                 key={`${line.product_id}-${line.batch_id ?? ""}`}
-                className="border-b border-border"
+                className="border-b border-border hover:bg-blue-soft/30"
               >
-                <td className="p-2">{line.name}</td>
-                <td className="p-2">{line.sku}</td>
-                <td className="p-2">{line.batch_no ?? (line.batch_id ? "—" : "")}</td>
-                <td className="p-2 text-right font-semibold tabular-nums">
+                <td className="p-2.5 font-semibold">{line.name}</td>
+                <td className="p-2.5 font-mono text-sm text-text-muted">{line.sku}</td>
+                <td className="p-2.5 font-mono text-sm">
+                  {line.batch_no ?? (line.batch_id ? "—" : "")}
+                </td>
+                <td className="p-2.5 text-right font-bold tabular-nums">
                   {t("qtyUnit", {
                     qty: formatQty(line.counted, line.unit_decimals),
                     unit: line.unit_symbol,

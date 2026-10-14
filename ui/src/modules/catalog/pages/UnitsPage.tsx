@@ -14,7 +14,6 @@ import { IconButton } from "../../../shared/ui/IconButton";
 import { SelectField } from "../../../shared/ui/SelectField";
 import { archiveUnit, listUnits, saveUnit } from "../api";
 
-// The units list with a form to add or change one (CAT-02).
 export function UnitsPage() {
   const { t } = useTranslation("catalog");
   const { t: tErrors } = useTranslation("errors");
@@ -40,38 +39,40 @@ export function UnitsPage() {
 
   return (
     <section aria-labelledby="units-heading" className="flex flex-col gap-4">
-      <div>
-        <h2 id="units-heading" className="text-[28px] font-semibold">
-          {t("units.title")}
-        </h2>
-        <p className="text-text-muted">{t("units.intro")}</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 id="units-heading" className="text-[28px] font-semibold">
+            {t("units.title")}
+          </h2>
+          <p className="text-text-muted">{t("units.intro")}</p>
+        </div>
+        <CheckBox
+          label={t("units.showArchived.label")}
+          tip={t("units.showArchived.tip")}
+          checked={showArchived}
+          onChange={setShowArchived}
+        />
       </div>
-      <CheckBox
-        label={t("units.showArchived.label")}
-        tip={t("units.showArchived.tip")}
-        checked={showArchived}
-        onChange={setShowArchived}
-      />
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       <table className="w-full border-collapse rounded-ui border border-border bg-panel">
         <thead>
-          <tr className="border-b border-border text-left">
-            <th className="p-2">{t("units.table.name")}</th>
-            <th className="p-2">{t("units.table.symbol")}</th>
-            <th className="p-2 text-right">{t("units.table.decimals")}</th>
-            <th className="p-2">{t("units.table.code")}</th>
-            <th className="p-2">{t("units.table.kind")}</th>
-            <th className="p-2">{t("units.table.actions")}</th>
+          <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+            <th className="p-2.5">{t("units.table.name")}</th>
+            <th className="p-2.5">{t("units.table.symbol")}</th>
+            <th className="p-2.5 text-right">{t("units.table.decimals")}</th>
+            <th className="p-2.5">{t("units.table.code")}</th>
+            <th className="p-2.5">{t("units.table.kind")}</th>
+            <th className="p-2.5">{t("units.table.actions")}</th>
           </tr>
         </thead>
         <tbody>
           {units.map((unit) => (
-            <tr key={unit.id} className="border-b border-border">
-              <td className="p-2">{unit.name}</td>
-              <td className="p-2">{unit.symbol}</td>
-              <td className="p-2 text-right tabular-nums">{unit.decimals}</td>
-              <td className="p-2">{unit.unit_code ?? ""}</td>
-              <td className="flex flex-wrap gap-2 p-2">
+            <tr key={unit.id} className="border-b border-border hover:bg-blue-soft/30">
+              <td className="p-2.5 font-medium">{unit.name}</td>
+              <td className="p-2.5 font-mono text-sm">{unit.symbol}</td>
+              <td className="p-2.5 text-right tabular-nums">{unit.decimals}</td>
+              <td className="p-2.5 font-mono text-sm">{unit.unit_code ?? ""}</td>
+              <td className="flex flex-wrap gap-2 p-2.5">
                 {unit.is_system ? (
                   <Badge
                     colour="grey"
@@ -89,20 +90,22 @@ export function UnitsPage() {
                   />
                 ) : null}
               </td>
-              <td className="flex gap-2 p-2">
-                <IconButton
-                  icon={Pencil}
-                  tip={`${t("units.edit.tip")} ${unit.name}`}
-                  onClick={() => setEditing(unit)}
-                />
-                {!unit.is_system && unit.archived_at === null ? (
+              <td className="p-2.5">
+                <span className="flex gap-2">
                   <IconButton
-                    icon={Archive}
-                    colour="red"
-                    tip={`${t("units.archive.tip")} ${unit.name}`}
-                    onClick={() => archive(unit.id)}
+                    icon={Pencil}
+                    tip={`${t("units.edit.tip")} ${unit.name}`}
+                    onClick={() => setEditing(unit)}
                   />
-                ) : null}
+                  {!unit.is_system && unit.archived_at === null ? (
+                    <IconButton
+                      icon={Archive}
+                      colour="red"
+                      tip={`${t("units.archive.tip")} ${unit.name}`}
+                      onClick={() => archive(unit.id)}
+                    />
+                  ) : null}
+                </span>
               </td>
             </tr>
           ))}
@@ -158,7 +161,7 @@ function UnitForm({ unit, onSaved, onCancel }: UnitFormProps) {
       <h3 className="text-xl font-semibold">
         {unit ? t("units.form.editHeading", { name: unit.name }) : t("units.form.addHeading")}
       </h3>
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <Field
           label={t("units.form.name.label")}
           tip={t("units.form.name.tip")}

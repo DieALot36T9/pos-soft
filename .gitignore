@@ -16,6 +16,9 @@ ui/src/generated/*.tmp
 *.sqlite-shm
 dev-prints/
 logs/
+ui-*.txt
+ui-docs-bundle.md
+
 
 # Obsidian personal workspace files (the vault itself is committed)
 docs/.obsidian/workspace*.json

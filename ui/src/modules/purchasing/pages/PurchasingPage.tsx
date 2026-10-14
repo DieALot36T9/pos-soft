@@ -12,12 +12,9 @@ import { SuppliersPanel } from "../components/SuppliersPanel";
 type Area = "suppliers" | "orders" | "receive" | "returns" | "payables";
 const AREAS: Area[] = ["suppliers", "orders", "receive", "returns", "payables"];
 
-// Purchasing (Req - Purchasing): suppliers, purchase orders, receiving goods, supplier
-// returns and what the shop owes. Needs PurchasingManage; paying needs PurchasingPay.
 export function PurchasingPage({ permissions }: { permissions: Permission[] }) {
   const { t } = useTranslation("purchasing");
   const [area, setArea] = useState<Area>("suppliers");
-  // "Receive goods" on an order opens the receiving tab with that order.
   const [receiveOrder, setReceiveOrder] = useState<string | null>(null);
 
   return (
@@ -28,7 +25,11 @@ export function PurchasingPage({ permissions }: { permissions: Permission[] }) {
         </h2>
         <p className="text-text-muted">{t("page.intro")}</p>
       </div>
-      <div role="tablist" aria-label={t("tabs.label")} className="flex flex-wrap gap-2">
+      <div
+        role="tablist"
+        aria-label={t("tabs.label")}
+        className="flex flex-wrap gap-1.5 rounded-ui border border-border bg-panel p-1.5"
+      >
         {AREAS.map((each) => (
           <Tip key={each} tip={t(`tabs.${each}.tip`)}>
             <button
@@ -40,10 +41,10 @@ export function PurchasingPage({ permissions }: { permissions: Permission[] }) {
                 setArea(each);
               }}
               className={
-                "min-h-10 rounded-ui border px-4 " +
+                "min-h-10 rounded-ui border px-4 text-sm cursor-pointer " +
                 (each === area
-                  ? "border-blue bg-blue-soft font-semibold text-blue"
-                  : "border-border bg-panel")
+                  ? "border-blue bg-blue-soft font-bold text-blue"
+                  : "border-transparent bg-panel text-text hover:bg-grey-soft")
               }
             >
               {t(`tabs.${each}.label`)}

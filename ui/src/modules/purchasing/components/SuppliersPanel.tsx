@@ -13,7 +13,6 @@ import { listSuppliers } from "../api";
 import { SupplierDetail } from "./SupplierDetail";
 import { SupplierForm } from "./SupplierForm";
 
-// The supplier list, adding a supplier, and each supplier's page (PUR-01, PUR-05, PUR-06).
 export function SuppliersPanel({ canPay }: { canPay: boolean }) {
   const { t } = useTranslation("purchasing");
   const { t: tErrors } = useTranslation("errors");
@@ -45,35 +44,39 @@ export function SuppliersPanel({ canPay }: { canPay: boolean }) {
   const money = (minor: number) => (list ? formatMoney(minor, list.currency) : "");
   return (
     <div className="flex flex-col gap-4">
-      <CheckBox
-        label={t("suppliers.showArchived.label")}
-        tip={t("suppliers.showArchived.tip")}
-        checked={showArchived}
-        onChange={setShowArchived}
-      />
+      <div className="rounded-ui border border-border bg-panel p-3.5 flex items-center justify-between">
+        <CheckBox
+          label={t("suppliers.showArchived.label")}
+          tip={t("suppliers.showArchived.tip")}
+          checked={showArchived}
+          onChange={setShowArchived}
+        />
+      </div>
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {list && list.rows.length === 0 ? (
-        <p className="rounded-ui border border-border bg-panel p-3">{t("suppliers.empty")}</p>
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("suppliers.empty")}
+        </p>
       ) : null}
       {list && list.rows.length > 0 ? (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("suppliers.name")}</th>
-              <th className="p-2">{t("suppliers.phone")}</th>
-              <th className="p-2">{t("suppliers.terms")}</th>
-              <th className="p-2 text-right">{t("suppliers.balance")}</th>
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("suppliers.name")}</th>
+              <th className="p-2.5">{t("suppliers.phone")}</th>
+              <th className="p-2.5">{t("suppliers.terms")}</th>
+              <th className="p-2.5 text-right">{t("suppliers.balance")}</th>
             </tr>
           </thead>
           <tbody>
             {list.rows.map(({ supplier, balance }) => (
-              <tr key={supplier.id} className="border-b border-border">
-                <td className="p-2">
+              <tr key={supplier.id} className="border-b border-border hover:bg-blue-soft/30">
+                <td className="p-2.5">
                   <Tip tip={t("suppliers.open", { name: supplier.name })}>
                     <button
                       type="button"
                       onClick={() => setOpened(supplier.id)}
-                      className="font-semibold text-blue underline"
+                      className="font-semibold text-blue underline cursor-pointer"
                     >
                       {supplier.name}
                     </button>
@@ -87,11 +90,11 @@ export function SuppliersPanel({ canPay }: { canPay: boolean }) {
                     />
                   ) : null}
                 </td>
-                <td className="p-2">{supplier.phone ?? ""}</td>
-                <td className="p-2">
+                <td className="p-2.5 font-mono text-sm">{supplier.phone ?? ""}</td>
+                <td className="p-2.5">
                   {t("suppliers.termsDays", { days: supplier.payment_terms_days })}
                 </td>
-                <td className="p-2 text-right tabular-nums">{money(balance)}</td>
+                <td className="p-2.5 text-right font-semibold tabular-nums">{money(balance)}</td>
               </tr>
             ))}
           </tbody>

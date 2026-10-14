@@ -20,7 +20,6 @@ import { listOrders, listSuppliers, previewDelivery, saveDelivery, startReceivin
 import { plain, qtyText } from "./OrderEditor";
 import { ProductPicker } from "./ProductPicker";
 
-// One delivery line as typed.
 type ReceiveLine = {
   orderLineId: string | null;
   productId: string;
@@ -34,9 +33,6 @@ type ReceiveLine = {
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-// Receive goods (PUR-03): from an order, its lines start with what is still to come;
-// or directly, product by product. Rust works out every value, the difference from the
-// invoice and each product's new cost before anything is saved.
 export function ReceivePanel({ startOrder }: { startOrder: string | null }) {
   const { t } = useTranslation("purchasing");
   const { t: tErrors } = useTranslation("errors");
@@ -64,7 +60,6 @@ export function ReceivePanel({ startOrder }: { startOrder: string | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once.
   }, []);
 
-  // Choosing an order fills the supplier and the lines with what is still to come.
   useEffect(() => {
     if (orderId === "") {
       return;
@@ -170,8 +165,8 @@ export function ReceivePanel({ startOrder }: { startOrder: string | null }) {
       .join(", ");
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
+    <section className="flex flex-col gap-4">
+      <div className="rounded-ui border border-border bg-panel p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
         <SelectField
           label={t("receive.order.label")}
           tip={t("receive.order.tip")}
@@ -213,13 +208,16 @@ export function ReceivePanel({ startOrder }: { startOrder: string | null }) {
           value={invoiceTotal}
           onChange={setInvoiceTotal}
         />
-        <Field
-          label={t("receive.notes.label")}
-          tip={t("receive.notes.tip")}
-          value={notes}
-          onChange={setNotes}
-        />
+        <div className="md:col-span-2">
+          <Field
+            label={t("receive.notes.label")}
+            tip={t("receive.notes.tip")}
+            value={notes}
+            onChange={setNotes}
+          />
+        </div>
       </div>
+
       {done ? (
         <Alert kind="done">
           {t("receive.done", { number: done.number })}{" "}
@@ -230,18 +228,24 @@ export function ReceivePanel({ startOrder }: { startOrder: string | null }) {
           {done.cost_changes.length > 0 ? t("receive.costs", { changes: costChanges(done) }) : ""}
         </Alert>
       ) : null}
-      {lines.length === 0 && !done ? <p className="text-text-muted">{t("receive.empty")}</p> : null}
+
+      {lines.length === 0 && !done ? (
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("receive.empty")}
+        </p>
+      ) : null}
+
       {lines.length > 0 ? (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("receive.product")}</th>
-              <th className="p-2">{t("orders.detail.received")}</th>
-              <th className="p-2">{t("orders.detail.cost")}</th>
-              <th className="p-2">{t("receive.batchColumn")}</th>
-              <th className="p-2">{t("receive.expiryColumn")}</th>
-              <th className="p-2 text-right">{t("receive.value")}</th>
-              <th className="p-2" />
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("receive.product")}</th>
+              <th className="p-2.5">{t("orders.detail.received")}</th>
+              <th className="p-2.5">{t("orders.detail.cost")}</th>
+              <th className="p-2.5">{t("receive.batchColumn")}</th>
+              <th className="p-2.5">{t("receive.expiryColumn")}</th>
+              <th className="p-2.5 text-right">{t("receive.value")}</th>
+              <th className="p-2.5" />
             </tr>
           </thead>
           <tbody>
@@ -252,16 +256,16 @@ export function ReceivePanel({ startOrder }: { startOrder: string | null }) {
                   key={`${line.productId}-${line.orderLineId ?? index}`}
                   className="border-b border-border"
                 >
-                  <td className="p-2">
+                  <td className="p-2.5 font-semibold">
                     {line.name}
                     {line.remaining !== null ? (
-                      <span className="block text-text-muted">
+                      <span className="block text-xs font-normal text-text-muted">
                         {t("receive.remaining", { qty: qtyText(line.remaining) })}
                       </span>
                     ) : null}
                     {seen && seen.new_cost !== seen.old_cost ? (
                       <Tip tip={t("receive.costChangeTip")}>
-                        <span className="block text-purple">
+                        <span className="block text-xs font-semibold text-purple">
                           {t("receive.costChange", {
                             old: money(seen.old_cost),
                             new: money(seen.new_cost),
@@ -271,7 +275,7 @@ export function ReceivePanel({ startOrder }: { startOrder: string | null }) {
                     ) : null}
                   </td>
                   {(["qty", "cost", "batch", "expiry"] as const).map((field) => (
-                    <td key={field} className="p-2">
+                    <td key={field} className="p-2.5">
                       <Tip tip={t(`receive.${field}.tip`)}>
                         <input
                           aria-label={t(`receive.${field}.label`, { name: line.name })}
@@ -287,8 +291,10 @@ export function ReceivePanel({ startOrder }: { startOrder: string | null }) {
                       </Tip>
                     </td>
                   ))}
-                  <td className="p-2 text-right tabular-nums">{seen ? money(seen.value) : ""}</td>
-                  <td className="p-2">
+                  <td className="p-2.5 text-right font-semibold tabular-nums">
+                    {seen ? money(seen.value) : ""}
+                  </td>
+                  <td className="p-2.5">
                     <ActionButton
                       colour="red"
                       icon={Trash2}
@@ -303,26 +309,30 @@ export function ReceivePanel({ startOrder }: { startOrder: string | null }) {
           </tbody>
         </table>
       ) : null}
-      <ProductPicker
-        onPick={(hit) => {
-          setDone(null);
-          setLines((old) => [
-            ...old,
-            {
-              orderLineId: null,
-              productId: hit.product_id,
-              name: hit.name,
-              remaining: null,
-              qty: "1",
-              cost: "",
-              batch: "",
-              expiry: "",
-            },
-          ]);
-        }}
-      />
+
+      <div className="rounded-ui border border-border bg-panel p-4">
+        <ProductPicker
+          onPick={(hit) => {
+            setDone(null);
+            setLines((old) => [
+              ...old,
+              {
+                orderLineId: null,
+                productId: hit.product_id,
+                name: hit.name,
+                remaining: null,
+                qty: "1",
+                cost: "",
+                batch: "",
+                expiry: "",
+              },
+            ]);
+          }}
+        />
+      </div>
+
       {shown ? (
-        <p className="text-right text-xl font-semibold">
+        <p className="text-right text-xl font-bold tabular-nums">
           {t("receive.linesTotal", { amount: money(shown.lines_total) })}
         </p>
       ) : null}
@@ -334,7 +344,7 @@ export function ReceivePanel({ startOrder }: { startOrder: string | null }) {
       ) : null}
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {save.problem ? <Alert kind="problem">{save.problem}</Alert> : null}
-      <div>
+      <div className="flex justify-end">
         <ActionButton
           colour="green"
           icon={PackageCheck}

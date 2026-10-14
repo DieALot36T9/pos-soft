@@ -31,15 +31,12 @@ import { VariantsTab } from "../components/VariantsTab";
 type Tab = "general" | "prices" | "barcodes" | "stock" | "variants" | "kit" | "image";
 
 type ProductEditorProps = {
-  // The product to change, or null to add one.
   productId: string | null;
   choices: ProductChoices;
   onBack: () => void;
-  // Opens another product, such as a variant, in the editor.
   onOpen: (id: string) => void;
 };
 
-// The product page with its tabs (Back Office Screens, Products). Ctrl+S saves, Esc goes back.
 export function ProductEditor({ productId, choices, onBack, onOpen }: ProductEditorProps) {
   const { t } = useTranslation("catalog");
   const { t: tErrors } = useTranslation("errors");
@@ -116,16 +113,27 @@ export function ProductEditor({ productId, choices, onBack, onOpen }: ProductEdi
   }
   tabs.push("image");
 
-  // A problem with a field on another tab still shows here, so it is never missed.
   const fieldProblem = save.problem ?? localProblem?.text ?? null;
+  const skuLabel = product ? `SKU: ${product.sku}` : "";
 
   return (
     <section aria-labelledby="product-heading" className="flex flex-col gap-4">
-      <h2 id="product-heading" className="text-[28px] font-semibold">
-        {product ? t("editor.editHeading", { name: product.name }) : t("editor.addHeading")}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+        <div>
+          <h2 id="product-heading" className="text-[28px] font-semibold">
+            {product ? t("editor.editHeading", { name: product.name }) : t("editor.addHeading")}
+          </h2>
+          {product ? <p className="font-mono text-xs text-text-muted mt-0.5">{skuLabel}</p> : null}
+        </div>
+      </div>
+
       {product?.archived_at ? <Alert kind="warning">{t("editor.isArchived")}</Alert> : null}
-      <div role="tablist" aria-label={t("editor.tabsLabel")} className="flex flex-wrap gap-1">
+
+      <div
+        role="tablist"
+        aria-label={t("editor.tabsLabel")}
+        className="flex flex-wrap gap-1.5 rounded-ui border border-border bg-panel p-1.5"
+      >
         {tabs.map((each) => (
           <Tip key={each} tip={t(`editor.tabs.${each}.tip`)}>
             <button
@@ -134,10 +142,10 @@ export function ProductEditor({ productId, choices, onBack, onOpen }: ProductEdi
               aria-selected={each === tab}
               onClick={() => setTab(each)}
               className={
-                "min-h-10 rounded-ui border px-4 " +
+                "min-h-10 rounded-ui border px-4 text-sm cursor-pointer " +
                 (each === tab
-                  ? "border-blue bg-blue-soft font-semibold text-blue"
-                  : "border-border bg-panel")
+                  ? "border-blue bg-blue-soft font-bold text-blue"
+                  : "border-transparent bg-panel text-text hover:bg-grey-soft")
               }
             >
               {t(`editor.tabs.${each}.label`)}
@@ -145,7 +153,8 @@ export function ProductEditor({ productId, choices, onBack, onOpen }: ProductEdi
           </Tip>
         ))}
       </div>
-      <div role="tabpanel" className="rounded-ui border border-border bg-panel p-4">
+
+      <div role="tabpanel" className="rounded-ui border border-border bg-panel p-5">
         {tab === "general" ? (
           <GeneralTab
             draft={draft}
@@ -232,10 +241,12 @@ export function ProductEditor({ productId, choices, onBack, onOpen }: ProductEdi
           )
         ) : null}
       </div>
+
       {fieldProblem ? <Alert kind="problem">{fieldProblem}</Alert> : null}
       {action.problem ? <Alert kind="problem">{action.problem}</Alert> : null}
       {message ? <Alert kind="done">{message}</Alert> : null}
-      <div className="flex flex-wrap justify-between gap-3">
+
+      <div className="flex flex-wrap justify-between gap-3 rounded-ui border border-border bg-panel p-4">
         <ActionButton
           colour="grey"
           icon={ArrowLeft}

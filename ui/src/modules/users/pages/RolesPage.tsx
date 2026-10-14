@@ -13,7 +13,6 @@ import { Tip } from "../../../shared/ui/Tip";
 import { listRoles } from "../api";
 import { RoleForm } from "../components/RoleForm";
 
-// The roles list and form: permission checkboxes and the discount limit (USR-04).
 export function RolesPage() {
   const { t } = useTranslation("users");
   const { t: tErrors } = useTranslation("errors");
@@ -42,23 +41,25 @@ export function RolesPage() {
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       <table className="w-full border-collapse rounded-ui border border-border bg-panel">
         <thead>
-          <tr className="border-b border-border text-left">
-            <th className="p-2">{t("roles.table.name")}</th>
-            <th className="p-2">{t("roles.table.permissions")}</th>
-            <th className="p-2 text-right">{t("roles.table.discount")}</th>
-            <th className="p-2">{t("roles.table.kind")}</th>
-            <th className="p-2">{t("roles.table.actions")}</th>
+          <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+            <th className="p-2.5">{t("roles.table.name")}</th>
+            <th className="p-2.5">{t("roles.table.permissions")}</th>
+            <th className="p-2.5 text-right">{t("roles.table.discount")}</th>
+            <th className="p-2.5">{t("roles.table.kind")}</th>
+            <th className="p-2.5">{t("roles.table.actions")}</th>
           </tr>
         </thead>
         <tbody>
           {(view?.roles ?? []).map((role) => (
-            <tr key={role.id} className="border-b border-border">
-              <td className="p-2">{role.name}</td>
-              <td className="p-2 tabular-nums">
+            <tr key={role.id} className="border-b border-border hover:bg-blue-soft/30">
+              <td className="p-2.5 font-semibold">{role.name}</td>
+              <td className="p-2.5 tabular-nums">
                 {t("roles.table.count", { count: role.permissions.length, all })}
               </td>
-              <td className="p-2 text-right tabular-nums">{formatPercent(role.max_discount)}</td>
-              <td className="p-2">
+              <td className="p-2.5 text-right font-semibold tabular-nums">
+                {formatPercent(role.max_discount)}
+              </td>
+              <td className="p-2.5">
                 {role.is_system ? (
                   <Badge
                     colour="blue"
@@ -75,10 +76,10 @@ export function RolesPage() {
                   />
                 )}
               </td>
-              <td className="p-2">
+              <td className="p-2.5">
                 {role.is_admin ? (
                   <Tip tip={t("roles.adminFixed")}>
-                    <span tabIndex={0} className="text-text-muted">
+                    <span tabIndex={0} className="text-text-muted text-sm font-medium">
                       {t("roles.table.fixed")}
                     </span>
                   </Tip>
