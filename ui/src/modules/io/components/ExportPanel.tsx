@@ -21,7 +21,6 @@ const ENTITIES: ExportEntity[] = [
   "batches",
 ];
 
-// Exports (IO-03): what, CSV or Excel, then where to save it.
 export function ExportPanel({ priceLists }: { priceLists: Choice[] }) {
   const { t } = useTranslation("io");
   const { t: tErrors } = useTranslation("errors");
@@ -50,8 +49,8 @@ export function ExportPanel({ priceLists }: { priceLists: Choice[] }) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end gap-3">
+    <div className="flex flex-col gap-4 rounded-ui border border-border bg-panel p-5">
+      <div className="flex flex-wrap items-end gap-4">
         <div className="w-64">
           <SelectField
             label={t("export.entity.label")}

@@ -18,14 +18,12 @@ import { OrderEditor } from "./OrderEditor";
 const NEW_ORDER = "new";
 const STATUSES: OrderStatus[] = ["draft", "sent", "partial", "received", "cancelled"];
 
-// Purchase orders by status, a new order, and each order's page (PUR-02).
 export function OrdersPanel({ onReceive }: { onReceive: (orderId: string) => void }) {
   const { t } = useTranslation("purchasing");
   const { t: tErrors } = useTranslation("errors");
   const [status, setStatus] = useState<OrderStatus | "all">("all");
   const [list, setList] = useState<OrderList | null>(null);
   const [opened, setOpened] = useState<string | null>(null);
-  // An order id to change, NEW_ORDER for a new one, or null when not editing.
   const [editing, setEditing] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
@@ -67,17 +65,19 @@ export function OrdersPanel({ onReceive }: { onReceive: (orderId: string) => voi
   const money = (minor: number) => (list ? formatMoney(minor, list.currency) : "");
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <SelectField
-          label={t("orders.status.label")}
-          tip={t("orders.status.tip")}
-          value={status}
-          options={[
-            { value: "all" as const, label: t("orders.status.all") },
-            ...STATUSES.map((each) => ({ value: each, label: t(`orders.status.${each}`) })),
-          ]}
-          onChange={setStatus}
-        />
+      <div className="rounded-ui border border-border bg-panel p-4 flex flex-wrap items-end justify-between gap-3">
+        <div className="w-64">
+          <SelectField
+            label={t("orders.status.label")}
+            tip={t("orders.status.tip")}
+            value={status}
+            options={[
+              { value: "all" as const, label: t("orders.status.all") },
+              ...STATUSES.map((each) => ({ value: each, label: t(`orders.status.${each}`) })),
+            ]}
+            onChange={setStatus}
+          />
+        </div>
         <ActionButton
           colour="green"
           icon={FilePlus}
@@ -88,39 +88,41 @@ export function OrdersPanel({ onReceive }: { onReceive: (orderId: string) => voi
       </div>
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {list && list.rows.length === 0 ? (
-        <p className="rounded-ui border border-border bg-panel p-3">{t("orders.empty")}</p>
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("orders.empty")}
+        </p>
       ) : null}
       {list && list.rows.length > 0 ? (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("orders.number")}</th>
-              <th className="p-2">{t("common.supplier.label")}</th>
-              <th className="p-2">{t("orders.status.label")}</th>
-              <th className="p-2">{t("orders.created")}</th>
-              <th className="p-2 text-right">{t("orders.lines")}</th>
-              <th className="p-2 text-right">{t("orders.total")}</th>
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("orders.number")}</th>
+              <th className="p-2.5">{t("common.supplier.label")}</th>
+              <th className="p-2.5">{t("orders.status.label")}</th>
+              <th className="p-2.5">{t("orders.created")}</th>
+              <th className="p-2.5 text-right">{t("orders.lines")}</th>
+              <th className="p-2.5 text-right">{t("orders.total")}</th>
             </tr>
           </thead>
           <tbody>
             {list.rows.map((row) => (
-              <tr key={row.id} className="border-b border-border">
-                <td className="p-2">
+              <tr key={row.id} className="border-b border-border hover:bg-blue-soft/30">
+                <td className="p-2.5">
                   <Tip tip={t("orders.open", { number: row.number })}>
                     <button
                       type="button"
                       onClick={() => setOpened(row.id)}
-                      className="font-semibold text-blue underline"
+                      className="font-semibold text-blue underline cursor-pointer"
                     >
                       {row.number}
                     </button>
                   </Tip>
                 </td>
-                <td className="p-2">{row.supplier_name}</td>
-                <td className="p-2">{t(`orders.status.${row.status}`)}</td>
-                <td className="p-2">{formatDateTime(row.created_at)}</td>
-                <td className="p-2 text-right tabular-nums">{row.line_count}</td>
-                <td className="p-2 text-right tabular-nums">{money(row.total)}</td>
+                <td className="p-2.5 font-medium">{row.supplier_name}</td>
+                <td className="p-2.5">{t(`orders.status.${row.status}`)}</td>
+                <td className="p-2.5 tabular-nums">{formatDateTime(row.created_at)}</td>
+                <td className="p-2.5 text-right tabular-nums">{row.line_count}</td>
+                <td className="p-2.5 text-right font-semibold tabular-nums">{money(row.total)}</td>
               </tr>
             ))}
           </tbody>

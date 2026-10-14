@@ -10,8 +10,6 @@ import { ImportWizard } from "../components/ImportWizard";
 
 type Tab = "import" | "export";
 
-// Import / Export (Req - Import and Export). The tabs the role allows: import needs
-// "data import", export needs "data export". Rust checks both anyway.
 export function ImportExportPage({ permissions }: { permissions: Permission[] }) {
   const { t } = useTranslation("io");
   const tabs: Tab[] = [];
@@ -38,7 +36,10 @@ export function ImportExportPage({ permissions }: { permissions: Permission[] })
         </h2>
         <p className="text-text-muted">{t("page.intro")}</p>
       </div>
-      <div role="tablist" className="flex gap-2 border-b border-border">
+      <div
+        role="tablist"
+        className="flex flex-wrap gap-1.5 rounded-ui border border-border bg-panel p-1.5"
+      >
         {tabs.map((each) => (
           <Tip key={each} tip={t(`page.${each}Tab.tip`)}>
             <button
@@ -47,8 +48,10 @@ export function ImportExportPage({ permissions }: { permissions: Permission[] })
               aria-selected={each === tab}
               onClick={() => setTab(each)}
               className={
-                "min-h-10 border-b-2 px-4 " +
-                (each === tab ? "border-blue font-semibold text-blue" : "border-transparent")
+                "min-h-10 rounded-ui border px-4 text-sm cursor-pointer " +
+                (each === tab
+                  ? "border-blue bg-blue-soft font-bold text-blue"
+                  : "border-transparent bg-panel text-text hover:bg-grey-soft")
               }
             >
               {t(`page.${each}Tab.label`)}

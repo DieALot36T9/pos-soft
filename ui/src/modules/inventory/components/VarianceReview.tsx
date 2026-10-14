@@ -16,8 +16,6 @@ type VarianceReviewProps = {
   onBack: () => void;
 };
 
-// The variance report (expected, counted, difference, value) and Post or Cancel (INV-06).
-// Rust works out every number; this screen only shows them.
 export function VarianceReview({ countId, onBack }: VarianceReviewProps) {
   const { t } = useTranslation("inventory");
   const { t: tErrors } = useTranslation("errors");
@@ -76,17 +74,19 @@ export function VarianceReview({ countId, onBack }: VarianceReviewProps) {
       {done ? <Alert kind="done">{done}</Alert> : null}
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {report.rows.length === 0 ? (
-        <p className="rounded-ui border border-border bg-panel p-3">{t("review.table.empty")}</p>
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("review.table.empty")}
+        </p>
       ) : (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("review.table.name")}</th>
-              <th className="p-2">{t("review.table.batch")}</th>
-              <th className="p-2 text-right">{t("review.table.expected")}</th>
-              <th className="p-2 text-right">{t("review.table.counted")}</th>
-              <th className="p-2 text-right">{t("review.table.difference")}</th>
-              <th className="p-2 text-right">{t("review.table.value")}</th>
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("review.table.name")}</th>
+              <th className="p-2.5">{t("review.table.batch")}</th>
+              <th className="p-2.5 text-right">{t("review.table.expected")}</th>
+              <th className="p-2.5 text-right">{t("review.table.counted")}</th>
+              <th className="p-2.5 text-right">{t("review.table.difference")}</th>
+              <th className="p-2.5 text-right">{t("review.table.value")}</th>
             </tr>
           </thead>
           <tbody>
@@ -97,18 +97,18 @@ export function VarianceReview({ countId, onBack }: VarianceReviewProps) {
               return (
                 <tr
                   key={`${row.product_id}-${row.batch_id ?? ""}`}
-                  className="border-b border-border"
+                  className="border-b border-border hover:bg-blue-soft/20"
                 >
-                  <td className="p-2">{row.name}</td>
-                  <td className="p-2">{row.batch_no ?? ""}</td>
-                  <td className="p-2 text-right tabular-nums">{qty(row.expected)}</td>
-                  <td className="p-2 text-right tabular-nums">
+                  <td className="p-2.5 font-semibold">{row.name}</td>
+                  <td className="p-2.5 font-mono text-sm">{row.batch_no ?? ""}</td>
+                  <td className="p-2.5 text-right tabular-nums">{qty(row.expected)}</td>
+                  <td className="p-2.5 text-right tabular-nums">
                     {row.was_counted ? qty(row.counted) : t("review.table.notCounted")}
                   </td>
-                  <td className={"p-2 text-right font-semibold tabular-nums " + colour}>
+                  <td className={"p-2.5 text-right font-bold tabular-nums " + colour}>
                     {(row.difference > 0 ? "+" : "") + qty(row.difference)}
                   </td>
-                  <td className={"p-2 text-right tabular-nums " + colour}>
+                  <td className={"p-2.5 text-right font-semibold tabular-nums " + colour}>
                     {formatMoney(row.cost_value, report.currency)}
                   </td>
                 </tr>
@@ -117,12 +117,14 @@ export function VarianceReview({ countId, onBack }: VarianceReviewProps) {
           </tbody>
         </table>
       )}
-      <p className="text-xl font-semibold">
-        {t("review.total", { value: formatMoney(report.total_value, report.currency) })}
-      </p>
+      <div className="rounded-ui border border-border bg-panel p-4 flex items-center justify-between">
+        <p className="text-xl font-bold tabular-nums">
+          {t("review.total", { value: formatMoney(report.total_value, report.currency) })}
+        </p>
+      </div>
       {isOpen && report.uncounted > 0 ? (
         <Alert kind="warning">
-          <p>{t("review.uncounted", { count: report.uncounted })}</p>
+          <p className="mb-2">{t("review.uncounted", { count: report.uncounted })}</p>
           <CheckBox
             label={t("review.confirm.label")}
             tip={t("review.confirm.tip")}
@@ -132,7 +134,14 @@ export function VarianceReview({ countId, onBack }: VarianceReviewProps) {
         </Alert>
       ) : null}
       {isOpen ? (
-        <div className="flex gap-2">
+        <div className="flex justify-between gap-2 rounded-ui border border-border bg-panel p-4">
+          <ActionButton
+            colour="red"
+            icon={Ban}
+            label={t("review.cancel.label")}
+            tip={t("review.cancel.tip")}
+            onClick={cancel}
+          />
           <ActionButton
             colour="green"
             icon={CheckCircle}
@@ -140,13 +149,6 @@ export function VarianceReview({ countId, onBack }: VarianceReviewProps) {
             tip={t("review.post.tip")}
             disabledReason={needsConfirm ? t("review.confirm.tip") : undefined}
             onClick={post}
-          />
-          <ActionButton
-            colour="red"
-            icon={Ban}
-            label={t("review.cancel.label")}
-            tip={t("review.cancel.tip")}
-            onClick={cancel}
           />
         </div>
       ) : null}

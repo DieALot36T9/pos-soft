@@ -17,11 +17,9 @@ import { CountStatusBadge } from "../components/CountStatusBadge";
 import { CountingScreen } from "../components/CountingScreen";
 
 type StockCountsPageProps = {
-  // The user may start, review, post and cancel counts (StockCountManage).
   canManage: boolean;
 };
 
-// The list of stock counts, "Start a count", and the count screen when one is open (INV-06).
 export function StockCountsPage({ canManage }: StockCountsPageProps) {
   const { t } = useTranslation("inventory");
   const { t: tErrors } = useTranslation("errors");
@@ -94,7 +92,7 @@ export function StockCountsPage({ canManage }: StockCountsPageProps) {
           }}
         >
           <h3 className="text-xl font-semibold">{t("counts.start.title")}</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field
               label={t("counts.name.label")}
               tip={t("counts.name.tip")}
@@ -133,7 +131,7 @@ export function StockCountsPage({ canManage }: StockCountsPageProps) {
               </>
             ) : null}
           </div>
-          <div>
+          <div className="flex justify-end pt-1">
             <ActionButton
               colour="green"
               icon={Play}
@@ -146,34 +144,40 @@ export function StockCountsPage({ canManage }: StockCountsPageProps) {
       ) : null}
       {problem && problem.field === null ? <Alert kind="problem">{problem.message}</Alert> : null}
       {counts.length === 0 ? (
-        <p className="rounded-ui border border-border bg-panel p-3">{t("counts.table.empty")}</p>
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("counts.table.empty")}
+        </p>
       ) : (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("counts.table.number")}</th>
-              <th className="p-2">{t("counts.table.name")}</th>
-              <th className="p-2">{t("counts.table.covers")}</th>
-              <th className="p-2">{t("counts.table.status")}</th>
-              <th className="p-2">{t("counts.table.started")}</th>
-              <th className="p-2">{t("counts.table.by")}</th>
-              <th className="p-2">{t("counts.table.actions")}</th>
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("counts.table.number")}</th>
+              <th className="p-2.5">{t("counts.table.name")}</th>
+              <th className="p-2.5">{t("counts.table.covers")}</th>
+              <th className="p-2.5">{t("counts.table.status")}</th>
+              <th className="p-2.5">{t("counts.table.started")}</th>
+              <th className="p-2.5">{t("counts.table.by")}</th>
+              <th className="p-2.5">{t("counts.table.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {counts.map((count) => (
-              <tr key={count.id} className="border-b border-border">
-                <td className="p-2 tabular-nums">{count.number}</td>
-                <td className="p-2">{count.name}</td>
-                <td className="p-2">
+              <tr
+                key={count.id}
+                onDoubleClick={() => setOpen(count.id)}
+                className="border-b border-border hover:bg-blue-soft/30"
+              >
+                <td className="p-2.5 font-mono text-sm tabular-nums">{count.number}</td>
+                <td className="p-2.5 font-semibold">{count.name}</td>
+                <td className="p-2.5">
                   {count.scope === "full" ? t("counts.table.full") : count.covers}
                 </td>
-                <td className="p-2">
+                <td className="p-2.5">
                   <CountStatusBadge status={count.status} />
                 </td>
-                <td className="p-2 tabular-nums">{formatDateTime(count.created_at)}</td>
-                <td className="p-2">{count.created_by_name ?? ""}</td>
-                <td className="p-2">
+                <td className="p-2.5 tabular-nums">{formatDateTime(count.created_at)}</td>
+                <td className="p-2.5">{count.created_by_name ?? ""}</td>
+                <td className="p-2.5">
                   <IconButton
                     icon={FolderOpen}
                     colour="blue"

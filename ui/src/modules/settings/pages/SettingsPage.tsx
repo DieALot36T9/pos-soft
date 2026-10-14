@@ -31,7 +31,6 @@ const sections = [
 ] as const;
 type Section = (typeof sections)[number];
 
-// Settings: one section at a time, picked from the list on the left (SET-13).
 export function SettingsPage() {
   const { t } = useTranslation("settings");
   const { t: tErrors } = useTranslation("errors");
@@ -56,8 +55,11 @@ export function SettingsPage() {
         <p className="text-text-muted">{t("page.intro")}</p>
       </div>
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
-      <div className="flex gap-4">
-        <nav aria-label={t("page.sections")} className="w-52 shrink-0">
+      <div className="flex flex-col md:flex-row gap-5 items-start">
+        <nav
+          aria-label={t("page.sections")}
+          className="w-full md:w-56 shrink-0 rounded-ui border border-border bg-panel p-2"
+        >
           <ul className="flex flex-col gap-1">
             {sections.map((each) => (
               <li key={each}>
@@ -67,10 +69,10 @@ export function SettingsPage() {
                     aria-current={each === section ? "page" : undefined}
                     onClick={() => setSection(each)}
                     className={
-                      "min-h-10 w-full rounded-ui border px-3 text-left " +
+                      "min-h-10 w-full rounded-ui border px-3 text-left text-sm cursor-pointer " +
                       (each === section
-                        ? "border-blue bg-blue-soft font-semibold text-blue"
-                        : "border-border bg-panel")
+                        ? "border-blue bg-blue-soft font-bold text-blue"
+                        : "border-transparent bg-panel text-text hover:bg-grey-soft")
                     }
                   >
                     {t(`sections.${each}`)}
@@ -81,7 +83,7 @@ export function SettingsPage() {
           </ul>
         </nav>
         {props ? (
-          <div className="flex flex-1" key={section}>
+          <div className="flex flex-1 w-full" key={section}>
             {section === "shop" ? <ShopSection {...props} /> : null}
             {section === "money" ? <MoneySection {...props} /> : null}
             {section === "tax" ? <TaxSection {...props} /> : null}

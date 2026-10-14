@@ -28,15 +28,12 @@ import { SelectField } from "../../../shared/ui/SelectField";
 import { listCategories, listStock, verifyStock } from "../api";
 import { StockProductPage } from "./StockProductPage";
 
-// Products per page of the list.
 const PAGE_SIZE = 50;
 
 type StockLevelsPageProps = {
-  // The user may adjust stock and run "Verify stock data" (StockAdjust).
   canAdjust: boolean;
 };
 
-// The stock levels list with its filters, and one product's stock when it is open (INV-01 to INV-10).
 export function StockLevelsPage({ canAdjust }: StockLevelsPageProps) {
   const { t } = useTranslation("inventory");
   const { t: tErrors } = useTranslation("errors");
@@ -49,7 +46,6 @@ export function StockLevelsPage({ canAdjust }: StockLevelsPageProps) {
   const [open, setOpen] = useState<string | null>(null);
   const [mismatches, setMismatches] = useState<MismatchView[] | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  // Each answer is shown only if it is for the newest question, so fast typing never shows old rows.
   const asked = useRef(0);
 
   const loadOnce = () => {
@@ -138,7 +134,8 @@ export function StockLevelsPage({ canAdjust }: StockLevelsPageProps) {
           </ul>
         </Alert>
       ) : null}
-      <div className="grid grid-cols-3 gap-3">
+
+      <div className="rounded-ui border border-border bg-panel p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
         <Field
           label={t("levels.search.label")}
           tip={t("levels.search.tip")}
@@ -166,32 +163,40 @@ export function StockLevelsPage({ canAdjust }: StockLevelsPageProps) {
           onChange={(picked) => filterBy(() => setShow(picked))}
         />
       </div>
+
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {list === null ? null : list.rows.length === 0 ? (
-        <p className="rounded-ui border border-border bg-panel p-3">{t("levels.table.empty")}</p>
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("levels.table.empty")}
+        </p>
       ) : (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("levels.table.name")}</th>
-              <th className="p-2">{t("levels.table.sku")}</th>
-              <th className="p-2">{t("levels.table.category")}</th>
-              <th className="p-2 text-right">{t("levels.table.onHand")}</th>
-              <th className="p-2 text-right">{t("levels.table.reorderLevel")}</th>
-              <th className="p-2 text-right">{t("levels.table.value")}</th>
-              <th className="p-2">{t("levels.table.status")}</th>
-              <th className="p-2">{t("levels.table.actions")}</th>
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("levels.table.name")}</th>
+              <th className="p-2.5">{t("levels.table.sku")}</th>
+              <th className="p-2.5">{t("levels.table.category")}</th>
+              <th className="p-2.5 text-right">{t("levels.table.onHand")}</th>
+              <th className="p-2.5 text-right">{t("levels.table.reorderLevel")}</th>
+              <th className="p-2.5 text-right">{t("levels.table.value")}</th>
+              <th className="p-2.5">{t("levels.table.status")}</th>
+              <th className="p-2.5">{t("levels.table.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {list.rows.map((row) => (
-              <tr key={row.product_id} className="border-b border-border">
-                <td className="p-2">{row.name}</td>
-                <td className="p-2">{row.sku}</td>
-                <td className="p-2">{row.category_name}</td>
+              <tr
+                key={row.product_id}
+                onDoubleClick={() => setOpen(row.product_id)}
+                className="border-b border-border hover:bg-blue-soft/30"
+              >
+                <td className="p-2.5 font-semibold">{row.name}</td>
+                <td className="p-2.5 font-mono text-sm text-text-muted">{row.sku}</td>
+                <td className="p-2.5">{row.category_name}</td>
                 <td
                   className={
-                    "p-2 text-right tabular-nums " + (row.negative ? "font-semibold text-red" : "")
+                    "p-2.5 text-right tabular-nums " +
+                    (row.negative ? "font-bold text-red" : "font-semibold")
                   }
                 >
                   {t("qtyUnit", {
@@ -199,18 +204,18 @@ export function StockLevelsPage({ canAdjust }: StockLevelsPageProps) {
                     unit: row.unit_symbol,
                   })}
                 </td>
-                <td className="p-2 text-right tabular-nums">
+                <td className="p-2.5 text-right tabular-nums text-text-muted">
                   {row.reorder_level === null
                     ? ""
                     : formatQty(row.reorder_level, row.unit_decimals)}
                 </td>
-                <td className="p-2 text-right tabular-nums">
+                <td className="p-2.5 text-right font-semibold tabular-nums">
                   {formatMoney(row.value, list.currency)}
                 </td>
-                <td className="p-2">
+                <td className="p-2.5">
                   <StatusBadges row={row} />
                 </td>
-                <td className="p-2">
+                <td className="p-2.5">
                   <IconButton
                     icon={FolderOpen}
                     colour="blue"
@@ -233,7 +238,7 @@ export function StockLevelsPage({ canAdjust }: StockLevelsPageProps) {
             disabledReason={offset === 0 ? t("levels.previous.none") : undefined}
             onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
           />
-          <span>
+          <span className="text-sm font-semibold text-text-muted tabular-nums">
             {t("levels.count", {
               shown: list.rows.length,
               total: list.total,
@@ -254,7 +259,6 @@ export function StockLevelsPage({ canAdjust }: StockLevelsPageProps) {
   );
 }
 
-// Low, below zero and expiring, each with its own colour, icon and word.
 function StatusBadges({ row }: { row: StockRow }) {
   const { t } = useTranslation("inventory");
   if (!row.low && !row.negative && !row.expiring) {

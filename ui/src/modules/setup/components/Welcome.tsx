@@ -9,11 +9,9 @@ import { restoreBackup } from "../api";
 
 type WelcomeProps = {
   onNewShop: () => void;
-  // Called after the restore was asked for. The real app restarts by itself.
   onRestored: () => void;
 };
 
-// The first screen of a fresh install: a new shop, or a backup from another computer.
 export function Welcome({ onNewShop, onRestored }: WelcomeProps) {
   const { t } = useTranslation("setup");
   const save = useSave();
@@ -28,11 +26,16 @@ export function Welcome({ onNewShop, onRestored }: WelcomeProps) {
     });
 
   return (
-    <section aria-labelledby="welcome-title" className="mx-auto flex max-w-xl flex-col gap-6 py-12">
-      <h2 id="welcome-title" className="text-[28px] font-semibold">
-        {t("welcome.title")}
-      </h2>
-      <p className="text-text-muted">{t("welcome.intro")}</p>
+    <section
+      aria-labelledby="welcome-title"
+      className="mx-auto my-8 flex max-w-2xl flex-col gap-6 rounded-ui border border-border bg-panel p-8"
+    >
+      <div className="border-b border-border pb-4">
+        <h2 id="welcome-title" className="text-[28px] font-bold text-text">
+          {t("welcome.title")}
+        </h2>
+        <p className="text-text-muted mt-1">{t("welcome.intro")}</p>
+      </div>
       <div className="flex flex-wrap gap-4">
         <ActionButton
           colour="green"

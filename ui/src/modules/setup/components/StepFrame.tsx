@@ -16,8 +16,6 @@ type StepFrameProps = {
   onSkip?: () => void;
 };
 
-// One wizard step: title, fields, any problem, and the bottom bar with Back
-// (bottom-left) and Next (bottom-right), as on every step (Setup Wizard).
 export function StepFrame({
   title,
   intro,
@@ -30,12 +28,12 @@ export function StepFrame({
 }: StepFrameProps) {
   const { t } = useTranslation("setup");
   return (
-    <section aria-labelledby="step-title" className="flex flex-1 flex-col gap-4">
-      <div>
-        <h2 id="step-title" className="text-[28px] font-semibold">
+    <section aria-labelledby="step-title" className="flex flex-1 flex-col gap-5">
+      <div className="border-b border-border pb-3">
+        <h2 id="step-title" className="text-[28px] font-bold text-text">
           {title}
         </h2>
-        <p className="text-text-muted">{intro}</p>
+        <p className="text-text-muted mt-0.5">{intro}</p>
       </div>
       <div className="flex flex-col gap-4">{children}</div>
       {problem ? <Alert kind="problem">{problem}</Alert> : null}

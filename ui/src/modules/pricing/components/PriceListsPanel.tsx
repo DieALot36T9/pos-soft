@@ -18,7 +18,6 @@ import { IconButton } from "../../../shared/ui/IconButton";
 import { listItems, listPriceLists, removeItems, savePriceList, setItems } from "../api";
 import { ProductPicker } from "./ProductPicker";
 
-// Price lists and the prices in each (PRC-02).
 export function PriceListsPanel({ currency }: { currency: CurrencyFormat }) {
   const { t } = useTranslation("pricing");
   const { t: tErrors } = useTranslation("errors");
@@ -39,21 +38,23 @@ export function PriceListsPanel({ currency }: { currency: CurrencyFormat }) {
     <div className="flex flex-col gap-4">
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {lists.length === 0 ? (
-        <p className="rounded-ui border border-border bg-panel p-3">{t("lists.empty")}</p>
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("lists.empty")}
+        </p>
       ) : (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("common.name")}</th>
-              <th className="p-2">{t("lists.status")}</th>
-              <th className="p-2">{t("common.actions")}</th>
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("common.name")}</th>
+              <th className="p-2.5">{t("lists.status")}</th>
+              <th className="p-2.5">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {lists.map((list) => (
-              <tr key={list.id} className="border-b border-border">
-                <td className="p-2">{list.name}</td>
-                <td className="p-2">
+              <tr key={list.id} className="border-b border-border hover:bg-blue-soft/30">
+                <td className="p-2.5 font-semibold">{list.name}</td>
+                <td className="p-2.5">
                   {list.active ? (
                     <Badge
                       colour="green"
@@ -70,7 +71,7 @@ export function PriceListsPanel({ currency }: { currency: CurrencyFormat }) {
                     />
                   )}
                 </td>
-                <td className="flex gap-2 p-2">
+                <td className="flex gap-2 p-2.5">
                   <IconButton
                     icon={Pencil}
                     colour="purple"
@@ -153,7 +154,6 @@ function ListForm({ list, onSaved, onCancel }: ListFormProps) {
 
 type ItemsEditorProps = { list: PriceList; currency: CurrencyFormat; onClose: () => void };
 
-// The prices in one list: change, add or take out a product's price.
 function ItemsEditor({ list, currency, onClose }: ItemsEditorProps) {
   const { t } = useTranslation("pricing");
   const { t: tErrors } = useTranslation("errors");
@@ -201,28 +201,30 @@ function ItemsEditor({ list, currency, onClose }: ItemsEditorProps) {
       <h3 className="text-xl font-semibold">{t("items.heading", { name: list.name })}</h3>
       <p className="text-text-muted">{t("items.intro")}</p>
       {rows.length === 0 ? (
-        <p>{t("items.empty")}</p>
+        <p className="rounded-ui border border-border bg-bg p-4 text-text-muted">
+          {t("items.empty")}
+        </p>
       ) : (
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("items.product")}</th>
-              <th className="p-2">{t("items.sku")}</th>
-              <th className="p-2 text-right">{t("items.normal")}</th>
-              <th className="p-2 text-right">{t("items.price")}</th>
-              <th className="p-2">{t("common.actions")}</th>
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("items.product")}</th>
+              <th className="p-2.5">{t("items.sku")}</th>
+              <th className="p-2.5 text-right">{t("items.normal")}</th>
+              <th className="p-2.5 text-right">{t("items.price")}</th>
+              <th className="p-2.5">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.product_id} className="border-b border-border">
-                <td className="p-2">{row.name}</td>
-                <td className="p-2">{row.sku}</td>
-                <td className="p-2 text-right tabular-nums">{money(row.retail_price)}</td>
-                <td className="p-2 text-right font-semibold text-purple tabular-nums">
+                <td className="p-2.5 font-semibold">{row.name}</td>
+                <td className="p-2.5 font-mono text-sm text-text-muted">{row.sku}</td>
+                <td className="p-2.5 text-right tabular-nums">{money(row.retail_price)}</td>
+                <td className="p-2.5 text-right font-bold text-purple tabular-nums">
                   {money(row.price)}
                 </td>
-                <td className="p-2">
+                <td className="p-2.5">
                   <IconButton
                     icon={Trash2}
                     colour="red"
@@ -235,7 +237,7 @@ function ItemsEditor({ list, currency, onClose }: ItemsEditorProps) {
           </tbody>
         </table>
       )}
-      <h4 className="font-semibold">{t("items.add.heading")}</h4>
+      <h4 className="font-semibold pt-2 border-t border-border">{t("items.add.heading")}</h4>
       <ProductPicker currency={currency} chosen={chosen} onChoose={setChosen} />
       <Field
         label={t("items.add.price.label")}
@@ -265,7 +267,6 @@ function ItemsEditor({ list, currency, onClose }: ItemsEditorProps) {
   );
 }
 
-// Cancel (only while changing something) on the left, Save on the right.
 export function FormButtons(props: { editing: boolean; onCancel: () => void; onSave: () => void }) {
   const { t } = useTranslation("pricing");
   return (

@@ -11,7 +11,6 @@ import { IconButton } from "../../../shared/ui/IconButton";
 import { listRoles, listUsers } from "../api";
 import { UserForm } from "../components/UserForm";
 
-// The users list: add, change, reset a PIN or password, disable (USR-06).
 export function UsersPage() {
   const { t } = useTranslation("users");
   const { t: tErrors } = useTranslation("errors");
@@ -19,7 +18,6 @@ export function UsersPage() {
   const [roles, setRoles] = useState<RoleSummary[] | null>(null);
   const [editing, setEditing] = useState<UserSummary | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  // When the list was loaded, to show which locks are still running.
   const [loadedAt, setLoadedAt] = useState(0);
 
   const load = () => {
@@ -52,23 +50,23 @@ export function UsersPage() {
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       <table className="w-full border-collapse rounded-ui border border-border bg-panel">
         <thead>
-          <tr className="border-b border-border text-left">
-            <th className="p-2">{t("users.table.name")}</th>
-            <th className="p-2">{t("users.table.username")}</th>
-            <th className="p-2">{t("users.table.role")}</th>
-            <th className="p-2">{t("users.table.logsInWith")}</th>
-            <th className="p-2">{t("users.table.status")}</th>
-            <th className="p-2">{t("users.table.actions")}</th>
+          <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+            <th className="p-2.5">{t("users.table.name")}</th>
+            <th className="p-2.5">{t("users.table.username")}</th>
+            <th className="p-2.5">{t("users.table.role")}</th>
+            <th className="p-2.5">{t("users.table.logsInWith")}</th>
+            <th className="p-2.5">{t("users.table.status")}</th>
+            <th className="p-2.5">{t("users.table.actions")}</th>
           </tr>
         </thead>
         <tbody>
           {users.map((user) => (
-            <tr key={user.id} className="border-b border-border">
-              <td className="p-2">{user.display_name}</td>
-              <td className="p-2">{user.username}</td>
-              <td className="p-2">{user.role_name}</td>
-              <td className="p-2">{logsInWith(user)}</td>
-              <td className="flex flex-wrap gap-2 p-2">
+            <tr key={user.id} className="border-b border-border hover:bg-blue-soft/30">
+              <td className="p-2.5 font-semibold">{user.display_name}</td>
+              <td className="p-2.5 font-mono text-sm text-text-muted">{user.username}</td>
+              <td className="p-2.5 font-medium">{user.role_name}</td>
+              <td className="p-2.5">{logsInWith(user)}</td>
+              <td className="flex flex-wrap gap-2 p-2.5">
                 {user.active ? (
                   <Badge
                     colour="green"
@@ -93,7 +91,7 @@ export function UsersPage() {
                   />
                 ) : null}
               </td>
-              <td className="p-2">
+              <td className="p-2.5">
                 <IconButton
                   icon={Pencil}
                   colour="grey"

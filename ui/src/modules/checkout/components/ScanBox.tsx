@@ -96,18 +96,16 @@ export function ScanBox(props: ScanBoxProps) {
       <label className="flex items-center gap-2 rounded-ui border border-border bg-panel px-3">
         <Search aria-hidden="true" size={24} className="text-blue" />
         <span className="sr-only">{t("scan.label")}</span>
-        <Tip tip={t("scan.tip")}>
-          <input
-            ref={inputRef}
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder={t("scan.placeholder")}
-            aria-label={t("scan.label")}
-            autoComplete="off"
-            className="min-h-14 w-full bg-transparent text-xl outline-none"
-          />
-        </Tip>
+        <input
+          ref={inputRef}
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={t("scan.placeholder")}
+          aria-label={t("scan.label")}
+          autoComplete="off"
+          className="min-h-14 w-full bg-transparent text-xl outline-none"
+        />
       </label>
       {listOpen ? (
         <ul

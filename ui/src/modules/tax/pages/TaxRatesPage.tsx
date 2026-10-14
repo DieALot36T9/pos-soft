@@ -12,7 +12,6 @@ import { IconButton } from "../../../shared/ui/IconButton";
 import { deactivateRate, listRates } from "../api";
 import { RateForm } from "../components/RateForm";
 
-// The tax rate list: add, change and deactivate (TAX-02, TAX-07, TAX-10).
 export function TaxRatesPage() {
   const { t } = useTranslation("tax");
   const { t: tErrors } = useTranslation("errors");
@@ -37,37 +36,43 @@ export function TaxRatesPage() {
 
   return (
     <section aria-labelledby="tax-heading" className="flex flex-col gap-4">
-      <div>
-        <h2 id="tax-heading" className="text-[28px] font-semibold">
-          {t("page.title")}
-        </h2>
-        <p className="text-text-muted">{t("page.intro")}</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 id="tax-heading" className="text-[28px] font-semibold">
+            {t("page.title")}
+          </h2>
+          <p className="text-text-muted">{t("page.intro")}</p>
+        </div>
+        <CheckBox
+          label={t("showInactive.label")}
+          tip={t("showInactive.tip")}
+          checked={showInactive}
+          onChange={setShowInactive}
+        />
       </div>
-      <CheckBox
-        label={t("showInactive.label")}
-        tip={t("showInactive.tip")}
-        checked={showInactive}
-        onChange={setShowInactive}
-      />
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {rates.length === 0 ? (
-        <p className="rounded-ui border border-border bg-panel p-3">{t("table.empty")}</p>
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("table.empty")}
+        </p>
       ) : (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("table.name")}</th>
-              <th className="p-2 text-right">{t("table.percent")}</th>
-              <th className="p-2">{t("table.status")}</th>
-              <th className="p-2">{t("table.actions")}</th>
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("table.name")}</th>
+              <th className="p-2.5 text-right">{t("table.percent")}</th>
+              <th className="p-2.5">{t("table.status")}</th>
+              <th className="p-2.5">{t("table.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {rates.map((rate) => (
-              <tr key={rate.id} className="border-b border-border">
-                <td className="p-2">{rate.name}</td>
-                <td className="p-2 text-right tabular-nums">{formatPercent(rate.rate_bps)}</td>
-                <td className="p-2">
+              <tr key={rate.id} className="border-b border-border hover:bg-blue-soft/30">
+                <td className="p-2.5 font-semibold">{rate.name}</td>
+                <td className="p-2.5 text-right font-semibold tabular-nums">
+                  {formatPercent(rate.rate_bps)}
+                </td>
+                <td className="p-2.5">
                   {rate.active ? (
                     <Badge
                       colour="green"
@@ -84,7 +89,7 @@ export function TaxRatesPage() {
                     />
                   )}
                 </td>
-                <td className="flex gap-2 p-2">
+                <td className="flex gap-2 p-2.5">
                   <IconButton
                     icon={Pencil}
                     colour="purple"

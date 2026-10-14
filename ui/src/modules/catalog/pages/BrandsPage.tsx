@@ -13,7 +13,6 @@ import { Field } from "../../../shared/ui/Field";
 import { IconButton } from "../../../shared/ui/IconButton";
 import { archiveBrand, listBrands, saveBrand } from "../api";
 
-// The brands list with a form to add or rename one (CAT-03).
 export function BrandsPage() {
   const { t } = useTranslation("catalog");
   const { t: tErrors } = useTranslation("errors");
@@ -39,33 +38,37 @@ export function BrandsPage() {
 
   return (
     <section aria-labelledby="brands-heading" className="flex flex-col gap-4">
-      <div>
-        <h2 id="brands-heading" className="text-[28px] font-semibold">
-          {t("brands.title")}
-        </h2>
-        <p className="text-text-muted">{t("brands.intro")}</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 id="brands-heading" className="text-[28px] font-semibold">
+            {t("brands.title")}
+          </h2>
+          <p className="text-text-muted">{t("brands.intro")}</p>
+        </div>
+        <CheckBox
+          label={t("brands.showArchived.label")}
+          tip={t("brands.showArchived.tip")}
+          checked={showArchived}
+          onChange={setShowArchived}
+        />
       </div>
-      <CheckBox
-        label={t("brands.showArchived.label")}
-        tip={t("brands.showArchived.tip")}
-        checked={showArchived}
-        onChange={setShowArchived}
-      />
       {problem ? <Alert kind="problem">{problem}</Alert> : null}
       {brands.length === 0 ? (
-        <p className="rounded-ui border border-border bg-panel p-3">{t("brands.empty")}</p>
+        <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+          {t("brands.empty")}
+        </p>
       ) : (
         <table className="w-full border-collapse rounded-ui border border-border bg-panel">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("brands.table.name")}</th>
-              <th className="p-2">{t("brands.table.actions")}</th>
+            <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+              <th className="p-2.5">{t("brands.table.name")}</th>
+              <th className="p-2.5">{t("brands.table.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {brands.map((brand) => (
-              <tr key={brand.id} className="border-b border-border">
-                <td className="flex items-center gap-2 p-2">
+              <tr key={brand.id} className="border-b border-border hover:bg-blue-soft/30">
+                <td className="flex items-center gap-2 p-2.5 font-medium">
                   {brand.name}
                   {brand.archived_at !== null ? (
                     <Badge
@@ -76,7 +79,7 @@ export function BrandsPage() {
                     />
                   ) : null}
                 </td>
-                <td className="p-2">
+                <td className="p-2.5">
                   <span className="flex gap-2">
                     <IconButton
                       icon={Pencil}

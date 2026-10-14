@@ -19,7 +19,7 @@ type FieldProps = {
   autoFocus?: boolean;
 };
 
-// A labelled text box with its tooltip and, when needed, an error message under it.
+// A labelled text box with persistent helper description under the label, tooltip, and error text.
 export function Field({
   label,
   tip,
@@ -36,7 +36,7 @@ export function Field({
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value);
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="font-semibold">
+      <label htmlFor={id} className="text-sm font-bold text-text">
         {label}
       </label>
       <Tip tip={tip}>
@@ -50,14 +50,14 @@ export function Field({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           className={
-            "min-h-10 rounded-ui border bg-panel px-3 text-base tabular-nums " +
-            (error ? "border-red " : "border-border ") +
-            (width === "short" ? "w-40" : "w-full")
+            "min-h-10 rounded-ui border bg-panel px-3 text-base text-text tabular-nums " +
+            (error ? "border-red bg-red-soft/20 " : "border-border ") +
+            (width === "short" ? "w-44" : "w-full")
           }
         />
       </Tip>
       {error ? (
-        <p id={errorId} className="text-red">
+        <p id={errorId} className="text-sm font-semibold text-red">
           {error}
         </p>
       ) : null}

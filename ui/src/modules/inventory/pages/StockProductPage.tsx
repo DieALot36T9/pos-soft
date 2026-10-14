@@ -26,7 +26,6 @@ import { SelectField } from "../../../shared/ui/SelectField";
 import { getStock, stockHistory } from "../api";
 import { AdjustForm } from "../components/AdjustForm";
 
-// History rows per "Show more".
 const HISTORY_PAGE = 50;
 
 const allKinds: MoveKind[] = [
@@ -46,7 +45,6 @@ type StockProductPageProps = {
   onBack: () => void;
 };
 
-// One product's stock: on hand, reorder rule, batches, the adjust form and its history (INV-02, INV-05, INV-07).
 export function StockProductPage({ productId, canAdjust, onBack }: StockProductPageProps) {
   const { t } = useTranslation("inventory");
   const { t: tErrors } = useTranslation("errors");
@@ -74,7 +72,6 @@ export function StockProductPage({ productId, canAdjust, onBack }: StockProductP
   useEffect(loadStock, [productId]);
 
   const loadHistory = () => {
-    // Half-typed dates wait until they look like a date.
     const date = (text: string) => (/^\d{4}-\d{2}-\d{2}$/.test(text.trim()) ? text.trim() : null);
     stockHistory({
       product_id: productId,
@@ -104,7 +101,7 @@ export function StockProductPage({ productId, canAdjust, onBack }: StockProductP
           <h2 id="stock-product-heading" className="text-[28px] font-semibold">
             {stock.name}
           </h2>
-          <p className="text-text-muted">{stock.sku}</p>
+          <p className="font-mono text-sm text-text-muted">{stock.sku}</p>
         </div>
         <div className="flex gap-2">
           {canAdjust && !adjusting ? (
@@ -129,21 +126,30 @@ export function StockProductPage({ productId, canAdjust, onBack }: StockProductP
           />
         </div>
       </div>
-      <p
-        className={"text-xl font-semibold " + (stock.on_hand < 0 ? "text-red" : "")}
-        data-testid="on-hand"
-      >
-        {t("product.onHand", { qty: qty(stock.on_hand), unit: stock.unit_symbol })}
-      </p>
-      <p>
-        {stock.reorder_level === null
-          ? t("product.noReorder")
-          : t("product.reorder", {
-              level: qty(stock.reorder_level),
-              qty: qty(stock.reorder_qty ?? 0),
-              unit: stock.unit_symbol,
-            })}
-      </p>
+
+      {/* Product Stock Summary Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="rounded-ui border border-border bg-panel p-4">
+          <p
+            className={"text-xl font-bold " + (stock.on_hand < 0 ? "text-red" : "text-text")}
+            data-testid="on-hand"
+          >
+            {t("product.onHand", { qty: qty(stock.on_hand), unit: stock.unit_symbol })}
+          </p>
+        </div>
+        <div className="rounded-ui border border-border bg-panel p-4 flex items-center">
+          <p className="text-sm text-text-muted font-medium">
+            {stock.reorder_level === null
+              ? t("product.noReorder")
+              : t("product.reorder", {
+                  level: qty(stock.reorder_level),
+                  qty: qty(stock.reorder_qty ?? 0),
+                  unit: stock.unit_symbol,
+                })}
+          </p>
+        </div>
+      </div>
+
       {done ? <Alert kind="done">{done}</Alert> : null}
       {adjusting ? (
         <AdjustForm
@@ -157,119 +163,134 @@ export function StockProductPage({ productId, canAdjust, onBack }: StockProductP
         />
       ) : null}
 
-      <h3 className="text-xl font-semibold">{t("product.batches.title")}</h3>
-      {stock.batches.length === 0 ? (
-        <p className="text-text-muted">{t("product.batches.none")}</p>
-      ) : (
-        <table className="w-full border-collapse rounded-ui border border-border bg-panel">
-          <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("product.batches.number")}</th>
-              <th className="p-2">{t("product.batches.expiry")}</th>
-              <th className="p-2 text-right">{t("product.batches.onHand")}</th>
-              <th className="p-2">{t("product.batches.status")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stock.batches.map((batch) => (
-              <tr key={batch.id} className="border-b border-border">
-                <td className="p-2">{batch.batch_no ?? t("product.batches.noNumber")}</td>
-                <td className="p-2 tabular-nums">
-                  {batch.expiry_date ?? t("product.batches.noExpiry")}
-                </td>
-                <td className="p-2 text-right tabular-nums">{qty(batch.on_hand)}</td>
-                <td className="p-2">
-                  <BatchBadge batch={batch} />
-                </td>
+      <div className="flex flex-col gap-2">
+        <h3 className="text-xl font-semibold">{t("product.batches.title")}</h3>
+        {stock.batches.length === 0 ? (
+          <p className="rounded-ui border border-border bg-panel p-4 text-text-muted">
+            {t("product.batches.none")}
+          </p>
+        ) : (
+          <table className="w-full border-collapse rounded-ui border border-border bg-panel">
+            <thead>
+              <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+                <th className="p-2.5">{t("product.batches.number")}</th>
+                <th className="p-2.5">{t("product.batches.expiry")}</th>
+                <th className="p-2.5 text-right">{t("product.batches.onHand")}</th>
+                <th className="p-2.5">{t("product.batches.status")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      <h3 className="text-xl font-semibold">{t("history.title")}</h3>
-      <div className="grid grid-cols-3 gap-3">
-        <SelectField<MoveKind | "">
-          label={t("history.kind.label")}
-          tip={t("history.kind.tip")}
-          value={kind}
-          options={[
-            { value: "", label: t("history.kind.all") },
-            ...allKinds.map((each) => ({ value: each, label: t(`kinds.${each}`) })),
-          ]}
-          onChange={setKind}
-        />
-        <Field
-          label={t("history.from.label")}
-          tip={t("history.from.tip")}
-          value={from}
-          onChange={setFrom}
-        />
-        <Field
-          label={t("history.to.label")}
-          tip={t("history.to.tip")}
-          value={to}
-          onChange={setTo}
-        />
+            </thead>
+            <tbody>
+              {stock.batches.map((batch) => (
+                <tr key={batch.id} className="border-b border-border">
+                  <td className="p-2.5 font-mono text-sm">
+                    {batch.batch_no ?? t("product.batches.noNumber")}
+                  </td>
+                  <td className="p-2.5 tabular-nums">
+                    {batch.expiry_date ?? t("product.batches.noExpiry")}
+                  </td>
+                  <td className="p-2.5 text-right font-semibold tabular-nums">
+                    {qty(batch.on_hand)}
+                  </td>
+                  <td className="p-2.5">
+                    <BatchBadge batch={batch} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
-      {historyProblem ? <Alert kind="problem">{historyProblem}</Alert> : null}
-      {history.length === 0 ? (
-        <p className="rounded-ui border border-border bg-panel p-3">{t("history.table.empty")}</p>
-      ) : (
-        <table className="w-full border-collapse rounded-ui border border-border bg-panel">
-          <thead>
-            <tr className="border-b border-border text-left">
-              <th className="p-2">{t("history.table.when")}</th>
-              <th className="p-2">{t("history.table.kind")}</th>
-              <th className="p-2 text-right">{t("history.table.change")}</th>
-              <th className="p-2 text-right">{t("history.table.balance")}</th>
-              <th className="p-2">{t("history.table.batch")}</th>
-              <th className="p-2">{t("history.table.reason")}</th>
-              <th className="p-2">{t("history.table.document")}</th>
-              <th className="p-2">{t("history.table.user")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((row) => (
-              <tr key={row.id} className="border-b border-border">
-                <td className="p-2 tabular-nums">{formatDateTime(row.at)}</td>
-                <td className="p-2">{t(`kinds.${row.kind}`)}</td>
-                <td
-                  className={
-                    "p-2 text-right font-semibold tabular-nums " +
-                    (row.qty_delta < 0 ? "text-red" : "text-green")
-                  }
-                >
-                  {(row.qty_delta > 0 ? "+" : "") + qty(row.qty_delta)}
-                </td>
-                <td className="p-2 text-right tabular-nums">{qty(row.balance_after)}</td>
-                <td className="p-2">{row.batch_no ?? row.batch_expiry ?? ""}</td>
-                <td className="p-2">
-                  {[row.reason_name, row.note].filter((part) => part).join(": ")}
-                </td>
-                <td className="p-2">{row.ref_label ?? ""}</td>
-                <td className="p-2">{row.user_name ?? ""}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {history.length >= limit ? (
-        <div>
-          <ActionButton
-            colour="grey"
-            icon={ChevronDown}
-            label={t("history.more.label")}
-            tip={t("history.more.tip")}
-            onClick={() => setLimit(limit + HISTORY_PAGE)}
+
+      <div className="flex flex-col gap-3">
+        <h3 className="text-xl font-semibold">{t("history.title")}</h3>
+        <div className="rounded-ui border border-border bg-panel p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <SelectField<MoveKind | "">
+            label={t("history.kind.label")}
+            tip={t("history.kind.tip")}
+            value={kind}
+            options={[
+              { value: "", label: t("history.kind.all") },
+              ...allKinds.map((each) => ({ value: each, label: t(`kinds.${each}`) })),
+            ]}
+            onChange={setKind}
+          />
+          <Field
+            label={t("history.from.label")}
+            tip={t("history.from.tip")}
+            value={from}
+            onChange={setFrom}
+          />
+          <Field
+            label={t("history.to.label")}
+            tip={t("history.to.tip")}
+            value={to}
+            onChange={setTo}
           />
         </div>
-      ) : null}
+        {historyProblem ? <Alert kind="problem">{historyProblem}</Alert> : null}
+        {history.length === 0 ? (
+          <p className="rounded-ui border border-border bg-panel p-6 text-center text-text-muted">
+            {t("history.table.empty")}
+          </p>
+        ) : (
+          <table className="w-full border-collapse rounded-ui border border-border bg-panel">
+            <thead>
+              <tr className="border-b border-border bg-bg text-left text-sm font-bold">
+                <th className="p-2.5">{t("history.table.when")}</th>
+                <th className="p-2.5">{t("history.table.kind")}</th>
+                <th className="p-2.5 text-right">{t("history.table.change")}</th>
+                <th className="p-2.5 text-right">{t("history.table.balance")}</th>
+                <th className="p-2.5">{t("history.table.batch")}</th>
+                <th className="p-2.5">{t("history.table.reason")}</th>
+                <th className="p-2.5">{t("history.table.document")}</th>
+                <th className="p-2.5">{t("history.table.user")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((row) => (
+                <tr key={row.id} className="border-b border-border hover:bg-blue-soft/20">
+                  <td className="p-2.5 tabular-nums whitespace-nowrap">{formatDateTime(row.at)}</td>
+                  <td className="p-2.5 font-medium">{t(`kinds.${row.kind}`)}</td>
+                  <td
+                    className={
+                      "p-2.5 text-right font-bold tabular-nums " +
+                      (row.qty_delta < 0 ? "text-red" : "text-green")
+                    }
+                  >
+                    {(row.qty_delta > 0 ? "+" : "") + qty(row.qty_delta)}
+                  </td>
+                  <td className="p-2.5 text-right font-semibold tabular-nums">
+                    {qty(row.balance_after)}
+                  </td>
+                  <td className="p-2.5 font-mono text-sm">
+                    {row.batch_no ?? row.batch_expiry ?? ""}
+                  </td>
+                  <td className="p-2.5">
+                    {[row.reason_name, row.note].filter((part) => part).join(": ")}
+                  </td>
+                  <td className="p-2.5 font-mono text-sm">{row.ref_label ?? ""}</td>
+                  <td className="p-2.5">{row.user_name ?? ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {history.length >= limit ? (
+          <div>
+            <ActionButton
+              colour="grey"
+              icon={ChevronDown}
+              label={t("history.more.label")}
+              tip={t("history.more.tip")}
+              onClick={() => setLimit(limit + HISTORY_PAGE)}
+            />
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }
 
-// Expired (red), expiring soon (amber) or good (green).
 function BatchBadge({ batch }: { batch: BatchView }) {
   const { t } = useTranslation("inventory");
   if (batch.expired) {
