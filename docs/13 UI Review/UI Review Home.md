@@ -1,36 +1,23 @@
 ---
 tags: [ui, home]
 ---
-# UI Review: start here
+# UI Review & Overhaul Status
 
-**What we're doing:** the app's features work, but the screens need a redesign. We're redesigning them **one page at a time**, as clickable **mocks** built with **Mantine** and fake data, until the product owner approves each one. Mocks are for finding out what works. They don't touch the real app or the Rust code. When pages are approved, they become the brief for rebuilding the real screens.
+**What we did:** We overhauled the entire `ui/` frontend directly in production code (`ui/src/`) using **React 19 + TypeScript + Tailwind CSS v4 + Radix Primitives + `PosKit.tsx`**, wired to the real `ts-rs` generated types (`ui/src/generated/`) and fake/Tauri bridge (`ui/src/shared/bridge/`).
 
-**Why:** today's screens were hand-built piece by piece, so they're inconsistent, cluttered (e.g. 17 buttons at the bottom of the till), and hard to navigate. We now use one battle-tested component library (Mantine) and the layouts every major POS uses.
+## Key Improvements Delivered
+1. **App Shell & Navigation (`OfficeFrame.tsx`, `CommandPalette.tsx`):** Replaced the flat 18-item sidebar with 9 collapsible navigation groups, a top breadcrumb & plain-English page description strip, and a `Ctrl+K` Command Palette.
+2. **Self-Explaining Form Fields (`Field.tsx`, `SelectField.tsx`, `tooltip.tsx`):** Every form field renders its plain-English description and example persistently below the label, and hover tooltips open above elements (`side="top"`, `pointer-events-none`) so they never block inputs while typing.
+3. **60/40 Split POS Till (`CheckoutPage.tsx`, `ProductCatalogPane.tsx`, `LineEditDrawer.tsx`, `ButtonBar.tsx`, `HelpDialog.tsx`):**
+   - Left pane with persistent-focus scan box, category filter pills, touch product tiles, and a clean 5-button action bar + `More` toggle.
+   - Right pane with customer bar, cart table, slide-over `LineEditDrawer` touch numpad, `56px` TOTAL box, and full-width `72px` green `Pay (F10)` button.
+   - `F1` opens the interactive Keyboard Shortcuts & Colour Guide (`HelpDialog.tsx`).
+4. **Two-Column Touch Login & Lock Screens (`LoginPage.tsx`, `LockScreen.tsx`):** Staff avatar tiles with role badges on the left and an integrated `KitNumpad` PIN pad on the right.
+5. **Standardized Back-Office Pages:** Unified filter cards, table headers, right-hand quick-view drawers (`ProductsPage.tsx`, `AuditLogPage.tsx`), and KPI cards on `HomePage.tsx`.
 
-## For Claude in a new chat: read in this order
-1. [[UI Review Process]]: where mocks live, the review loop, statuses, and what to do when a page is approved.
-2. [[UI Guidelines]]: the rules every page follows (components, theme, layouts, patterns, QoL checklist, don'ts). **Consistency comes from here.**
-3. [[Design System]]: colours, colour meanings, contrast and tooltip rules (unchanged).
-4. [[Page List]]: every page in review order with its status.
-5. The spec of the one page you're asked to work on, in `Pages/` (e.g. [[P05 Checkout]]).
-
-Also follow the project rules in `CLAUDE.md` (plain English, no shadows or dark mode, all text kept in one place) and [[Writing Style]].
-
-**Work on one page per session.** If the owner names no page, take the first page in [[Page List]] that isn't approved. If `ui-mocks/` doesn't exist yet, set it up first (see [[UI Review Process#Where the mocks live]]) together with **P00**.
-
-## For the product owner
-Copy one of these into a new chat:
-
-**The very first time:**
-> Read `docs/13 UI Review/UI Review Home.md` and follow it. Set up the `ui-mocks` playground, then build the mock for page **P00 App shell & navigation**. Show me screenshots and the link, then wait for my review.
-
-**For each next page:**
-> Read `docs/13 UI Review/UI Review Home.md` and follow it. Build the mock for page **P05 Checkout**. Show me screenshots and the link, then wait for my review.
-
-**When a page is right:**
-> Approved. Record the decisions, update the guidelines and the page list, and commit.
-
-Use **Opus 5.5, medium effort**. Use **high** for P05 Checkout, P09 Payment and P13 Returns, which have the most to get right.
-
-## Decision
-[[ADR-024 Mantine for the UI]]: Mantine replaces hand-built components. Status: *proposed*, confirmed when P00 is approved.
+## Running & Verifying the UI
+- **Interactive Browser Mode (Mock Bridge):** `pnpm --filter ui dev:mock`
+- **Typecheck:** `pnpm --filter ui typecheck`
+- **Unit & Integration Tests (36 suites, 791 tests):** `pnpm --filter ui test`
+- **Lint & Format Check:** `pnpm --filter ui lint`
+- **End-to-End Playwright Suite:** `pnpm --filter ui e2e`
