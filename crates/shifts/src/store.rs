@@ -228,18 +228,30 @@ pub(crate) fn insert_counts(
     stage: Stage,
     counts: &[(Money, u32)],
 ) -> Result<(), ShiftsError> {
-    let mut statement = tx.prepare(
-        "INSERT INTO shifts_counts (shift_id, stage, denomination_minor, count)
-         VALUES (:shift_id, :stage, :denomination, :count)",
-    )?;
-    for &(denomination, count) in counts {
-        statement.execute(named_params! {
-            ":shift_id": shift.as_str(),
-            ":stage": stage.as_str(),
-            ":denomination": denomination.0,
-            ":count": count,
-        })?;
+    if counts.is_empty() {
+        return Ok(());
     }
+
+    let mut sql = String::with_capacity(128 + counts.len() * 24);
+    sql.push_str("INSERT INTO shifts_counts (shift_id, stage, denomination_minor, count) VALUES ");
+    for i in 0..counts.len() {
+        if i > 0 {
+            sql.push_str(", ");
+        }
+        sql.push_str("(?, ?, ?, ?)");
+    }
+
+    let shift_id_str = shift.as_str();
+    let stage_str = stage.as_str();
+    let mut params: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(counts.len() * 4);
+    for (denom, count) in counts {
+        params.push(&shift_id_str);
+        params.push(&stage_str);
+        params.push(&denom.0);
+        params.push(count);
+    }
+
+    tx.execute(&sql, rusqlite::params_from_iter(params))?;
     Ok(())
 }
 
