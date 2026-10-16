@@ -95,12 +95,35 @@ pub fn remove_price_list_items(
     product_ids: &[Id],
 ) -> Result<(), PricingError> {
     require_price_list(tx, id)?;
-    let mut delete = tx.prepare_cached(
-        "DELETE FROM pricing_price_list_items WHERE price_list_id = :list AND product_id = :product",
-    )?;
-    for product_id in product_ids {
-        delete.execute(named_params! { ":list": id.as_str(), ":product": product_id.as_str() })?;
+
+    if product_ids.is_empty() {
+        return Ok(());
     }
+
+    for chunk in product_ids.chunks(500) {
+        let mut sql = String::from("DELETE FROM pricing_price_list_items WHERE price_list_id = ? AND product_id IN (");
+
+        for i in 0..chunk.len() {
+            if i > 0 {
+                sql.push_str(", ");
+            }
+            sql.push('?');
+        }
+        sql.push(')');
+
+        // Create a vector of `&str` so we can easily map them to `&dyn ToSql`
+        let id_str = id.as_str();
+        let mut str_params = Vec::with_capacity(chunk.len() + 1);
+        str_params.push(id_str);
+        for product_id in chunk {
+            str_params.push(product_id.as_str());
+        }
+
+        let params: Vec<&dyn rusqlite::ToSql> = str_params.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
+
+        tx.execute(&sql, rusqlite::params_from_iter(params.into_iter()))?;
+    }
+
     Ok(())
 }
 
