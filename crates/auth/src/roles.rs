@@ -247,15 +247,36 @@ fn store_permissions(
     role: &Id,
     permissions: &[Permission],
 ) -> Result<(), AuthError> {
-    let mut statement = transaction.prepare(
-        "INSERT INTO auth_role_permissions (role_id, permission) VALUES (:role_id, :permission)",
-    )?;
-    // The set removes any permission ticked twice.
-    for permission in PermissionSet::from_list(permissions).iter() {
-        statement.execute(
-            named_params! { ":role_id": role.as_str(), ":permission": permission.as_str() },
-        )?;
+    let permission_set = PermissionSet::from_list(permissions);
+    if permission_set.is_empty() {
+        return Ok(());
     }
+
+    let mut sql = String::from("INSERT INTO auth_role_permissions (role_id, permission) VALUES ");
+    let mut params: Vec<&dyn rusqlite::ToSql> = vec![];
+    let role_id_str = role.as_str();
+
+    // We can't push &role_id_str directly into params in the loop if we want to also
+    // push something with a shorter lifetime from within the loop or similar,
+    // but here we can just push it once and reference it in SQL, or push it multiple times.
+    // Actually, it's easier to use position parameters: `(?1, ?2), (?1, ?3)...`
+    // SQLite supports parameter reusing by index: `?1` is the first parameter.
+
+    params.push(&role_id_str);
+
+    let permissions_vec: Vec<&str> = permission_set.iter().map(|p| p.as_str()).collect();
+
+    use std::fmt::Write;
+    for (i, p) in permissions_vec.iter().enumerate() {
+        if i > 0 {
+            sql.push_str(", ");
+        }
+        // role_id is ?1, permission is ?(i + 2)
+        let _ = write!(&mut sql, "(?1, ?{})", i + 2);
+        params.push(p);
+    }
+
+    transaction.execute(&sql, rusqlite::params_from_iter(params))?;
     Ok(())
 }
 
