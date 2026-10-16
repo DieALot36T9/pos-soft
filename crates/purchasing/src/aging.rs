@@ -130,52 +130,55 @@ fn load_entries(
 mod tests {
     use super::*;
 
-    fn day(text: &str) -> NaiveDate {
-        NaiveDate::parse_from_str(text, "%Y-%m-%d").unwrap()
+    fn day(text: &str) -> Result<NaiveDate, chrono::format::ParseError> {
+        NaiveDate::parse_from_str(text, "%Y-%m-%d")
     }
 
-    fn entry(due: &str, amount: i64) -> AgingEntry {
-        AgingEntry {
-            due_date: day(due),
+    fn entry(due: &str, amount: i64) -> Result<AgingEntry, chrono::format::ParseError> {
+        Ok(AgingEntry {
+            due_date: day(due)?,
             amount: Money(amount),
-        }
+        })
     }
 
     #[test]
-    fn pur_05_bucket_edges_are_0_30_60_90_days() {
-        let today = day("2026-03-31");
-        assert_eq!(bucket_for(today, day("2026-04-05")), 0);
-        assert_eq!(bucket_for(today, day("2026-03-31")), 0);
-        assert_eq!(bucket_for(today, day("2026-03-30")), 1);
-        assert_eq!(bucket_for(today, day("2026-03-01")), 1); // 30 days
-        assert_eq!(bucket_for(today, day("2026-02-28")), 2); // 31 days
-        assert_eq!(bucket_for(today, day("2026-01-30")), 2); // 60 days
-        assert_eq!(bucket_for(today, day("2026-01-29")), 3); // 61 days
-        assert_eq!(bucket_for(today, day("2025-12-31")), 3); // 90 days
-        assert_eq!(bucket_for(today, day("2025-12-30")), 4); // 91 days
+    fn pur_05_bucket_edges_are_0_30_60_90_days() -> Result<(), Box<dyn std::error::Error>> {
+        let today = day("2026-03-31")?;
+        assert_eq!(bucket_for(today, day("2026-04-05")?), 0);
+        assert_eq!(bucket_for(today, day("2026-03-31")?), 0);
+        assert_eq!(bucket_for(today, day("2026-03-30")?), 1);
+        assert_eq!(bucket_for(today, day("2026-03-01")?), 1); // 30 days
+        assert_eq!(bucket_for(today, day("2026-02-28")?), 2); // 31 days
+        assert_eq!(bucket_for(today, day("2026-01-30")?), 2); // 60 days
+        assert_eq!(bucket_for(today, day("2026-01-29")?), 3); // 61 days
+        assert_eq!(bucket_for(today, day("2025-12-31")?), 3); // 90 days
+        assert_eq!(bucket_for(today, day("2025-12-30")?), 4); // 91 days
+        Ok(())
     }
 
     #[test]
-    fn pur_05_credits_pay_off_the_oldest_amounts_first() {
+    fn pur_05_credits_pay_off_the_oldest_amounts_first() -> Result<(), Box<dyn std::error::Error>> {
         let entries = [
-            entry("2026-03-25", 1_000),
-            entry("2026-01-01", 2_000),
-            entry("2026-03-31", -2_500),
+            entry("2026-03-25", 1_000)?,
+            entry("2026-01-01", 2_000)?,
+            entry("2026-03-31", -2_500)?,
         ];
-        let buckets = age_entries(day("2026-03-31"), &entries).unwrap();
+        let buckets = age_entries(day("2026-03-31")?, &entries)?;
         assert_eq!(
             buckets,
             [Money(0), Money(500), Money(0), Money(0), Money(0)]
         );
+        Ok(())
     }
 
     #[test]
-    fn pur_05_overpayment_shows_as_negative_current() {
-        let entries = [entry("2026-01-01", 1_000), entry("2026-01-02", -1_500)];
-        let buckets = age_entries(day("2026-03-31"), &entries).unwrap();
+    fn pur_05_overpayment_shows_as_negative_current() -> Result<(), Box<dyn std::error::Error>> {
+        let entries = [entry("2026-01-01", 1_000)?, entry("2026-01-02", -1_500)?];
+        let buckets = age_entries(day("2026-03-31")?, &entries)?;
         assert_eq!(
             buckets,
             [Money(-500), Money(0), Money(0), Money(0), Money(0)]
         );
+        Ok(())
     }
 }
