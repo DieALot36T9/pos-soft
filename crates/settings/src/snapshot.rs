@@ -76,3 +76,68 @@ fn pick<S: Setting>(stored: &BTreeMap<String, String>) -> Result<S> {
         None => Ok(S::default_value()),
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+    use pos_core::{Money, Timestamp};
+    use crate::{TillSettings, CreditSettings, SettingsError, set};
+
+    fn test_db() -> Connection {
+        let connection = Connection::open_in_memory().unwrap();
+        for migration in crate::migrations().migrations {
+            connection.execute_batch(migration.sql).unwrap();
+        }
+        connection
+    }
+
+    #[test]
+    fn snapshot_reads_all_defaults_when_empty() {
+        let connection = test_db();
+        let empty = snapshot(&connection).unwrap();
+        assert_eq!(empty.till, TillSettings::default());
+        assert_eq!(empty.scale_barcode_rules, ScaleRules::default());
+    }
+
+    #[test]
+    fn snapshot_reads_overridden_settings() {
+        let mut connection = test_db();
+
+        let till = TillSettings {
+            till_code: "T9".to_string(),
+            ..TillSettings::default()
+        };
+        let transaction = connection.transaction().unwrap();
+        set(&transaction, &till, None, Timestamp(1)).unwrap();
+        transaction.commit().unwrap();
+
+        let credit = CreditSettings {
+            enabled: true,
+            default_limit_minor: Money(100),
+        };
+        let transaction = connection.transaction().unwrap();
+        set(&transaction, &credit, None, Timestamp(2)).unwrap();
+        transaction.commit().unwrap();
+
+        let snap = snapshot(&connection).unwrap();
+        assert_eq!(snap.till, till);
+        assert_eq!(snap.credit, credit);
+        assert_eq!(snap.inventory, InventorySettings::default());
+    }
+
+    #[test]
+    fn snapshot_fails_on_unreadable_setting() {
+        let connection = test_db();
+        connection
+            .execute(
+                "INSERT INTO settings_values (key, value_json, updated_at) VALUES ('till', '[1, 2]', 0)",
+                [],
+            )
+            .unwrap();
+        let error = snapshot(&connection).unwrap_err();
+        match error {
+            SettingsError::Unreadable { key, .. } => assert_eq!(key, "till"),
+            other => panic!("expected Unreadable, got {:?}", other),
+        }
+    }
+}
