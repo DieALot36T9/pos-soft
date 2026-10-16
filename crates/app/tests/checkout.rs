@@ -113,7 +113,7 @@ fn chk_01_a_scan_adds_the_item_and_a_repeat_scan_merges() {
         (Qty(2000), Money(18_000))
     );
 
-    let mut checkout = CheckoutSettings::default_value();
+    let mut checkout = CheckoutSettings::default();
     checkout.merge_scans = false;
     settings_commands::settings_save(&state, &SettingsChange::Checkout(checkout)).expect("saved");
     let (view, third_line) = added(till::checkout_scan(&state, MILK_CODE).expect("scan"));
@@ -527,7 +527,7 @@ fn chk_21_stock_warns_or_blocks_by_the_setting() {
         Some(StockWarning::NotEnoughStock)
     );
 
-    let mut rules = InventorySettings::default_value();
+    let mut rules = InventorySettings::default();
     rules.allow_negative = false;
     settings_commands::settings_save(&state, &SettingsChange::Inventory(rules)).expect("saved");
     let result = till::checkout_scan(&state, "TEA-1");

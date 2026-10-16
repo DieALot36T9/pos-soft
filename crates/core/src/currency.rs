@@ -41,6 +41,21 @@ pub struct CurrencyFormat {
     pub grouping: Grouping,
 }
 
+impl Default for CurrencyFormat {
+    /// Bangladeshi taka, the first shops' currency: "৳12,34,567.50".
+    fn default() -> Self {
+        Self {
+            code: "BDT".to_string(),
+            symbol: "৳".to_string(),
+            symbol_before: true,
+            minor_digits: 2,
+            decimal_sep: ".".to_string(),
+            group_sep: ",".to_string(),
+            grouping: Grouping::Indian,
+        }
+    }
+}
+
 /// Shows an amount the way the shop writes money. Example: Money(123456750) → "৳12,34,567.50".
 pub fn format_money(amount: Money, format: &CurrencyFormat) -> String {
     // 18 digits is far more than any currency uses; the cap keeps the maths safe.

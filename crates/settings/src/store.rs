@@ -9,7 +9,7 @@ use crate::{Result, Setting, SettingsError};
 pub fn get<S: Setting>(conn: &Connection) -> Result<S> {
     match read_json(conn, S::KEY)? {
         Some(json) => decode(S::KEY, &json),
-        None => Ok(S::default_value()),
+        None => Ok(S::default()),
     }
 }
 

@@ -58,7 +58,7 @@ fn calls() -> Vec<(&'static str, Call)> {
             ok(settings_commands::settings_get(state))
         }),
         ("settings_save", |state, _| {
-            let change = SettingsChange::Credit(CreditSettings::default_value());
+            let change = SettingsChange::Credit(CreditSettings::default());
             ok(settings_commands::settings_save(state, &change))
         }),
         ("logs_set_detailed", |state, _| {

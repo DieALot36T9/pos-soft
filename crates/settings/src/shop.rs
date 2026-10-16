@@ -27,10 +27,6 @@ impl Default for LanguageSettings {
 impl Setting for LanguageSettings {
     const KEY: &'static str = "language";
 
-    fn default_value() -> LanguageSettings {
-        LanguageSettings::default()
-    }
-
     fn validate(&self) -> Result<(), AppError> {
         // ADR-022: only English is shipped in v1.0.
         if self.language != "en" {
@@ -77,10 +73,6 @@ impl Default for ShopProfile {
 impl Setting for ShopProfile {
     const KEY: &'static str = "shop_profile";
 
-    fn default_value() -> ShopProfile {
-        ShopProfile::default()
-    }
-
     fn validate(&self) -> Result<(), AppError> {
         if !is_filled(&self.name) {
             return Err(invalid("name", "shop_name_missing"));
@@ -119,10 +111,6 @@ impl Default for TaxSettings {
 impl Setting for TaxSettings {
     const KEY: &'static str = "tax";
 
-    fn default_value() -> TaxSettings {
-        TaxSettings::default()
-    }
-
     fn validate(&self) -> Result<(), AppError> {
         if !is_filled(&self.label) {
             return Err(invalid("label", "tax_label_missing"));
@@ -156,10 +144,6 @@ impl Default for TillSettings {
 
 impl Setting for TillSettings {
     const KEY: &'static str = "till";
-
-    fn default_value() -> TillSettings {
-        TillSettings::default()
-    }
 
     fn validate(&self) -> Result<(), AppError> {
         let code = &self.till_code;
@@ -223,10 +207,6 @@ impl Default for ReceiptSettings {
 
 impl Setting for ReceiptSettings {
     const KEY: &'static str = "receipt";
-
-    fn default_value() -> ReceiptSettings {
-        ReceiptSettings::default()
-    }
 
     fn validate(&self) -> Result<(), AppError> {
         if !(1..=3).contains(&self.copies) {

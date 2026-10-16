@@ -262,7 +262,7 @@ fn shf_07_an_admin_force_closes_and_the_cart_is_held() {
 #[test]
 fn shf_06_without_count_first_the_expected_cash_shows() {
     let (_folder, state) = shop();
-    let mut checkout = <settings::CheckoutSettings as settings::Setting>::default_value();
+    let mut checkout = <settings::CheckoutSettings as Default>::default();
     checkout.blind_close = false;
     app::commands::settings::settings_save(
         &state,

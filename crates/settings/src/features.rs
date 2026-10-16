@@ -36,10 +36,6 @@ impl Default for CheckoutSettings {
 impl Setting for CheckoutSettings {
     const KEY: &'static str = "checkout";
 
-    fn default_value() -> CheckoutSettings {
-        CheckoutSettings::default()
-    }
-
     fn validate(&self) -> Result<(), AppError> {
         if !(1..=120).contains(&self.idle_lock_min) {
             return Err(invalid("idle_lock_min", "idle_lock_out_of_range"));
@@ -93,10 +89,6 @@ impl Default for InventorySettings {
 impl Setting for InventorySettings {
     const KEY: &'static str = "inventory";
 
-    fn default_value() -> InventorySettings {
-        InventorySettings::default()
-    }
-
     fn validate(&self) -> Result<(), AppError> {
         if self.near_expiry_days > 365 {
             return Err(invalid("near_expiry_days", "near_expiry_days_out_of_range"));
@@ -136,10 +128,6 @@ impl Default for LoyaltySettings {
 
 impl Setting for LoyaltySettings {
     const KEY: &'static str = "loyalty";
-
-    fn default_value() -> LoyaltySettings {
-        LoyaltySettings::default()
-    }
 
     fn validate(&self) -> Result<(), AppError> {
         if self.spend_unit_minor.0 <= 0 {
@@ -185,10 +173,6 @@ impl Default for CreditSettings {
 
 impl Setting for CreditSettings {
     const KEY: &'static str = "credit";
-
-    fn default_value() -> CreditSettings {
-        CreditSettings::default()
-    }
 
     fn validate(&self) -> Result<(), AppError> {
         if self.default_limit_minor.0 < 0 {

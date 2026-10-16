@@ -97,10 +97,6 @@ impl Default for HardwareSettings {
 impl Setting for HardwareSettings {
     const KEY: &'static str = "hardware";
 
-    fn default_value() -> HardwareSettings {
-        HardwareSettings::default()
-    }
-
     fn validate(&self) -> Result<(), AppError> {
         if let Some(printer) = &self.receipt_printer
             && !printer.is_complete()
@@ -172,10 +168,6 @@ impl Default for ScaleRules {
 impl Setting for ScaleRules {
     const KEY: &'static str = "scale_barcode_rules";
 
-    fn default_value() -> ScaleRules {
-        ScaleRules::default()
-    }
-
     fn validate(&self) -> Result<(), AppError> {
         for rule in &self.0 {
             if !is_filled(&rule.name) {
@@ -208,10 +200,6 @@ impl Default for InternalBarcode {
 
 impl Setting for InternalBarcode {
     const KEY: &'static str = "internal_barcode";
-
-    fn default_value() -> InternalBarcode {
-        InternalBarcode::default()
-    }
 
     fn validate(&self) -> Result<(), AppError> {
         let prefix = &self.prefix;
@@ -253,10 +241,6 @@ impl Default for BackupSettings {
 impl Setting for BackupSettings {
     const KEY: &'static str = "backup";
 
-    fn default_value() -> BackupSettings {
-        BackupSettings::default()
-    }
-
     fn validate(&self) -> Result<(), AppError> {
         if !(1..=1440).contains(&self.interval_min) {
             return Err(invalid("interval_min", "backup_interval_out_of_range"));
@@ -278,10 +262,6 @@ pub struct LoggingSettings {
 
 impl Setting for LoggingSettings {
     const KEY: &'static str = "logging";
-
-    fn default_value() -> LoggingSettings {
-        LoggingSettings::default()
-    }
 
     fn validate(&self) -> Result<(), AppError> {
         Ok(())

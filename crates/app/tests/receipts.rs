@@ -87,7 +87,7 @@ fn broken_printer(state: &AppState) {
             receipt_printer: Some(PrinterConnection::File {
                 path: path.to_string_lossy().into_owned(),
             }),
-            ..HardwareSettings::default_value()
+            ..HardwareSettings::default()
         }),
     );
 }
@@ -97,7 +97,7 @@ fn preview_printer(state: &AppState) {
         state,
         SettingsChange::Hardware(HardwareSettings {
             receipt_printer: Some(PrinterConnection::Preview),
-            ..HardwareSettings::default_value()
+            ..HardwareSettings::default()
         }),
     );
 }
@@ -172,7 +172,7 @@ fn set_14_copies_print_the_receipt_again_and_open_the_drawer_once() {
         SettingsChange::Receipt(ReceiptSettings {
             copies: 2,
             paper_width: settings::PaperWidth::Mm58,
-            ..ReceiptSettings::default_value()
+            ..ReceiptSettings::default()
         }),
     );
 
@@ -474,7 +474,7 @@ fn hw_02_test_print_goes_to_the_saved_printer() {
             receipt_printer: Some(PrinterConnection::File {
                 path: file.to_string_lossy().into_owned(),
             }),
-            ..HardwareSettings::default_value()
+            ..HardwareSettings::default()
         }),
     );
 
@@ -497,7 +497,7 @@ fn hw_05_a_scale_in_the_settings_is_read_instead_of_the_fake_one() {
                 baud: 9600,
                 profile: "cas".into(),
             }),
-            ..HardwareSettings::default_value()
+            ..HardwareSettings::default()
         }),
     );
     let potato = product(&state, "POTATO-1");

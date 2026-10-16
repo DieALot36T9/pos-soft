@@ -4,7 +4,7 @@
 
 use iso_currency::{Currency, IntoEnumIterator};
 use pos_core::{
-    AppError, CurrencyFormat, Grouping, Money, RoundingAppliesTo, RoundingMode, RoundingRule,
+    AppError, CurrencyFormat, Grouping, Money, RoundingRule,
 };
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -14,19 +14,6 @@ use crate::setting::invalid;
 
 impl Setting for CurrencyFormat {
     const KEY: &'static str = "currency";
-
-    /// Bangladeshi taka, the first shops' currency: "৳12,34,567.50".
-    fn default_value() -> CurrencyFormat {
-        CurrencyFormat {
-            code: "BDT".to_string(),
-            symbol: "৳".to_string(),
-            symbol_before: true,
-            minor_digits: 2,
-            decimal_sep: ".".to_string(),
-            group_sep: ",".to_string(),
-            grouping: Grouping::Indian,
-        }
-    }
 
     // Locking `minor_digits` after the first sale is checked by `app` (rule SET-05).
     fn validate(&self) -> Result<(), AppError> {
@@ -66,15 +53,6 @@ fn is_plain_separator(separator: &str) -> bool {
 impl Setting for RoundingRule {
     const KEY: &'static str = "rounding";
 
-    /// Cash rounding is off until the shop switches it on.
-    fn default_value() -> RoundingRule {
-        RoundingRule {
-            increment_minor: Money::zero(),
-            mode: RoundingMode::Nearest,
-            applies_to: RoundingAppliesTo::CashOnly,
-        }
-    }
-
     fn validate(&self) -> Result<(), AppError> {
         if self.increment_minor.0 < 0 {
             return Err(invalid("increment_minor", "rounding_step_negative"));
@@ -91,11 +69,6 @@ pub struct Denominations(pub Vec<Money>);
 
 impl Setting for Denominations {
     const KEY: &'static str = "denominations";
-
-    /// Empty: the wizard fills it with `suggested_denominations` for the chosen currency.
-    fn default_value() -> Denominations {
-        Denominations::default()
-    }
 
     fn validate(&self) -> Result<(), AppError> {
         for (position, value) in self.0.iter().enumerate() {
@@ -248,14 +221,14 @@ mod tests {
     }
 
     fn currency_with(change: impl Fn(&mut CurrencyFormat)) -> CurrencyFormat {
-        let mut format = CurrencyFormat::default_value();
+        let mut format = CurrencyFormat::default();
         change(&mut format);
         format
     }
 
     #[test]
     fn set_05_default_currency_is_valid() {
-        assert!(CurrencyFormat::default_value().validate().is_ok());
+        assert!(CurrencyFormat::default().validate().is_ok());
     }
 
     #[test]
@@ -303,7 +276,7 @@ mod tests {
 
     #[test]
     fn set_06_rounding_step_cannot_be_negative() {
-        let mut rule = RoundingRule::default_value();
+        let mut rule = RoundingRule::default();
         assert!(rule.validate().is_ok());
         rule.increment_minor = Money(-1);
         assert_eq!(code_of(rule.validate()), "rounding_step_negative");

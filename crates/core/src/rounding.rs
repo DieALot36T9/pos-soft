@@ -68,6 +68,17 @@ pub struct RoundingRule {
     pub applies_to: RoundingAppliesTo,
 }
 
+impl Default for RoundingRule {
+    /// Cash rounding is off until the shop switches it on.
+    fn default() -> Self {
+        Self {
+            increment_minor: Money::zero(),
+            mode: RoundingMode::Nearest,
+            applies_to: RoundingAppliesTo::CashOnly,
+        }
+    }
+}
+
 /// Rounds an amount to the shop's cash step and returns the rounded amount.
 /// Example: 123.45 with step 1.00 and mode Nearest gives 123.00.
 pub fn cash_round(amount: Money, rule: &RoundingRule) -> Result<Money, AppError> {

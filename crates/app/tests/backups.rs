@@ -91,7 +91,7 @@ fn bak_02_a_broken_second_folder_warns_but_the_backup_is_made() {
     // Saved straight to the database: Settings would refuse this folder.
     let bad = BackupSettings {
         secondary_dir: Some(blocker.join("copies").to_string_lossy().into_owned()),
-        ..BackupSettings::default_value()
+        ..BackupSettings::default()
     };
     state
         .db

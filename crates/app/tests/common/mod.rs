@@ -111,13 +111,13 @@ pub fn last_audit(state: &AppState, action: &str) -> (Option<String>, Option<Str
 pub fn shop(name: &str) -> ShopProfile {
     ShopProfile {
         name: name.into(),
-        ..ShopProfile::default_value()
+        ..ShopProfile::default()
     }
 }
 
 pub fn money() -> MoneyStep {
     MoneyStep {
-        currency: CurrencyFormat::default_value(),
+        currency: CurrencyFormat::default(),
         rounding: RoundingRule {
             increment_minor: Money(100),
             mode: RoundingMode::Nearest,
@@ -165,7 +165,7 @@ pub fn finish_setup(state: &AppState) -> String {
         business_day_cutoff_hour: 4,
     };
     setup::save_till(state, &till).expect("till");
-    setup::save_backup(state, &BackupSettings::default_value()).expect("backup");
+    setup::save_backup(state, &BackupSettings::default()).expect("backup");
     let status = setup::finish(state).expect("finish");
     assert!(status.is_complete);
     created.recovery_code

@@ -9,7 +9,7 @@ use printing::{
     Fonts, PaymentLine, ReceiptData, ReceiptLayout, ReceiptLine, ShopHeader, TaxSummaryLine,
     logo_from_image, rasterize, receipt,
 };
-use settings::{PaperWidth, Setting};
+use settings::PaperWidth;
 
 use crate::receipt_words;
 
@@ -51,7 +51,7 @@ fn sample_layout(paper: printing::PaperWidth) -> Result<ReceiptLayout, AppError>
     let logo = logo_from_image(SAMPLE_LOGO, paper.dots() * 2 / 3)?;
     Ok(ReceiptLayout {
         paper,
-        currency: CurrencyFormat::default_value(),
+        currency: CurrencyFormat::default(),
         shop: ShopHeader {
             name: "Sample Shop".into(),
             address_lines: vec!["1 Market Road".into()],
