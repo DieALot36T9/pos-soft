@@ -36,7 +36,7 @@ pub(crate) struct ProgramOutput {
 /// Runs a program (e.g. `lp`), feeds it `input`, and stops it if it takes longer than `limit`.
 pub(crate) fn run_program(
     device: Device,
-    program: &str,
+    program: &'static str,
     args: &[&str],
     input: &[u8],
     limit: Duration,
