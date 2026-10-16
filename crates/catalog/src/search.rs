@@ -167,16 +167,24 @@ pub(crate) fn remove_search_row(tx: &Transaction, product_id: &Id) -> Result<(),
     Ok(())
 }
 
-/// Rewrites the search rows of every product that matches `where_sql`
+pub(crate) enum SearchTarget {
+    Category,
+    Brand,
+}
+
+/// Rewrites the search rows of every product that matches `target`
 /// (a condition on `catalog_products` with one `:id` parameter).
-pub(crate) fn refresh_search_rows_where(
+pub(crate) fn refresh_search_rows_for(
     tx: &Transaction,
-    where_sql: &str,
+    target: SearchTarget,
     id: &Id,
 ) -> Result<(), CatalogError> {
-    let sql = format!("SELECT id FROM catalog_products WHERE {where_sql}");
+    let sql = match target {
+        SearchTarget::Category => "SELECT id FROM catalog_products WHERE category_id = :id",
+        SearchTarget::Brand => "SELECT id FROM catalog_products WHERE brand_id = :id",
+    };
     let product_ids: Vec<Id> = tx
-        .prepare(&sql)?
+        .prepare(sql)?
         .query_map(named_params! { ":id": id.as_str() }, |row| read_id(row, 0))?
         .collect::<Result<_, _>>()?;
     for product_id in &product_ids {
