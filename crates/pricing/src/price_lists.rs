@@ -75,15 +75,37 @@ pub fn set_price_list_items(
     if items.iter().any(|item| item.price.0 < 0) {
         return Err(invalid("price", "price_negative"));
     }
-    let mut insert = tx.prepare_cached(
-        "INSERT INTO pricing_price_list_items (price_list_id, product_id, price_minor)
-         VALUES (:list, :product, :price)
-         ON CONFLICT (price_list_id, product_id) DO UPDATE SET price_minor = excluded.price_minor",
-    )?;
-    for item in items {
-        insert.execute(named_params! {
-            ":list": id.as_str(), ":product": item.product_id.as_str(), ":price": item.price.0,
-        })?;
+
+    let id_str = id.as_str();
+
+    // To borrow dynamically produced string slices safely, we can map `items` to keep strings in scope
+    let items_with_strs: Vec<(&str, &str, i64)> = items
+        .iter()
+        .map(|item| (id_str, item.product_id.as_str(), item.price.0))
+        .collect();
+
+    // Chunk size of 100 items (300 parameters) is well within SQLite's limit.
+    for chunk in items_with_strs.chunks(100) {
+        let mut query = String::from(
+            "INSERT INTO pricing_price_list_items (price_list_id, product_id, price_minor) VALUES ",
+        );
+        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(chunk.len() * 3);
+
+        for (i, (list_id, product_id, price)) in chunk.iter().enumerate() {
+            if i > 0 {
+                query.push_str(", ");
+            }
+            query.push_str("(?, ?, ?)");
+            params.push(list_id as &dyn rusqlite::ToSql);
+            params.push(product_id as &dyn rusqlite::ToSql);
+            params.push(price as &dyn rusqlite::ToSql);
+        }
+
+        query.push_str(
+            " ON CONFLICT (price_list_id, product_id) DO UPDATE SET price_minor = excluded.price_minor",
+        );
+
+        tx.execute(&query, rusqlite::params_from_iter(params))?;
     }
     Ok(())
 }
