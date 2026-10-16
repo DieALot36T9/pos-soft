@@ -7,7 +7,7 @@ use crate::checks::{check_category, check_exists, uncategorised};
 use crate::error::{CatalogError, conflict, invalid};
 use crate::lookup::category_path;
 use crate::rows::{clean_name, optional_id_text, read_id, read_optional_id, read_optional_time};
-use crate::search::refresh_search_rows_where;
+use crate::search::{refresh_search_rows_for, SearchTarget};
 use crate::types::{Brand, Category, CategoryFields};
 
 /// Adds a category, at the top or under an active parent.
@@ -53,7 +53,7 @@ pub fn update_category(
             ":sort": fields.sort,
         },
     )?;
-    refresh_search_rows_where(tx, "category_id = :id", category_id)
+    refresh_search_rows_for(tx, SearchTarget::Category, category_id)
 }
 
 /// Hides a category. Refused for "Uncategorised", and while it still has active
@@ -143,7 +143,7 @@ pub fn rename_brand(tx: &Transaction, brand_id: &Id, name: &str) -> Result<(), C
         "UPDATE catalog_brands SET name = :name WHERE id = :id",
         named_params! { ":id": brand_id.as_str(), ":name": name },
     )?;
-    refresh_search_rows_where(tx, "brand_id = :id", brand_id)
+    refresh_search_rows_for(tx, SearchTarget::Brand, brand_id)
 }
 
 /// Hides a brand from new products. Products that have it keep it.
