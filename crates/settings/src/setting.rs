@@ -7,13 +7,9 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 /// One typed setting, stored as one row of `settings_values`.
-pub trait Setting: Serialize + DeserializeOwned {
+pub trait Setting: Serialize + DeserializeOwned + Default {
     /// The row's key. Example: "till".
     const KEY: &'static str;
-
-    /// The value used until the shop saves its own. `CurrencyFormat` and `RoundingRule`
-    /// live in `core` without a `Default`, so this is a method instead of `Default`.
-    fn default_value() -> Self;
 
     /// Checks the value before it is saved. Returns an `AppError::Validation` naming the field.
     fn validate(&self) -> Result<(), AppError>;

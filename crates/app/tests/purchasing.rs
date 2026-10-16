@@ -197,7 +197,7 @@ fn pur_03_adr_018_no_stock_or_last_cost_takes_the_received_cost() {
         "no stock before: the received cost"
     );
 
-    let mut rules = InventorySettings::default_value();
+    let mut rules = InventorySettings::default();
     rules.cost_method = CostMethod::LastCost;
     settings_commands::settings_save(&state, &SettingsChange::Inventory(rules)).expect("saved");
     purchasing_commands::grn_save(

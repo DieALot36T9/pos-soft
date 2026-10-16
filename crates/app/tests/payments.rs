@@ -247,7 +247,7 @@ fn pay_07_completion_saves_everything_or_nothing() {
 
     // A step fails inside the transaction: stock runs out after the item was scanned.
     till::checkout_scan(&state, "ITEM-1").expect("scan");
-    let mut rules = InventorySettings::default_value();
+    let mut rules = InventorySettings::default();
     rules.allow_negative = false;
     settings_commands::settings_save(&state, &SettingsChange::Inventory(rules)).expect("saved");
     let mut out = app::workflows::stock::AdjustInput {

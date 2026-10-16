@@ -112,7 +112,7 @@ fn on_hand(state: &AppState, id: &Id) -> Qty {
 }
 
 fn set_inventory(state: &AppState, change: impl FnOnce(&mut InventorySettings)) {
-    let mut options = InventorySettings::default_value();
+    let mut options = InventorySettings::default();
     change(&mut options);
     settings_commands::settings_save(state, &SettingsChange::Inventory(options)).expect("saved");
 }

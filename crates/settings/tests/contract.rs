@@ -54,7 +54,7 @@ fn set_13_missing_keys_return_defaults() {
     assert_eq!(till.business_day_cutoff_hour, 4);
     assert_eq!(
         settings::get::<CurrencyFormat>(&connection).unwrap(),
-        CurrencyFormat::default_value()
+        CurrencyFormat::default()
     );
 }
 
@@ -112,7 +112,7 @@ fn set_05_four_minor_digits_are_refused() {
     let mut connection = test_db();
     let currency = CurrencyFormat {
         minor_digits: 4,
-        ..CurrencyFormat::default_value()
+        ..CurrencyFormat::default()
     };
     let error = save(&mut connection, &currency).unwrap_err();
     assert_eq!(validation_code(error), "minor_digits_out_of_range");

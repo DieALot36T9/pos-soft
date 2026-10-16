@@ -31,7 +31,7 @@ fn add_password_cashier(state: &app::state::AppState) {
 fn credit_change() -> SettingsChange {
     SettingsChange::Credit(CreditSettings {
         enabled: true,
-        ..CreditSettings::default_value()
+        ..CreditSettings::default()
     })
 }
 
@@ -99,7 +99,7 @@ fn set_05_currency_decimals_lock_once_a_sale_exists() {
     let state = start(folder.path());
     finish_setup(&state);
     let three_digits = |state: &app::state::AppState| {
-        let mut currency = CurrencyFormat::default_value();
+        let mut currency = CurrencyFormat::default();
         currency.minor_digits = 3;
         let change = SettingsChange::Money {
             currency,
@@ -124,7 +124,7 @@ fn set_05_currency_decimals_lock_once_a_sale_exists() {
             Ok(())
         })
         .expect("write");
-    let mut back = CurrencyFormat::default_value();
+    let mut back = CurrencyFormat::default();
     back.minor_digits = 2;
     let change = SettingsChange::Money {
         currency: back,
@@ -158,9 +158,9 @@ fn tax_10_a_rate_is_deactivated_not_deleted_and_audited() {
 
 #[test]
 fn set_05_money_preview_shows_the_format() {
-    let text = settings_commands::money_preview(&CurrencyFormat::default_value()).expect("preview");
+    let text = settings_commands::money_preview(&CurrencyFormat::default()).expect("preview");
     assert_eq!(text, "৳12,34,567.50");
-    let mut yen = CurrencyFormat::default_value();
+    let mut yen = CurrencyFormat::default();
     yen.minor_digits = 0;
     assert_eq!(
         settings_commands::money_preview(&yen).expect("preview"),

@@ -143,7 +143,7 @@ fn set_11_a_backup_folder_that_cannot_be_written_is_refused() {
     std::fs::write(&blocker, b"x").expect("file");
     let step = BackupSettings {
         primary_dir: blocker.join("backups").to_string_lossy().into_owned(),
-        ..BackupSettings::default_value()
+        ..BackupSettings::default()
     };
 
     let error = setup::save_backup(&state, &step).expect_err("refused");

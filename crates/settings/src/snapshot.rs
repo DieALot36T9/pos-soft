@@ -73,6 +73,6 @@ pub fn snapshot(conn: &Connection) -> Result<SettingsSnapshot> {
 fn pick<S: Setting>(stored: &BTreeMap<String, String>) -> Result<S> {
     match stored.get(S::KEY) {
         Some(json) => decode(S::KEY, json),
-        None => Ok(S::default_value()),
+        None => Ok(S::default()),
     }
 }
