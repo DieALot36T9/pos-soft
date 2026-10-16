@@ -204,3 +204,16 @@ fn cached_balance(connection: &Connection, supplier: &Id) -> Result<Money, Purch
     )?;
     Ok(Money(balance.unwrap_or(0)))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ledger_kind_as_str() {
+        assert_eq!(LedgerKind::Invoice.as_str(), "invoice");
+        assert_eq!(LedgerKind::Payment.as_str(), "payment");
+        assert_eq!(LedgerKind::ReturnCredit.as_str(), "return_credit");
+        assert_eq!(LedgerKind::Adjust.as_str(), "adjust");
+    }
+}
