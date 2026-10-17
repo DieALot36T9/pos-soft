@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 
@@ -121,24 +121,30 @@ export function CheckoutPage(props: CheckoutPageProps) {
       .catch(till.fail);
   };
 
-  const open = (name: DialogName, allowed: boolean) => () => {
-    if (allowed) {
-      setDialog(name);
-    }
-  };
+  const open = useCallback(
+    (name: DialogName, allowed: boolean) => () => {
+      if (allowed) {
+        setDialog(name);
+      }
+    },
+    [],
+  );
 
   const hasLines = lines.length > 0;
-  const removeSelected = () => {
+  const removeSelected = useCallback(() => {
     if (selectedLine) {
       void till.remove(selectedLine.line_id);
     }
-  };
+  }, [selectedLine, till]);
 
-  const stepQty = (step: 1 | -1) => {
-    if (selectedLine && selectedLine.unit_decimals === 0) {
-      void till.changeQty(selectedLine.line_id, selectedLine.qty + step * 1000);
-    }
-  };
+  const stepQty = useCallback(
+    (step: 1 | -1) => {
+      if (selectedLine && selectedLine.unit_decimals === 0) {
+        void till.changeQty(selectedLine.line_id, selectedLine.qty + step * 1000);
+      }
+    },
+    [selectedLine, till],
+  );
 
   const options = { enableOnFormTags: true, preventDefault: true, enabled: !busy && cart !== null };
   const deps = [selectedLine, hasLines, view, busy];
@@ -178,17 +184,117 @@ export function CheckoutPage(props: CheckoutPageProps) {
   useHotkeys(shortcuts.checkoutShift.keys, props.onShiftMenu, { ...options, enabled: !busy }, deps);
   useHotkeys(shortcuts.lock.keys, props.onLock, { ...options, enabled: !busy }, deps);
 
-  const showPrint = (result: PrintResult | null, reprintOf: string | null) => {
+  const handleSelectLine = useCallback(
+    (id: string) => {
+      till.setSelected(id);
+    },
+    [till],
+  );
+
+  const handleInspectLine = useCallback(
+    (id: string) => {
+      till.setSelected(id);
+      setLineEditOpen(true);
+    },
+    [till],
+  );
+
+  const handlePickProduct = useCallback(
+    (productId: string) => {
+      void till.pick(productId);
+    },
+    [till],
+  );
+
+  const memoizedScanBox = useMemo(
+    () => (
+      <ScanBox
+        inputRef={scanRef}
+        hits={till.hits}
+        setHits={till.setHits}
+        currency={
+          view?.currency ?? {
+            code: "",
+            minor_digits: 2,
+            decimal_sep: ".",
+            group_sep: "",
+            symbol: "",
+            symbol_before: true,
+            grouping: "western",
+          }
+        }
+        onSubmit={(text) => void till.scan(text)}
+        onEmptyEnter={open("payment", hasLines)}
+        onPick={(id) => void till.pick(id)}
+        onArrow={till.moveSelection}
+        onPlusMinus={stepQty}
+        onKey={() => {
+          till.clearProblem();
+          till.setRestored(false);
+          setRefundDone(null);
+        }}
+      />
+    ),
+    [till, view?.currency, hasLines, open, stepQty],
+  );
+
+  const showPrint = useCallback((result: PrintResult | null, reprintOf: string | null) => {
     setPrintFailed(result && !result.printed ? result : null);
     setReprinted(result?.printed && reprintOf !== null ? reprintOf : null);
-  };
+  }, []);
 
-  const reprint = (invoiceNo: string | null) => {
-    till.clearProblem();
-    (invoiceNo === null ? reprintLast() : reprintInvoice(invoiceNo))
-      .then((result) => showPrint(result, invoiceNo ?? ""))
-      .catch(till.fail);
-  };
+  const reprint = useCallback(
+    (invoiceNo: string | null) => {
+      till.clearProblem();
+      (invoiceNo === null ? reprintLast() : reprintInvoice(invoiceNo))
+        .then((result) => showPrint(result, invoiceNo ?? ""))
+        .catch(till.fail);
+    },
+    [till, showPrint],
+  );
+
+  const memoizedActionBar = useMemo(
+    () => (
+      <ButtonBar
+        hasLines={hasLines}
+        hasSelection={selectedLine !== null}
+        hasPriceLists={(view?.price_lists?.length ?? 0) > 0}
+        heldCount={view?.held_count ?? 0}
+        canReprintAny={props.session.permissions.includes("receipt_reprint_any")}
+        onSearch={() => scanRef.current?.focus()}
+        onCustomer={open("customer", cart !== null)}
+        onQty={open("qty", selectedLine !== null)}
+        onDiscount={open("discount", selectedLine !== null)}
+        onInvoiceDiscount={open("invoiceDiscount", hasLines)}
+        onPrice={open("price", selectedLine !== null)}
+        onPriceList={open("priceList", (view?.price_lists?.length ?? 0) > 0)}
+        onHold={open("hold", hasLines)}
+        onHeld={open("held", (view?.held_count ?? 0) > 0)}
+        onRemove={removeSelected}
+        onCancel={open("cancel", hasLines)}
+        onReprint={() => reprint(null)}
+        onOldReceipt={open("reprint", true)}
+        onReturn={open("return", cart !== null)}
+        onShift={props.onShiftMenu}
+        onLock={props.onLock}
+        onBackOffice={props.onBackOffice}
+      />
+    ),
+    [
+      hasLines,
+      selectedLine,
+      view?.price_lists?.length,
+      view?.held_count,
+      props.session.permissions,
+      open,
+      cart,
+      removeSelected,
+      reprint,
+      props.onShiftMenu,
+      props.onLock,
+      props.onBackOffice,
+    ],
+  );
 
   useHotkeys(
     shortcuts.checkoutReprint.keys,
@@ -240,51 +346,9 @@ export function CheckoutPage(props: CheckoutPageProps) {
           <div className="flex-[3] flex flex-col h-full overflow-hidden">
             <ProductCatalogPane
               currency={view.currency}
-              onPickProduct={(productId) => void till.pick(productId)}
-              scanBoxSlot={
-                <ScanBox
-                  inputRef={scanRef}
-                  hits={till.hits}
-                  setHits={till.setHits}
-                  currency={view.currency}
-                  onSubmit={(text) => void till.scan(text)}
-                  onEmptyEnter={open("payment", hasLines)}
-                  onPick={(id) => void till.pick(id)}
-                  onArrow={till.moveSelection}
-                  onPlusMinus={stepQty}
-                  onKey={() => {
-                    till.clearProblem();
-                    till.setRestored(false);
-                    setRefundDone(null);
-                  }}
-                />
-              }
-              actionBarSlot={
-                <ButtonBar
-                  hasLines={hasLines}
-                  hasSelection={selectedLine !== null}
-                  hasPriceLists={view.price_lists.length > 0}
-                  heldCount={view.held_count}
-                  canReprintAny={props.session.permissions.includes("receipt_reprint_any")}
-                  onSearch={() => scanRef.current?.focus()}
-                  onCustomer={open("customer", cart !== null)}
-                  onQty={open("qty", selectedLine !== null)}
-                  onDiscount={open("discount", selectedLine !== null)}
-                  onInvoiceDiscount={open("invoiceDiscount", hasLines)}
-                  onPrice={open("price", selectedLine !== null)}
-                  onPriceList={open("priceList", view.price_lists.length > 0)}
-                  onHold={open("hold", hasLines)}
-                  onHeld={open("held", view.held_count > 0)}
-                  onRemove={removeSelected}
-                  onCancel={open("cancel", hasLines)}
-                  onReprint={() => reprint(null)}
-                  onOldReceipt={open("reprint", true)}
-                  onReturn={open("return", cart !== null)}
-                  onShift={props.onShiftMenu}
-                  onLock={props.onLock}
-                  onBackOffice={props.onBackOffice}
-                />
-              }
+              onPickProduct={handlePickProduct}
+              scanBoxSlot={memoizedScanBox}
+              actionBarSlot={memoizedActionBar}
             />
           </div>
 
@@ -327,13 +391,8 @@ export function CheckoutPage(props: CheckoutPageProps) {
                 selected={till.selected}
                 flash={till.flash}
                 priceChanged={till.priceChanged}
-                onSelect={(id) => {
-                  till.setSelected(id);
-                }}
-                onInspectLine={(id) => {
-                  till.setSelected(id);
-                  setLineEditOpen(true);
-                }}
+                onSelect={handleSelectLine}
+                onInspectLine={handleInspectLine}
               />
             </div>
 
