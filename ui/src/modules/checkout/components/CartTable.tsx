@@ -7,6 +7,7 @@ import {
   SlidersHorizontal,
   Tag,
 } from "lucide-react";
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { CartLineView } from "../../../generated/CartLineView";
@@ -31,7 +32,7 @@ type CartTableProps = {
 
 // The cart lines: product, quantity, price and amount, all as Rust sent them.
 // Blue is the selected line, purple a discount, amber a stock warning (Checkout Screen).
-export function CartTable({
+export const CartTable = memo(function CartTable({
   lines,
   currency,
   selected,
@@ -174,4 +175,4 @@ export function CartTable({
       </tbody>
     </table>
   );
-}
+});

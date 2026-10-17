@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { Grid, Package, Search } from "lucide-react";
 import type { CurrencyFormat } from "../../../generated/CurrencyFormat";
 import type { SaleHit } from "../../../generated/SaleHit";
@@ -16,7 +16,7 @@ const noMatchingTilesTitle = "No matching product tiles";
 const noMatchingTilesIntro = "Scan any barcode above or clear the tile filter.";
 const scaleIcon = "⚖";
 
-export function ProductCatalogPane({
+export const ProductCatalogPane = memo(function ProductCatalogPane({
   currency,
   onPickProduct,
   scanBoxSlot,
@@ -200,4 +200,4 @@ export function ProductCatalogPane({
       <div className="p-2.5 bg-panel border-t border-border shrink-0">{actionBarSlot}</div>
     </section>
   );
-}
+});
