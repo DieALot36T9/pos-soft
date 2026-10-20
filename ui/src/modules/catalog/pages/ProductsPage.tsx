@@ -1,5 +1,5 @@
 import { Archive, CheckCircle, ChevronLeft, ChevronRight, FolderOpen, Plus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ProductChoices } from "../../../generated/ProductChoices";
@@ -73,6 +73,26 @@ export function ProductsPage() {
     setOffset(0);
   };
 
+  // ⚡ Bolt: Memoize options to prevent expensive recomputation (categoryPaths) on every keystroke in search text field
+  const categoryOptions = useMemo(() => {
+    if (!choices) return [];
+    return [
+      { value: "", label: t("products.anyCategory") },
+      ...categoryPaths(choices.categories).map((each) => ({
+        value: each.id,
+        label: each.path,
+      })),
+    ];
+  }, [choices, t]);
+
+  const brandOptions = useMemo(() => {
+    if (!choices) return [];
+    return [
+      { value: "", label: t("products.anyBrand") },
+      ...choices.brands.map((brand) => ({ value: brand.id, label: brand.name })),
+    ];
+  }, [choices, t]);
+
   if (!choices) {
     return problem ? <Alert kind="problem">{problem}</Alert> : null;
   }
@@ -122,23 +142,14 @@ export function ProductsPage() {
             label={t("products.category.label")}
             tip={t("products.category.tip")}
             value={categoryId}
-            options={[
-              { value: "", label: t("products.anyCategory") },
-              ...categoryPaths(choices.categories).map((each) => ({
-                value: each.id,
-                label: each.path,
-              })),
-            ]}
+            options={categoryOptions}
             onChange={(picked) => filterBy(() => setCategoryId(picked))}
           />
           <SelectField
             label={t("products.brand.label")}
             tip={t("products.brand.tip")}
             value={brandId}
-            options={[
-              { value: "", label: t("products.anyBrand") },
-              ...choices.brands.map((brand) => ({ value: brand.id, label: brand.name })),
-            ]}
+            options={brandOptions}
             onChange={(picked) => filterBy(() => setBrandId(picked))}
           />
         </div>
