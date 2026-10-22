@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useTranslation } from "react-i18next";
 
@@ -215,6 +215,21 @@ export function CheckoutPage(props: CheckoutPageProps) {
   const afterHeld = (heldCount: number) =>
     till.setView((old) => (old ? { ...old, held_count: heldCount } : old));
 
+  const onSelectLine = useCallback(
+    (id: string) => {
+      till.setSelected(id);
+    },
+    [till],
+  );
+
+  const onInspectLine = useCallback(
+    (id: string) => {
+      till.setSelected(id);
+      setLineEditOpen(true);
+    },
+    [till, setLineEditOpen],
+  );
+
   if (till.loadFailed) {
     return <Alert kind="problem">{till.loadFailed}</Alert>;
   }
@@ -327,13 +342,8 @@ export function CheckoutPage(props: CheckoutPageProps) {
                 selected={till.selected}
                 flash={till.flash}
                 priceChanged={till.priceChanged}
-                onSelect={(id) => {
-                  till.setSelected(id);
-                }}
-                onInspectLine={(id) => {
-                  till.setSelected(id);
-                  setLineEditOpen(true);
-                }}
+                onSelect={onSelectLine}
+                onInspectLine={onInspectLine}
               />
             </div>
 

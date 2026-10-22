@@ -1,0 +1,3 @@
+## 2023-10-22 - [React.memo and useCallback optimization on CartTable]
+**Learning:** React performance in this codebase can be significantly improved by wrapping expensive components like tables (e.g. CartTable) in React.memo and ensuring inline callbacks are wrapped in useCallback. Also, watch out for missing hook dependencies according to React's exhaustive-deps rule.
+**Action:** When adding React.memo to a component that accepts callback functions, ensure all passed callbacks are wrapped in useCallback in the parent component, and verify all dependencies required by the hooks are specified. Use `pnpm --filter ui lint` to verify hook dependencies.
