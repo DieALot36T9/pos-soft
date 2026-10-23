@@ -72,18 +72,40 @@ pub fn set_price_list_items(
     items: &[PriceListItem],
 ) -> Result<(), PricingError> {
     require_price_list(tx, id)?;
+    if items.is_empty() {
+        return Ok(());
+    }
     if items.iter().any(|item| item.price.0 < 0) {
         return Err(invalid("price", "price_negative"));
     }
-    let mut insert = tx.prepare_cached(
-        "INSERT INTO pricing_price_list_items (price_list_id, product_id, price_minor)
-         VALUES (:list, :product, :price)
-         ON CONFLICT (price_list_id, product_id) DO UPDATE SET price_minor = excluded.price_minor",
-    )?;
-    for item in items {
-        insert.execute(named_params! {
-            ":list": id.as_str(), ":product": item.product_id.as_str(), ":price": item.price.0,
-        })?;
+
+    // Process in batches of 300 to stay safely under sqlite limits
+    // (max parameters per query is historically 999, so 300 items * 3 params = 900 params)
+    for chunk in items.chunks(300) {
+        let mut sql = String::from(
+            "INSERT INTO pricing_price_list_items (price_list_id, product_id, price_minor) VALUES ",
+        );
+        for i in 0..chunk.len() {
+            if i > 0 {
+                sql.push_str(", ");
+            }
+            sql.push_str("(?, ?, ?)");
+        }
+        sql.push_str(" ON CONFLICT (price_list_id, product_id) DO UPDATE SET price_minor = excluded.price_minor");
+
+        let mut stmt = tx.prepare(&sql)?;
+
+        let id_str = id.as_str();
+        // pre-convert things to strings to avoid creating owned String inside the loop
+        let product_ids: Vec<&str> = chunk.iter().map(|i| i.product_id.as_str()).collect();
+
+        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(chunk.len() * 3);
+        for (idx, item) in chunk.iter().enumerate() {
+            params.push(&id_str);
+            params.push(&product_ids[idx]);
+            params.push(&item.price.0);
+        }
+        stmt.execute(rusqlite::params_from_iter(params))?;
     }
     Ok(())
 }
