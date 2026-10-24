@@ -8,6 +8,9 @@ import { searchProducts } from "../api";
 
 type CategoryTab = "HIDDEN" | "ALL" | "WEIGHED" | "LOW_STOCK";
 
+// Search-as-you-type waits this long after the last key to avoid spamming the backend.
+const SEARCH_WAIT_MS = 80;
+
 const quickTouchCatalogTitle = "Quick Touch Catalog";
 const quickTouchCatalogIntro =
   "Scan any barcode above, or select a category tab (`All Product Tiles`, `⚖ Weighed / Fresh`) to browse touch tiles.";
@@ -38,15 +41,19 @@ export function ProductCatalogPane({
       return;
     }
     let cancelled = false;
-    searchProducts(quickFilter.trim())
-      .then((res) => {
-        if (!cancelled) setItems(res);
-      })
-      .catch(() => {
-        if (!cancelled) setItems([]);
-      });
+    const timer = window.setTimeout(() => {
+      searchProducts(quickFilter.trim())
+        .then((res) => {
+          if (!cancelled) setItems(res);
+        })
+        .catch(() => {
+          if (!cancelled) setItems([]);
+        });
+    }, SEARCH_WAIT_MS);
+
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [quickFilter, isHidden]);
 
