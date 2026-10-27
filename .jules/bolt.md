@@ -1,0 +1,3 @@
+## 2023-10-27 - Rebuilding FTS Index N+1 Bottleneck
+**Learning:** In SQLite, rebuilding or inserting multiple rows iteratively using prepared statements (an N+1 query loop from Rust) can be a severe performance bottleneck, even inside a single transaction. Calling a function like `refresh_search_row` per product when there are thousands of products significantly impacts performance because it crosses the FFI boundary back and forth thousands of times.
+**Action:** When rebuilding or copying large amounts of data (like regenerating an entire search index/FTS table), prefer pushing the entire workload to SQLite via `rusqlite::Transaction::execute_batch` with `INSERT INTO ... SELECT ...` queries, ensuring the operation executes quickly inside the database engine.
