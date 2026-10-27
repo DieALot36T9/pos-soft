@@ -188,14 +188,24 @@ pub(crate) fn refresh_search_rows_where(
 /// Rebuilds the whole search table from the products. Use it after a restore or
 /// if search results ever look wrong.
 pub fn rebuild_search(tx: &Transaction) -> Result<(), CatalogError> {
-    tx.execute_batch("DELETE FROM catalog_search_rows; DELETE FROM catalog_search;")?;
-    let product_ids: Vec<Id> = tx
-        .prepare("SELECT id FROM catalog_products")?
-        .query_map([], |row| read_id(row, 0))?
-        .collect::<Result<_, _>>()?;
-    for product_id in &product_ids {
-        refresh_search_row(tx, product_id)?;
-    }
+    // ⚡ Bolt: Optimize search index rebuild to eliminate N+1 query bottleneck.
+    // Pushing the bulk insert workload entirely to SQLite is much faster than looping
+    // over every product and calling refresh_search_row (which causes an N+1 issue).
+    tx.execute_batch(
+        &format!("DELETE FROM catalog_search_rows;
+         DELETE FROM catalog_search;
+         INSERT INTO catalog_search (product_id, name, sku, barcodes, category, brand)
+         SELECT p.id, p.name, p.sku,
+                COALESCE((SELECT group_concat(code, ' ') FROM catalog_barcodes
+                          WHERE product_id = p.id), ''),
+                c.name, COALESCE(b.name, '')
+         FROM catalog_products p
+         JOIN catalog_categories c ON c.id = p.category_id
+         LEFT JOIN catalog_brands b ON b.id = p.brand_id
+         WHERE {SELLABLE};
+         INSERT INTO catalog_search_rows (product_id, search_rowid)
+         SELECT product_id, rowid FROM catalog_search;")
+    )?;
     Ok(())
 }
 
