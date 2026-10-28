@@ -17,6 +17,16 @@ const HIT_COLUMNS: &str = "p.id, p.name, p.sku, p.sale_price_minor, u.symbol, p.
 /// Products that can be sold: not archived and not a variant parent (rules CAT-08, CHK-15).
 pub(crate) const SELLABLE: &str = "p.archived_at IS NULL AND p.kind <> 'variant_parent'";
 
+const SEARCH_ROW_SELECT: &str = "
+    SELECT p.id, p.name, p.sku,
+           COALESCE((SELECT group_concat(code, ' ') FROM catalog_barcodes
+                     WHERE product_id = p.id), ''),
+           c.name, COALESCE(b.name, '')
+    FROM catalog_products p
+    JOIN catalog_categories c ON c.id = p.category_id
+    LEFT JOIN catalog_brands b ON b.id = p.brand_id
+";
+
 /// Rule CAT-05: finds products by name, SKU, barcode, category or brand.
 /// Each word matches as a prefix ("mil" finds "Milk"). An exact barcode or SKU comes first.
 pub fn search(
@@ -128,14 +138,8 @@ pub(crate) fn refresh_search_row(tx: &Transaction, product_id: &Id) -> Result<()
     let added = tx
         .prepare_cached(&format!(
             "INSERT INTO catalog_search (product_id, name, sku, barcodes, category, brand)
-         SELECT p.id, p.name, p.sku,
-                COALESCE((SELECT group_concat(code, ' ') FROM catalog_barcodes
-                          WHERE product_id = p.id), ''),
-                c.name, COALESCE(b.name, '')
-         FROM catalog_products p
-         JOIN catalog_categories c ON c.id = p.category_id
-         LEFT JOIN catalog_brands b ON b.id = p.brand_id
-         WHERE p.id = :product_id AND {SELLABLE}"
+             {SEARCH_ROW_SELECT}
+             WHERE p.id = :product_id AND {SELLABLE}"
         ))?
         .execute(named_params! { ":product_id": product_id.as_str() })?;
     if added == 1 {
@@ -188,14 +192,18 @@ pub(crate) fn refresh_search_rows_where(
 /// Rebuilds the whole search table from the products. Use it after a restore or
 /// if search results ever look wrong.
 pub fn rebuild_search(tx: &Transaction) -> Result<(), CatalogError> {
-    tx.execute_batch("DELETE FROM catalog_search_rows; DELETE FROM catalog_search;")?;
-    let product_ids: Vec<Id> = tx
-        .prepare("SELECT id FROM catalog_products")?
-        .query_map([], |row| read_id(row, 0))?
-        .collect::<Result<_, _>>()?;
-    for product_id in &product_ids {
-        refresh_search_row(tx, product_id)?;
-    }
+    // Optimization: Rebuild search using a single batch insert instead of iterating row by row.
+    tx.execute_batch(&format!("
+        DELETE FROM catalog_search_rows;
+        DELETE FROM catalog_search;
+
+        INSERT INTO catalog_search (product_id, name, sku, barcodes, category, brand)
+        {SEARCH_ROW_SELECT}
+        WHERE {SELLABLE};
+
+        INSERT INTO catalog_search_rows (product_id, search_rowid)
+        SELECT product_id, rowid FROM catalog_search;
+    "))?;
     Ok(())
 }
 
